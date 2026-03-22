@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   site: 'https://brunoh6.github.io',
-  base: '/wretched-wasp',
+  base: '/wretched-wasp/', // 👈 CRÍTICO
 
   output: 'static',
 
