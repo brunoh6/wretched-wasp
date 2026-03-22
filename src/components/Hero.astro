@@ -1,0 +1,46 @@
+---
+
+import SearchBar from "./SearchBar.astro";
+
+const {
+  title,
+  subtitle,
+  ctaLabel,
+  ctaHref,
+  image = "/assets/hero-placeholder.jpg"
+} = Astro.props;
+---
+
+<section class="relative overflow-hidden bg-gray-900 text-white min-h-[60vh] md:min-h-[70vh] flex items-center">
+  
+  <!-- Imagen -->
+  <img
+    src={image}
+    alt=""
+    class="absolute inset-0 h-full w-full object-cover opacity-30"
+    loading="eager"
+  />
+
+  <!-- Overlay -->
+  <div class="absolute inset-0 bg-black/40"></div>
+
+  <!-- Contenido -->
+  <div class="relative mx-auto max-w-7xl px-6 py-36 text-center">
+    <h1 class="text-4xl md:text-5xl font-bold">{title}</h1>
+
+    {subtitle && (
+      <p class="mt-6 text-lg text-gray-200 max-w-2xl mx-auto">
+        {subtitle}
+      </p>
+    )}
+
+    {ctaLabel && ctaHref && (
+      <a
+        href={ctaHref}
+        class="inline-block mt-8 rounded bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-200 transition"
+      >
+        {ctaLabel}
+      </a>
+    )}
+  </div>
+</section>

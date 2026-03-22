@@ -1,0 +1,252 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import Section from "../components/Section.astro";
+import ProductCard from "../components/ProductCard.astro";
+import ServiceCard from "../components/ServiceCard.astro";
+import BrandGrid from "../components/BrandGrid.astro";
+import BrandCarousel from "../components/BrandCarousel.astro";
+import ProductFeatureCard from "../components/ProductFeatureCard.astro";
+import ContactForm from "../components/ContactForm.astro";
+---
+
+<!-- <BaseLayout
+  title="H & C"
+  description="Distribución de productos industriales y servicios especializados en soldadura por termofusión y electrofusión."
+> -->
+  <!-- HERO -->
+  <!-- <Hero
+    title="Distribuciones e Importaciones, H & C"
+    subtitle="Diversos productos en tubosistemas y conexiones."
+    ctaLabel="Contáctanos"
+    ctaHref="/contacto"
+	image="/assets/hero/home.png"
+  /> -->
+
+	<!-- EMPRESA -->
+	<!-- <Section title="Nuestra Empresa">
+  		<div class="grid md:grid-cols-2 gap-10 items-center"> -->
+    		<!-- Imagen -->
+    		<!-- <img
+      			src="/assets/hero/empresa.png"
+      			alt="Nuestra empresa"
+      			class="rounded-lg object-cover w-full h-80"
+      			loading="lazy"
+    		/> -->
+
+    		<!-- Texto -->
+    		<!-- <div class="space-y-4">
+      			<p class="text-gray-700">
+        			H&C es la principal distribuidora e importadora de productos de alta calidad para diversas industrias en Perú.
+      			</p>
+
+      			<p class="text-gray-700">
+        			Ofrecemos una amplia <b>gama de productos</b>, que incluye planchas y perfiles de PVC-CPVC-HDPE-PPE, Teflón, tubos, conexiones PVC, polietileno, propileno, pegamento y válvulas de PVC, así como también fierro fundido.
+      			</p>
+
+      			<a href="/empresa" class="inline-block mt-4 border px-5 py-3 text-sm font-medium hover:bg-gray-900 hover:text-white transition">Conócenos</a>
+    		</div>
+  		</div>
+	</Section> -->
+
+<!-- PRODUCTOS -->
+<!-- <Section title="Nuestros Productos">
+  <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+    <ProductFeatureCard
+      title="Tubos"
+      image="/assets/products/product3.png"
+      description="Soluciones para conducción de fluidos en aplicaciones industriales."
+      features={[
+        "HDPE / PP / PVC",
+        "Desde 1/2” hasta 24”",
+        "Obras hidráulicas e industriales"
+      ]}
+    />
+
+    <ProductFeatureCard
+      title="Conexiones"
+      image="/assets/products/product2.png"
+      description="Accesorios certificados para uniones seguras y duraderas."
+      features={[
+        "Termofusión y Electrofusión",
+        "Alta resistencia química",
+        "Instalaciones críticas"
+      ]}
+    />
+
+    <ProductFeatureCard
+      title="Válvulas"
+      image="/assets/products/product1.png"
+      description="Control y regulación de flujo con máxima confiabilidad."
+      features={[
+        "Manual e industrial",
+        "Alta presión",
+        "Procesos técnicos"
+      ]}
+    />
+  </div>
+
+  <a
+    href="/productos"
+    class="inline-block mt-8 rounded border px-5 py-3 text-sm font-medium hover:bg-gray-900 hover:text-white transition"
+  >
+    Ver todos los productos
+  </a>
+</Section> -->
+
+<!-- SERVICIOS -->
+<!-- <Section title="Servicios especializados">
+  <div class="grid md:grid-cols-2 gap-10">
+    <ServiceCard
+      title="Soldadura por Termofusión"
+      description="Servicio especializado para la unión de tuberías plásticas, garantizando resistencia, durabilidad y seguridad."
+      image="/assets/services/termofusion.png"
+    />
+
+    <ServiceCard
+      title="Soldadura por Electrofusión"
+      description="Técnica precisa y eficiente para instalaciones industriales que requieren alta confiabilidad."
+      image="/assets/services/electrofusion.png"
+    />
+  </div>
+
+  <a
+    href="/servicios"
+    class="inline-block mt-8 border px-5 py-3 text-sm font-medium hover:bg-gray-900 hover:text-white transition"
+  >
+    Ver nuestros servicios
+  </a>
+</Section> -->
+
+<!-- MARCAS -->
+<!-- <Section title="Trabajamos con las mejores marcas">
+  <BrandCarousel
+    brands={[
+      { name: "+GF+", logo: "/assets/brands/gf.png" },
+      { name: "Hakan Plastik", logo: "/assets/brands/hakan.png" },
+      { name: "Leister", logo: "/assets/brands/leister.png" },
+	  { name: "Simona", logo: "/assets/brands/simona.png" },
+	  { name: "Victaulic", logo: "/assets/brands/victaulic.png" },
+	  { name: "Integrity", logo: "/assets/brands/integrity.png" },
+	  { name: "Arrow", logo: "/assets/brands/arrow.png" },
+	  { name: "Cepex", logo: "/assets/brands/cepex.png" },
+	  { name: "Cim", logo: "/assets/brands/cim.png" },
+	  { name: "Era", logo: "/assets/brands/era.png" }
+    ]}
+  />
+</Section>
+</BaseLayout> -->
+
+<BaseLayout
+  title="H & C"
+  description="Distribución de productos industriales y servicios especializados."
+>
+
+  <!-- 1️⃣ HERO -->
+  <Hero
+    title="Distribuciones e Importaciones, H & C"
+    subtitle="Diversos productos en tubosistemas y conexiones."
+    ctaLabel="Contáctanos"
+    ctaHref="/contacto"
+    image="/assets/hero/home.png"
+  />
+
+  <!-- 2️⃣ SERVICIOS DESTACADOS -->
+  <Section title="Servicios Especializados en Soldadura Industrial">
+    <div class="grid md:grid-cols-2 gap-10">
+      <ServiceCard
+        title="Soldadura por Termofusión"
+        description="Unión de tuberías plásticas con máxima resistencia y seguridad."
+        image="/assets/services/termofusion.png"
+      />
+
+      <ServiceCard
+        title="Soldadura por Electrofusión"
+        description="Instalaciones industriales con alta precisión y confiabilidad."
+        image="/assets/services/electrofusion.png"
+      />
+    </div>
+  </Section>
+
+  <!-- 3️⃣ MARCAS -->
+  <Section class="bg-gray-100 py-20" title="Distribuimos las mejores marcas">
+    <BrandCarousel
+      brands={[
+      { name: "+GF+", logo: "/assets/brands/gf.png" },
+      { name: "Hakan Plastik", logo: "/assets/brands/hakan.png" },
+      { name: "Leister", logo: "/assets/brands/leister.png" },
+	  { name: "Simona", logo: "/assets/brands/simona.png" },
+	  { name: "Victaulic", logo: "/assets/brands/victaulic.png" },
+	  { name: "Integrity", logo: "/assets/brands/integrity.png" },
+	  { name: "Arrow", logo: "/assets/brands/arrow.png" },
+	  { name: "Cepex", logo: "/assets/brands/cepex.png" },
+	  { name: "Cim", logo: "/assets/brands/cim.png" },
+	  { name: "Era", logo: "/assets/brands/era.png" }
+    ]}
+    />
+  </Section>
+
+  <!-- 4️⃣ EMPRESA -->
+<Section title="Nuestra Empresa">
+  <div class="grid md:grid-cols-2 gap-16 items-center">
+
+    <div class="relative">
+      <img
+        src="/assets/hero/empresa.png"
+        alt="Nuestra empresa"
+        class="rounded-lg object-cover w-full h-[420px] shadow-lg"
+      />
+    </div>
+
+    <div class="space-y-6">
+      <p class="text-gray-700 leading-relaxed">
+        H&C es una empresa especializada en la distribución de soluciones industriales...
+      </p>
+
+      <p class="text-gray-700 leading-relaxed">
+        Trabajamos con marcas certificadas y ofrecemos asesoría técnica personalizada...
+      </p>
+
+      <a
+        href="/empresa"
+        class="inline-block mt-4 border px-6 py-3 text-sm font-medium hover:bg-gray-900 hover:text-white transition"
+      >
+        Conócenos
+      </a>
+    </div>
+  </div>
+</Section>
+
+  <!-- 5️⃣ MISIÓN Y VISIÓN (NUEVO EN HOME) -->
+<Section title="Misión y Visión">
+  <div class="grid md:grid-cols-2 gap-10">
+
+    <div class="p-8 bg-gray-100 rounded-lg shadow-sm hover:shadow-md transition">
+      <h3 class="text-xl font-semibold mb-4">Misión</h3>
+      <p class="text-gray-700 leading-relaxed">
+        Proveer productos industriales de alta calidad...
+      </p>
+    </div>
+
+    <div class="p-8 bg-gray-100 rounded-lg shadow-sm hover:shadow-md transition">
+      <h3 class="text-xl font-semibold mb-4">Visión</h3>
+      <p class="text-gray-700 leading-relaxed">
+        Consolidarnos como referente en soluciones industriales...
+      </p>
+    </div>
+
+  </div>
+</Section>
+
+  <!-- 6️⃣ FORMULARIO -->
+<section class="bg-gray-100 py-20">
+  <div class="mx-auto max-w-4xl px-6 bg-white p-12 rounded-lg shadow-lg">
+    <h2 class="text-3xl font-semibold mb-8 text-center">
+      Solicita información
+    </h2>
+
+    <ContactForm />
+  </div>
+</section>
+
+</BaseLayout>

@@ -1,0 +1,61 @@
+---
+const {
+  title,
+  image,
+  description,
+  features = []
+} = Astro.props;
+---
+
+<div
+  class="
+    product-card
+    opacity-0
+    transition-all
+    duration-700
+    ease-out
+    will-change-transform
+  "
+  data-animate
+>
+  <div class="group relative overflow-hidden rounded-xl shadow-md bg-white transition-transform duration-300 hover:-translate-y-1">
+    
+    <!-- Imagen -->
+    <img
+      src={image}
+      alt={title}
+      class="w-full h-56 object-cover"
+      loading="lazy"
+    />
+
+    <!-- Overlay hover -->
+    <div
+      class="
+        absolute inset-0
+        bg-black/70
+        text-white
+        opacity-0
+        group-hover:opacity-100
+        transition-opacity
+        duration-300
+        p-6
+        flex flex-col justify-center
+      "
+    >
+      <h3 class="text-xl font-semibold mb-3">{title}</h3>
+      <p class="text-sm mb-4">{description}</p>
+
+      {features.length > 0 && (
+        <ul class="text-sm space-y-1">
+          {features.map(item => <li>• {item}</li>)}
+        </ul>
+      )}
+    </div>
+
+    <!-- Base title -->
+    <div class="p-4">
+      <h3 class="text-lg font-semibold text-gray-900">{title}</h3>
+    </div>
+
+  </div>
+</div>

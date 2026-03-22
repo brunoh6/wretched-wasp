@@ -1,0 +1,40 @@
+---
+const { brands } = Astro.props;
+---
+
+<div class="relative h-64 overflow-hidden">
+  <div class="brand-track-vertical">
+    {[...brands, ...brands].map((brand) => (
+      <div class="brand-item">
+        <img
+          src={brand.logo}
+          alt={brand.name}
+          class="h-20 object-contain opacity-80 hover:opacity-100 transition"
+        />
+      </div>
+    ))}
+  </div>
+
+  <style>
+    .brand-track-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      animation: scroll-vertical 20s linear infinite;
+    }
+
+    .brand-item {
+      display: flex;
+      justify-content: center;
+    }
+
+    @keyframes scroll-vertical {
+      from {
+        transform: translateY(0);
+      }
+      to {
+        transform: translateY(-50%);
+      }
+    }
+  </style>
+</div>

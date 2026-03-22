@@ -1,0 +1,42 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import Section from "../components/Section.astro";
+import ContactForm from "../components/ContactForm.astro";
+---
+
+<BaseLayout
+  title="Contacto | DIHYC"
+  description="Contáctanos para asesoría técnica, productos industriales y servicios especializados."
+>
+  <!-- HERO -->
+  <Hero
+    title="Contacto"
+    subtitle="Estamos listos para brindarte asesoría técnica y soluciones industriales."
+  />
+
+  <!-- INFO + MAPA -->
+  <Section title="Atención al cliente">
+    <div class="grid md:grid-cols-2 gap-10 items-start">
+      <div class="space-y-3 text-gray-700">
+        <p><strong>Central telefónica:</strong> (01) XXX-XXXX</p>
+        <p><strong>Celular / WhatsApp:</strong> +51 XXX XXX XXX</p>
+        <p><strong>Correos:</strong> contacto@dihyc.com</p>
+        <p><strong>Oficina:</strong> Av. Óscar R. Benavides 553, Lima</p>
+        <p><strong>Almacén:</strong> Dirección del almacén central</p>
+      </div>
+
+      <iframe
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2680.541816251334!2d-77.04899403904167!3d-12.04769881850536!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9105c8d163d43f73%3A0x6a07cb1d8b3140fd!2sAv.%20%C3%93scar%20R.%20Benavides%20553%2C%20Lima%2015082!5e0!3m2!1ses-419!2spe!4v1716758089025!5m2!1ses-419!2spe"
+        class="w-full h-80 border rounded"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+      ></iframe>
+    </div>
+  </Section>
+
+  <!-- FORMULARIO -->
+  <Section title="Déjanos un mensaje">
+    <ContactForm />
+  </Section>
+</BaseLayout>

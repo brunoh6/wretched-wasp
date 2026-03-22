@@ -1,0 +1,132 @@
+---
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import Section from "../../../../components/Section.astro";
+import Breadcrumbs from "../../../../components/Breadcrumbs.astro";
+import { productLines } from "../../../../data/productLines";
+
+export async function getStaticPaths() {
+  return productLines.map((line) => ({
+    params: {
+      category: line.category,
+      material: line.material,
+      line: line.slug
+    }
+  }));
+}
+
+const { category, material, line } = Astro.params;
+
+const product = productLines.find(
+  (p) =>
+    p.slug === line &&
+    p.category === category &&
+    p.material === material
+);
+---
+
+<BaseLayout title={`${product?.name ?? "Producto"} | DIHYC`}>
+
+  <Section>
+
+    <Breadcrumbs
+      items={[
+        { label: "Productos", href: "/productos" },
+        { label: category, href: `/productos/${category}` },
+        { label: material, href: `/productos/${category}/${material}` },
+        { label: product?.name }
+      ]}
+    />
+
+    <!-- HEADER -->
+    <div class="grid md:grid-cols-2 gap-12">
+
+      <div>
+        <img
+          src={product?.image}
+          alt={product?.name}
+          class="rounded-lg w-full object-cover"
+        />
+      </div>
+
+      <div>
+
+        <h1 class="text-3xl font-semibold mb-4">
+          {product?.name}
+        </h1>
+
+        <p class="text-gray-600 mb-6">
+          {product?.description}
+        </p>
+
+        <div class="text-sm text-gray-500">
+          {product?.variants.length} variantes disponibles
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TABLA REAL DE PRODUCTOS -->
+    <div class="mt-16">
+
+      <h2 class="text-2xl font-semibold mb-6">
+        Especificaciones / Variantes
+      </h2>
+
+      <div class="overflow-x-auto">
+
+        <table class="w-full border text-sm">
+
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="border px-4 py-2 text-left">Código</th>
+              <th class="border px-4 py-2 text-left">Marca</th>
+              <th class="border px-4 py-2 text-left">Presión</th>
+              <th class="border px-4 py-2 text-left">Descripción</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {product?.variants.map((v) => (
+
+              <tr>
+                <td class="border px-4 py-2">{v.code}</td>
+                <td class="border px-4 py-2">{v.brand}</td>
+                <td class="border px-4 py-2">{v.pressure}</td>
+                <td class="border px-4 py-2">{v.description}</td>
+              </tr>
+
+            ))}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+    <!-- CTA -->
+    <div class="mt-16">
+
+      <h2 class="text-2xl font-semibold mb-4">
+        Solicitar cotización
+      </h2>
+
+      <p class="text-gray-600 mb-6">
+        Contáctanos para recibir precios actualizados, disponibilidad y asesoría técnica.
+      </p>
+
+      <a
+        href="/contacto"
+        class="inline-block rounded bg-gray-900 text-white px-6 py-3 text-sm font-medium hover:bg-gray-700 transition"
+      >
+        Solicitar cotización
+      </a>
+
+    </div>
+
+  </Section>
+
+</BaseLayout>

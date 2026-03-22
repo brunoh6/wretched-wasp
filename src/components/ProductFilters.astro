@@ -1,0 +1,32 @@
+---
+import { categories, brands } from "../data/products";
+---
+
+<aside class="space-y-8">
+  <!-- Categorías -->
+  <div>
+    <label class="block text-sm font-medium mb-2">Categoría</label>
+    <select
+      id="categoryFilter"
+      class="w-full border rounded px-3 py-2 text-sm"
+    >
+      {categories.map((cat) => (
+        <option value={cat}>{cat}</option>
+      ))}
+    </select>
+  </div>
+
+  <!-- Marcas -->
+  <div>
+    <label class="block text-sm font-medium mb-2">Marca</label>
+    <select
+      id="brandFilter"
+      class="w-full border rounded px-3 py-2 text-sm"
+    >
+      <option value="Todos">Todas</option>
+      {brands.map((brand) => (
+        <option value={brand}>{brand}</option>
+      ))}
+    </select>
+  </div>
+</aside>

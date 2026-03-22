@@ -1,0 +1,65 @@
+---
+const { brands } = Astro.props;
+
+// duplicamos el array para efecto loop suave
+const loopBrands = [...brands, ...brands];
+---
+
+<div class="brand-carousel">
+  <div class="brand-track">
+    {loopBrands.map((brand, i) => (
+      <div class="brand-item" key={`${brand.name}-${i}`}>
+        <img
+          src={brand.logo}
+          alt={brand.name}
+          loading="lazy"
+        />
+      </div>
+    ))}
+  </div>
+</div>
+
+<style>
+  .brand-carousel {
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .brand-track {
+    display: flex;
+    gap: 3rem;
+    animation: scroll 40s linear infinite;
+    width: max-content;
+  }
+
+  .brand-carousel:hover .brand-track {
+    animation-play-state: paused;
+  }
+
+  .brand-item img {
+    max-height: 100px;
+    opacity: 0.75;
+    transition: opacity 0.3s ease;
+  }
+
+  .brand-item img:hover {
+    opacity: 1;
+  }
+
+  @keyframes scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .brand-track {
+      animation: none;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  }
+</style>

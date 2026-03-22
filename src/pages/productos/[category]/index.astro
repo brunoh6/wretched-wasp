@@ -1,0 +1,87 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Section from "../../../components/Section.astro";
+import Breadcrumbs from "../../../components/Breadcrumbs.astro";
+import { productLines } from "../../../data/productLines";
+
+export async function getStaticPaths() {
+  const categories = [...new Set(productLines.map(p => p.category))];
+
+  return categories.map(category => ({
+    params: { category }
+  }));
+}
+
+const { category } = Astro.params;
+
+// obtener materiales únicos de esa categoría
+const materials = [...new Set(
+  productLines
+    .filter(p => p.category === category)
+    .map(p => p.material)
+)];
+---
+
+<BaseLayout title={`${category} | DIHYC`}>
+
+  <Section>
+
+    <Breadcrumbs
+      items={[
+        { label: "Productos", href: "/productos" },
+        { label: category }
+      ]}
+    />
+
+    <h1 class="text-3xl font-semibold mb-10 capitalize">
+      {category}
+    </h1>
+
+    <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
+
+      {materials.map((material) => {
+
+        const example = productLines.find(
+          p => p.category === category && p.material === material
+        );
+
+        return (
+
+          <a
+            href={`/productos/${category}/${material}`}
+            class="group block border rounded-lg overflow-hidden hover:shadow-lg transition"
+          >
+
+            <!-- imagen -->
+            <div class="aspect-[4/3] bg-gray-100 overflow-hidden">
+              <img
+                src={example?.image}
+                alt={material}
+                class="w-full h-full object-cover group-hover:scale-105 transition"
+              />
+            </div>
+
+            <!-- texto -->
+            <div class="p-6">
+
+              <h3 class="text-lg font-semibold capitalize">
+                {material}
+              </h3>
+
+              <p class="text-sm text-gray-600 mt-2">
+                Explora productos en {material.toUpperCase()}
+              </p>
+
+            </div>
+
+          </a>
+
+        );
+
+      })}
+
+    </div>
+
+  </Section>
+
+</BaseLayout>

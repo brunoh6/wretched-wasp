@@ -1,0 +1,110 @@
+---
+import { productLines } from "../data/productLines";
+---
+
+<div class="relative w-full max-w-sm">
+
+  <input
+    id="searchInput"
+    type="text"
+    placeholder="Buscar productos..."
+    class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+  />
+
+  <div
+    id="searchResults"
+    class="absolute left-0 right-0 bg-white border rounded-md mt-2 shadow-lg hidden z-50 max-h-80 overflow-auto"
+  ></div>
+
+</div>
+
+<!-- DATA -->
+<script
+  id="searchData"
+  type="application/json"
+  set:html={JSON.stringify(productLines)}
+></script>
+
+<script>
+
+const productLines = JSON.parse(
+  document.getElementById("searchData").textContent
+);
+
+function normalize(text) {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+const input = document.getElementById("searchInput");
+const results = document.getElementById("searchResults");
+
+if (input && results) {
+
+  input.addEventListener("input", () => {
+
+    const rawQuery = input.value.trim();
+    const query = normalize(rawQuery);
+
+    // 🔴 SI NO HAY TEXTO
+    if (!query) {
+      results.classList.add("hidden");
+      results.innerHTML = "";
+      return;
+    }
+
+    // 🔴 FILTRADO MÁS POTENTE
+    const filtered = productLines.filter(item => {
+
+      const text =
+        normalize(item.name) +
+        " " +
+        normalize(item.category) +
+        " " +
+        normalize(item.material) +
+        " " +
+        item.keywords?.map(k => normalize(k)).join(" ");
+
+      return text.includes(query);
+    });
+
+    // 🔴 SIN RESULTADOS
+    if (filtered.length === 0) {
+
+      results.innerHTML =
+        '<div class="px-4 py-3 text-sm text-gray-500">Sin resultados</div>';
+
+    } else {
+
+      results.innerHTML = filtered.slice(0,6).map(item => `
+        <a
+          href="/productos/${item.category}/${item.material}/${item.slug}"
+          class="block px-4 py-3 hover:bg-gray-100 text-sm"
+        >
+          <div class="font-medium">${item.name}</div>
+
+          <div class="text-xs text-gray-500">
+            ${item.category} · ${item.material.toUpperCase()}
+          </div>
+        </a>
+      `).join("");
+
+    }
+
+    results.classList.remove("hidden");
+
+  });
+
+  // 🔴 CERRAR DROPDOWN
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#searchInput") && !e.target.closest("#searchResults")) {
+      results.classList.add("hidden");
+    }
+  });
+
+}
+
+</script>

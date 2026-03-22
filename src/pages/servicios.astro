@@ -1,0 +1,51 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import ServiceBlock from "../components/ServiceBlock.astro";
+---
+
+<BaseLayout
+  title="Servicios | DIHYC"
+  description="Servicios especializados en soldadura por termofusión y electrofusión para proyectos industriales y comerciales."
+>
+  <!-- HERO -->
+  <Hero
+    title="Nuestros Servicios"
+    subtitle="Servicios técnicos especializados orientados a soluciones industriales seguras y duraderas."
+  />
+
+  <!-- TERMOFUSIÓN -->
+  <ServiceBlock
+    title="Soldadura por Termofusión"
+    description="Servicio especializado para la unión de tuberías plásticas mediante calor controlado, garantizando una conexión homogénea, resistente y de larga duración. Ideal para proyectos que requieren alta confiabilidad estructural."
+    image="/assets/services/termofusion.png"
+  />
+
+  <!-- ELECTROFUSIÓN -->
+  <ServiceBlock
+    title="Soldadura por Electrofusión"
+    description="Técnica precisa que utiliza accesorios con resistencias eléctricas integradas, permitiendo una unión segura y eficiente. Recomendada para instalaciones industriales donde se requiere control y precisión en cada conexión."
+    image="/assets/services/electrofusion.png"
+    reverse
+  />
+
+  <!-- CTA FINAL -->
+  <section class="py-20 bg-gray-100">
+    <div class="mx-auto max-w-3xl px-6 text-center">
+      <h3 class="text-2xl font-bold mb-4">
+        ¿Necesitas asesoría técnica especializada?
+      </h3>
+      <p class="text-gray-700">
+        Contáctanos y nuestro equipo te brindará la información necesaria para
+        tu proyecto.
+      </p>
+
+      <a
+        href="/contacto"
+        class="inline-block mt-6 rounded border px-6 py-3 text-sm font-medium hover:bg-gray-900 hover:text-white transition"
+      >
+        Contáctanos
+      </a>
+    </div>
+  </section>
+</BaseLayout>

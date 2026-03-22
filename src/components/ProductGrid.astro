@@ -1,0 +1,58 @@
+---
+import type { Product } from "../data/products";
+const { products } = Astro.props;
+---
+
+<div>
+  <div
+    id="productsGrid"
+    class="grid sm:grid-cols-2 md:grid-cols-3 gap-6"
+  >
+    {products.map((product) => (
+      <article
+        class="group border rounded-lg overflow-hidden hover:shadow-lg transition"
+        data-category={product.category}
+        data-brand={product.brand}
+      >
+        <div class="aspect-[4/3] overflow-hidden bg-gray-100">
+          <img
+            src={product.image}
+            alt={product.name}
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+        </div>
+
+        <div class="p-4">
+          <h3 class="font-medium">{product.name}</h3>
+          <p class="text-sm text-gray-600">{product.brand}</p>
+        </div>
+      </article>
+    ))}
+  </div>
+
+  <script>
+    const categorySelect = document.getElementById("categoryFilter");
+    const brandSelect = document.getElementById("brandFilter");
+    const cards = document.querySelectorAll("[data-category]");
+
+    function applyFilters() {
+      const category = categorySelect?.value;
+      const brand = brandSelect?.value;
+
+      cards.forEach((card) => {
+        const matchCategory =
+          category === "Todos" || card.dataset.category === category;
+
+        const matchBrand =
+          brand === "Todos" || card.dataset.brand === brand;
+
+        card.style.display =
+          matchCategory && matchBrand ? "block" : "none";
+      });
+    }
+
+    categorySelect?.addEventListener("change", applyFilters);
+    brandSelect?.addEventListener("change", applyFilters);
+  </script>
+</div>

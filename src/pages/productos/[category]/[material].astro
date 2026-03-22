@@ -1,0 +1,232 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Section from "../../../components/Section.astro";
+import Breadcrumbs from "../../../components/Breadcrumbs.astro";
+import { productLines } from "../../../data/productLines";
+
+export async function getStaticPaths() {
+  const uniquePaths = new Map<string, { category: string; material: string }>();
+
+  productLines.forEach((p) => {
+    const key = `${p.category}-${p.material}`;
+    if (!uniquePaths.has(key)) {
+      uniquePaths.set(key, {
+        category: p.category,
+        material: p.material
+      });
+    }
+  });
+
+  return Array.from(uniquePaths.values()).map((item) => ({
+    params: {
+      category: item.category,
+      material: item.material
+    }
+  }));
+}
+
+const { category, material } = Astro.params;
+
+const filteredProducts = productLines.filter(
+  (p) => p.category === category && p.material === material
+);
+
+// filtros dinámicos desde variants
+const brands = [
+  ...new Set(
+    filteredProducts.flatMap((p) => p.variants.map((v) => v.brand))
+  )
+];
+
+const pressures = [
+  ...new Set(
+    filteredProducts.flatMap((p) => p.variants.map((v) => v.pressure))
+  )
+];
+
+const applications = [
+  ...new Set(
+    filteredProducts.flatMap((p) =>
+      p.variants
+        .map((v) => v.application)
+        .filter(Boolean)
+    )
+  )
+];
+---
+
+<BaseLayout title={`${material} | DIHYC`}>
+
+  <Section>
+
+    <Breadcrumbs
+      items={[
+        { label: "Productos", href: "/productos" },
+        { label: category, href: `/productos/${category}` },
+        { label: material }
+      ]}
+    />
+
+    <div class="mb-8">
+      <h1 class="text-3xl font-semibold capitalize">
+        {material}
+      </h1>
+
+      <p class="mt-2 text-gray-600">
+        Explora las líneas disponibles en {material.toUpperCase()} dentro de la categoría {category}.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-[260px_1fr] gap-10 items-start">
+
+      <!-- FILTROS -->
+      <aside class="space-y-8 sticky top-24 self-start">
+
+        <!-- Marca -->
+        <div>
+          <h4 class="font-semibold mb-3">Marca</h4>
+          <div class="space-y-2">
+            {brands.map((brand) => (
+              <label class="block text-sm">
+                <input
+                  type="checkbox"
+                  class="mr-2 filter-brand"
+                  value={brand}
+                />
+                {brand}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <!-- Presión -->
+        <div>
+          <h4 class="font-semibold mb-3">Presión</h4>
+          <div class="space-y-2">
+            {pressures.map((pressure) => (
+              <label class="block text-sm">
+                <input
+                  type="checkbox"
+                  class="mr-2 filter-pressure"
+                  value={pressure}
+                />
+                {pressure}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <!-- Aplicación -->
+        {applications.length > 0 && (
+          <div>
+            <h4 class="font-semibold mb-3">Aplicación</h4>
+            <div class="space-y-2">
+              {applications.map((application) => (
+                <label class="block text-sm">
+                  <input
+                    type="checkbox"
+                    class="mr-2 filter-application"
+                    value={application}
+                  />
+                  {application}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </aside>
+
+      <!-- GRID DE PRODUCTOS -->
+      <div
+        id="productGrid"
+        class={`grid gap-8 items-start ${
+          filteredProducts.length === 1
+            ? "grid-cols-1 justify-items-start"
+            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+        }`}
+      >
+        {filteredProducts.map((product) => (
+          <a
+            href={`/productos/${product.category}/${product.material}/${product.slug}`}
+            class="block border rounded-lg overflow-hidden hover:shadow-md transition bg-white w-full max-w-sm catalog-card"
+            data-brands={product.variants.map((v) => v.brand).join(",")}
+            data-pressures={product.variants.map((v) => v.pressure).join(",")}
+            data-applications={product.variants.map((v) => v.application).filter(Boolean).join(",")}
+          >
+            <div class="aspect-[4/3] bg-gray-100 overflow-hidden">
+              <img
+                src={product.image}
+                alt={product.name}
+                class="w-full h-full object-cover"
+              />
+            </div>
+
+            <div class="p-4 space-y-2">
+              <h3 class="font-semibold">
+                {product.name}
+              </h3>
+
+              <p class="text-sm text-gray-600">
+                {product.description}
+              </p>
+
+              <div class="pt-2 text-xs text-gray-500">
+                {product.variants.length} variante{product.variants.length !== 1 ? "s" : ""}
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+
+    </div>
+
+  </Section>
+
+</BaseLayout>
+
+<script>
+  const brandFilters = document.querySelectorAll(".filter-brand");
+  const pressureFilters = document.querySelectorAll(".filter-pressure");
+  const applicationFilters = document.querySelectorAll(".filter-application");
+  const cards = document.querySelectorAll(".catalog-card");
+
+  function applyFilters() {
+    const selectedBrands = [...brandFilters]
+      .filter((cb) => cb.checked)
+      .map((cb) => cb.value);
+
+    const selectedPressures = [...pressureFilters]
+      .filter((cb) => cb.checked)
+      .map((cb) => cb.value);
+
+    const selectedApplications = [...applicationFilters]
+      .filter((cb) => cb.checked)
+      .map((cb) => cb.value);
+
+    cards.forEach((card) => {
+      const cardBrands = (card.dataset.brands || "").split(",").filter(Boolean);
+      const cardPressures = (card.dataset.pressures || "").split(",").filter(Boolean);
+      const cardApplications = (card.dataset.applications || "").split(",").filter(Boolean);
+
+      const matchBrand =
+        selectedBrands.length === 0 ||
+        selectedBrands.some((brand) => cardBrands.includes(brand));
+
+      const matchPressure =
+        selectedPressures.length === 0 ||
+        selectedPressures.some((pressure) => cardPressures.includes(pressure));
+
+      const matchApplication =
+        selectedApplications.length === 0 ||
+        selectedApplications.some((app) => cardApplications.includes(app));
+
+      card.style.display =
+        matchBrand && matchPressure && matchApplication ? "block" : "none";
+    });
+  }
+
+  brandFilters.forEach((cb) => cb.addEventListener("change", applyFilters));
+  pressureFilters.forEach((cb) => cb.addEventListener("change", applyFilters));
+  applicationFilters.forEach((cb) => cb.addEventListener("change", applyFilters));
+</script>

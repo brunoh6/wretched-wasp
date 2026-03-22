@@ -1,0 +1,36 @@
+---
+const { title, text, icon } = Astro.props;
+---
+
+<div
+  class="
+    value-card
+    opacity-0
+    transition-all
+    duration-700
+    ease-out
+    will-change-transform
+    bg-white
+    rounded-xl
+    p-8
+    shadow-md
+    hover:shadow-xl
+    hover:-translate-y-2
+    group
+  "
+  data-animate
+>
+  {icon && (
+    <div class="mb-4 text-gray-800">
+      <span class="text-4xl">{icon}</span>
+    </div>
+  )}
+
+  <h3 class="text-xl font-semibold mb-3 group-hover:text-gray-900">
+    {title}
+  </h3>
+
+  <p class="text-gray-700">
+    {text}
+  </p>
+</div>

@@ -1,0 +1,361 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Section from "../../components/Section.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import { categories } from "../../data/categories";
+import { productLines } from "../../data/productLines";
+
+export async function getStaticPaths() {
+  return categories.map((category) => ({
+    params: { category: category.slug }
+  }));
+}
+
+const { category } = Astro.params;
+
+const currentCategory = categories.find(c => c.slug === category);
+
+// 🔴 variantes + imagen
+const products = productLines.filter(p => p.category === category);
+
+const variants = products.flatMap(p =>
+  p.variants.map(v => ({
+    ...v,
+    image: p.image,
+    material: p.material.toLowerCase().trim(),
+    brand: v.brand.toLowerCase().trim(),
+    pressure: v.pressure.toLowerCase().trim(),
+    application: v.application?.toLowerCase().trim(),
+    productName: p.name
+  }))
+);
+
+// 🔴 filtros
+const materials = [...new Set(variants.map(v => v.material))].sort();
+const brands = [...new Set(variants.map(v => v.brand))].sort();
+const pressures = [...new Set(variants.map(v => v.pressure))].sort();
+const applications = [...new Set(
+  variants.map(v => v.application).filter(Boolean)
+)].sort();
+---
+
+<BaseLayout title={`${currentCategory?.name ?? "Productos"} | DIHYC`}>
+
+<Section>
+
+<Breadcrumbs
+  items={[
+    { label: "Productos", href: "/productos" },
+    { label: currentCategory?.name }
+  ]}
+/>
+
+<div class="mb-8">
+  <h1 class="text-3xl font-semibold">
+    {currentCategory?.name}
+  </h1>
+
+  <p class="text-gray-600 mt-2">
+    Filtra y encuentra productos rápidamente.
+  </p>
+</div>
+
+<div class="grid md:grid-cols-[260px_1fr] gap-10">
+
+<!-- FILTROS -->
+<aside class="space-y-8 sticky top-24 self-start">
+
+  <div>
+    <h4 class="font-semibold mb-3">Material</h4>
+    {materials.map(m => (
+      <label class="block text-sm">
+        <input type="checkbox" class="filter-material mr-2" value={m} />
+        {m.toUpperCase()}
+      </label>
+    ))}
+  </div>
+
+  <div>
+    <h4 class="font-semibold mb-3">Marca</h4>
+    {brands.map(b => (
+      <label class="block text-sm">
+        <input type="checkbox" class="filter-brand mr-2" value={b} />
+        {b}
+      </label>
+    ))}
+  </div>
+
+  <div>
+    <h4 class="font-semibold mb-3">Presión</h4>
+    {pressures.map(p => (
+      <label class="block text-sm">
+        <input type="checkbox" class="filter-pressure mr-2" value={p} />
+        {p}
+      </label>
+    ))}
+  </div>
+
+  {applications.length > 0 && (
+    <div>
+      <h4 class="font-semibold mb-3">Aplicación</h4>
+      {applications.map(a => (
+        <label class="block text-sm">
+          <input type="checkbox" class="filter-app mr-2" value={a} />
+          {a}
+        </label>
+      ))}
+    </div>
+  )}
+
+</aside>
+
+<!-- RESULTADOS -->
+<div>
+
+<div id="activeFilters" class="mb-6 flex flex-wrap gap-2"></div>
+
+<div id="results"></div>
+
+</div>
+
+</div>
+
+</Section>
+
+</BaseLayout>
+
+<div id="variants-data" data-json={JSON.stringify(variants)}></div>
+
+<script is:inline>
+
+const data = JSON.parse(
+  document.getElementById("variants-data")?.dataset.json || "[]"
+);
+
+const searchInput = document.getElementById("searchInput");
+
+const materialFilters = document.querySelectorAll(".filter-material");
+const brandFilters = document.querySelectorAll(".filter-brand");
+const pressureFilters = document.querySelectorAll(".filter-pressure");
+const appFilters = document.querySelectorAll(".filter-app");
+
+const container = document.getElementById("results");
+
+// ================= NORMALIZE =================
+
+function normalize(text) {
+  return text
+    ?.toString()
+    .toLowerCase()
+    .replace(/[-_/]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// ================= GROUP =================
+
+function groupByBrand(items) {
+  const grouped = {};
+  items.forEach(i => {
+    if (!grouped[i.brand]) grouped[i.brand] = [];
+    grouped[i.brand].push(i);
+  });
+  return grouped;
+}
+
+// ================= HIGHLIGHT =================
+
+function highlight(text, tokens) {
+  if (!tokens.length) return text;
+
+  const safe = tokens
+    .filter(t => t.length > 2)
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+  if (!safe.length) return text;
+
+  const regex = new RegExp(`\\b(${safe.join("|")})\\b`, "gi");
+
+  return text.replace(regex, `<mark class="bg-yellow-200">$1</mark>`);
+}
+
+// ================= FILTER =================
+
+window.applyFilters = function () {
+
+  const tokens = normalize(searchInput?.value || "")
+    .split(" ")
+    .filter(t => t.length > 2);
+
+  const selectedMaterials = [...materialFilters]
+    .filter(cb => cb.checked)
+    .map(cb => normalize(cb.value));
+
+  const selectedBrands = [...brandFilters]
+    .filter(cb => cb.checked)
+    .map(cb => normalize(cb.value));
+
+  const selectedPressures = [...pressureFilters]
+    .filter(cb => cb.checked)
+    .map(cb => normalize(cb.value));
+
+  const selectedApps = [...appFilters]
+    .filter(cb => cb.checked)
+    .map(cb => normalize(cb.value));
+
+  const filtered = data.filter(item => {
+
+    const matchMaterial =
+      !selectedMaterials.length ||
+      selectedMaterials.includes(item.material);
+
+    const matchBrand =
+      !selectedBrands.length ||
+      selectedBrands.includes(item.brand);
+
+    // 🔥 MATCH EXACTO (CORRECTO)
+    const matchPressure =
+  !selectedPressures.length ||
+  selectedPressures.some(p =>
+    normalize(item.pressure) === normalize(p)
+  );
+
+    const matchApp =
+      !selectedApps.length ||
+      selectedApps.includes(item.application);
+
+    return matchMaterial && matchBrand && matchPressure && matchApp;
+  });
+
+  renderActiveFilters({
+    materials: selectedMaterials,
+    brands: selectedBrands,
+    pressures: selectedPressures,
+    applications: selectedApps
+  });
+
+  renderTables(filtered, tokens);
+};
+
+// ================= ACTIVE FILTERS =================
+
+function renderActiveFilters(filters) {
+
+  const container = document.getElementById("activeFilters");
+
+  const all = Object.entries(filters).flatMap(([type, values]) =>
+    values.map(v => ({ type: type.slice(0, -1), value: v }))
+  );
+
+  if (!all.length) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = all.map(f => `
+    <button data-type="${f.type}" data-value="${f.value}"
+      class="px-3 py-1 text-xs rounded-full bg-gray-900 text-white flex items-center gap-2">
+      ${f.value} ✕
+    </button>
+  `).join("");
+
+  container.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+
+      document.querySelectorAll(`.filter-${btn.dataset.type}`)
+        .forEach(cb => {
+          if (normalize(cb.value) === btn.dataset.value) cb.checked = false;
+        });
+
+      applyFilters();
+    };
+  });
+}
+
+// ================= TABLE =================
+
+function renderTables(items, tokens) {
+
+  if (!items.length) {
+    container.innerHTML = `
+      <div class="text-center py-10 text-gray-500">
+        No se encontraron productos con esos filtros.
+      </div>
+    `;
+    return;
+  }
+
+  const grouped = groupByBrand(items);
+
+  container.innerHTML = Object.entries(grouped).map(([brand, rows]) => `
+
+    <div class="mb-12 p-6 border rounded-xl bg-white shadow-sm">
+
+      <div class="flex items-center gap-4 mb-4">
+
+        <img
+          src="/assets/products/${rows[0].material}.png"
+          class="w-16 h-16 object-cover rounded border"
+        />
+
+        <div>
+          <h2 class="text-lg font-semibold">${brand.toUpperCase()}</h2>
+          <span class="text-xs text-gray-500">${rows.length} resultados</span>
+        </div>
+
+      </div>
+
+      <div class="overflow-x-auto border rounded-lg">
+
+        <table class="w-full text-sm">
+
+          <thead class="bg-gray-100 text-xs uppercase">
+            <tr>
+              <th class="px-4 py-3 text-left">Código</th>
+              <th class="px-4 py-3 text-left">Producto</th>
+              <th class="px-4 py-3 text-left">Presión</th>
+              <th class="px-4 py-3 text-left">Descripción</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            ${rows.map((r, i) => `
+              <tr class="${i % 2 ? "bg-gray-50" : "bg-white"}">
+
+                <td class="px-4 py-3 font-mono text-xs">${r.code}</td>
+                <td class="px-4 py-3 font-medium">${r.productName}</td>
+
+                <td class="px-4 py-3">
+                  <span class="px-2 py-1 text-xs bg-gray-200 rounded">
+                    ${r.pressure}
+                  </span>
+                </td>
+
+                <td class="px-4 py-3 text-gray-600">
+                  ${highlight(r.description, tokens)}
+                </td>
+
+              </tr>
+            `).join("")}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  `).join("");
+}
+
+// ================= EVENTS =================
+
+document.querySelectorAll("input").forEach(cb =>
+  cb.addEventListener("change", applyFilters)
+);
+
+renderTables(data, []);
+
+</script>

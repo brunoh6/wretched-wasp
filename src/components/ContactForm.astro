@@ -1,0 +1,145 @@
+---
+const formAction = "https://formspree.io/f/xpqlyqok";
+---
+
+<form
+  action={formAction}
+  method="POST"
+  class="space-y-6"
+  id="contactForm"
+  novalidate
+>
+  <div class="grid md:grid-cols-2 gap-4">
+    <input
+      type="text"
+      name="name"
+      required
+      placeholder="Nombres y Apellidos"
+      class="border rounded px-4 py-3 w-full"
+      data-validate="name"
+    />
+
+    <input
+      type="text"
+      name="document"
+      placeholder="DNI / CE / RUC"
+      class="border rounded px-4 py-3 w-full"
+    />
+
+    <input
+      type="text"
+      name="company"
+      placeholder="Razón social"
+      class="border rounded px-4 py-3 w-full"
+      data-validate="company"
+    />
+
+    <div>
+        <select
+            name="contact_preference"
+            required
+            class="border rounded px-4 py-3 w-full"
+            data-validate="contact"
+        >
+            <option value="">Preferencia de contacto</option>
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="Llamada">Llamada telefónica</option>
+            <option value="Correo">Correo electrónico</option>
+        </select>
+    </div>
+
+    <div class="flex gap-2 items-start md:col-span-2">
+        <!-- Prefijo -->
+        <select
+            id="country"
+            name="country"
+            required
+            class="border rounded px-4 py-3.5 flex-1 w-auto"
+        >
+            <option value="">País</option>
+            <option value="PE" data-prefix="+51" data-length="9">🇵🇪 Perú (+51)</option>
+            <option value="CL" data-prefix="+56" data-length="9">🇨🇱 Chile (+56)</option>
+            <option value="CO" data-prefix="+57" data-length="10">🇨🇴 Colombia (+57)</option>
+            <option value="MX" data-prefix="+52" data-length="10">🇲🇽 México (+52)</option>
+        </select>
+
+        <!-- Número -->
+        <input
+            type="tel"
+            id="phone"
+            name="phone"
+            required
+            placeholder="Número"
+            class="border rounded px-4 py-3 flex-1"
+            data-validate="phone"
+        />
+    </div>
+
+    <input
+      type="email"
+      name="email"
+      required
+      placeholder="Correo electrónico"
+      class="border rounded px-4 py-3 w-full"
+    />
+  </div>
+
+  <textarea
+    name="message"
+    required
+    rows="5"
+    placeholder="Mensaje"
+    class="border rounded px-4 py-3 w-full"
+    data-validate="message"
+  ></textarea>
+
+  <p
+    id="formError"
+    class="hidden text-sm text-red-600"
+  >
+    Por favor revisa los campos marcados.
+  </p>
+
+  <button
+    type="submit"
+    class="rounded border px-6 py-3 text-sm font-medium hover:bg-gray-900 hover:text-white transition"
+  >
+    Enviar mensaje
+  </button>
+
+  <script>
+    const form = document.getElementById("contactForm");
+    const error = document.getElementById("formError");
+
+    const validators = {
+      name: (v) => /^[A-Za-zÁÉÍÓÚÑáéíóúñ ]{3,}$/.test(v),
+      company: (v) => /^[A-Za-z0-9ÁÉÍÓÚÑáéíóúñ .-]{3,}$/.test(v),
+      text: (v) => /^[A-Za-zÁÉÍÓÚÑáéíóúñ ]{3,}$/.test(v),
+      phone: (v) => /^[0-9]{7,}$/.test(v),
+      message: (v) => v.length >= 10 && !/^[0-9]+$/.test(v),
+      contact: (v) => v !== ""
+    };
+
+    form.addEventListener("submit", (e) => {
+      let valid = true;
+      error.classList.add("hidden");
+
+      form.querySelectorAll("[data-validate]").forEach((input) => {
+        const rule = input.dataset.validate;
+        const value = input.value.trim();
+
+        if (!validators[rule](value)) {
+          input.classList.add("border-red-500");
+          valid = false;
+        } else {
+          input.classList.remove("border-red-500");
+        }
+      });
+
+      if (!valid) {
+        e.preventDefault();
+        error.classList.remove("hidden");
+      }
+    });
+  </script>
+</form>

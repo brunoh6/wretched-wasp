@@ -1,0 +1,232 @@
+---
+import NavLink from "./NavLink.astro";
+import SearchBar from "./SearchBar.astro";
+---
+
+<header
+  id="site-navbar"
+  class="
+    sticky top-0 z-50
+    border-b border-gray-200
+    bg-white
+    transition-all duration-300
+  "
+>
+  <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+
+    <!-- Logo -->
+    <a href="/" class="text-lg font-bold tracking-wide">
+      DIHYC
+    </a>
+
+    <!-- ================= DESKTOP NAVIGATION ================= -->
+    <div class="hidden md:flex items-center gap-8 text-sm font-medium">
+
+      <!-- QUIÉNES SOMOS -->
+<div class="relative group">
+  <button class="hover:text-gray-900">
+    QUIÉNES SOMOS
+  </button>
+
+  <div
+    class="
+      absolute left-0 top-full z-50
+      w-56 p-4 space-y-2
+      bg-white border rounded-md shadow-lg
+
+      opacity-0 translate-y-2
+      pointer-events-none
+
+      transition-all duration-200 ease-out
+
+      group-hover:opacity-100
+      group-hover:translate-y-0
+      group-hover:pointer-events-auto
+    "
+  >
+    <a href="/empresa" class="block hover:text-gray-900">Empresa</a>
+    <a href="/empresa#mission" class="block hover:text-gray-900">Misión</a>
+    <a href="/empresa#vision" class="block hover:text-gray-900">Visión</a>
+  </div>
+</div>
+
+      <!-- PRODUCTOS -->
+      <div class="relative group">
+        <button class="hover:text-gray-900">
+          PRODUCTOS
+        </button>
+
+        <div
+    class="
+      absolute left-0 top-full z-50
+      w-56 p-4 space-y-2
+      bg-white border rounded-md shadow-lg
+
+      opacity-0 translate-y-2
+      pointer-events-none
+
+      transition-all duration-200 ease-out
+
+      group-hover:opacity-100
+      group-hover:translate-y-0
+      group-hover:pointer-events-auto
+    "
+  >
+          <a href="/productos?cat=agua" class="block hover:text-gray-900">Agua</a>
+          <a href="/productos?cat=desague" class="block hover:text-gray-900">Desagüe</a>
+          <a href="/productos?cat=industria" class="block hover:text-gray-900">Industria</a>
+          <a href="/productos?cat=mineria" class="block hover:text-gray-900">Minería</a>
+          <a href="/productos?cat=gas" class="block hover:text-gray-900">Gas</a>
+        </div>
+      </div>
+
+      <!-- SERVICIOS -->
+      <div class="relative group">
+        <button class="hover:text-gray-900">
+          SERVICIOS
+        </button>
+
+        <div
+    class="
+      absolute left-0 top-full z-50
+      w-56 p-4 space-y-2
+      bg-white border rounded-md shadow-lg
+
+      opacity-0 translate-y-2
+      pointer-events-none
+
+      transition-all duration-200 ease-out
+
+      group-hover:opacity-100
+      group-hover:translate-y-0
+      group-hover:pointer-events-auto
+    "
+  >
+          <a href="/servicios#termofusion" class="block hover:text-gray-900">Termofusión</a>
+          <a href="/servicios#electrofusion" class="block hover:text-gray-900">Electrofusión</a>
+        </div>
+      </div>
+
+      <!-- INFORMES TÉCNICOS -->
+      <div class="relative group">
+        <button class="hover:text-gray-900">
+          INFORMES TÉCNICOS
+        </button>
+
+        <div
+    class="
+      absolute left-0 top-full z-50
+      w-56 p-4 space-y-2
+      bg-white border rounded-md shadow-lg
+
+      opacity-0 translate-y-2
+      pointer-events-none
+
+      transition-all duration-200 ease-out
+
+      group-hover:opacity-100
+      group-hover:translate-y-0
+      group-hover:pointer-events-auto
+    "
+  >
+          <a href="#" class="block hover:text-gray-900">Certificaciones</a>
+        </div>
+      </div>
+
+      <!-- CONTACTO -->
+      <a href="/contacto" class="hover:text-gray-900">
+        CONTACTO
+      </a>
+
+    </div>
+
+    <!-- ================= SEARCH ================= -->
+<div class="hidden md:block w-64">
+  <SearchBar />
+</div>
+
+    <!-- ================= MOBILE MENU BUTTON ================= -->
+    <button
+      id="menuToggle"
+      class="md:hidden flex items-center justify-center"
+      aria-label="Abrir menú"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M4 6h16M4 12h16M4 18h16"
+        />
+      </svg>
+    </button>
+
+  </nav>
+
+  <!-- ================= MOBILE MENU ================= -->
+  <div
+    id="mobileMenu"
+    class="hidden md:hidden bg-white border-t"
+  >
+    <div class="flex flex-col px-6 py-6 space-y-6 text-sm">
+
+      <div>
+        <p class="font-semibold">QUIÉNES SOMOS</p>
+        <div class="ml-4 mt-2 space-y-1">
+          <a href="/empresa" class="block">Empresa</a>
+          <a href="/empresa#mission" class="block">Misión</a>
+          <a href="/empresa#vision" class="block">Visión</a>
+        </div>
+      </div>
+
+      <div>
+        <p class="font-semibold">PRODUCTOS</p>
+        <div class="ml-4 mt-2 space-y-1">
+          <a href="/productos?cat=agua" class="block">Agua</a>
+          <a href="/productos?cat=desague" class="block">Desagüe</a>
+          <a href="/productos?cat=industria" class="block">Industria</a>
+          <a href="/productos?cat=mineria" class="block">Minería</a>
+          <a href="/productos?cat=gas" class="block">Gas</a>
+        </div>
+      </div>
+
+      <div>
+        <p class="font-semibold">SERVICIOS</p>
+        <div class="ml-4 mt-2 space-y-1">
+          <a href="/servicios#termofusion" class="block">Termofusión</a>
+          <a href="/servicios#electrofusion" class="block">Electrofusión</a>
+        </div>
+      </div>
+
+      <div>
+        <p class="font-semibold">INFORMES TÉCNICOS</p>
+        <div class="ml-4 mt-2 space-y-1">
+          <a href="#" class="block">Certificaciones</a>
+        </div>
+      </div>
+
+      <a href="/contacto" class="mt-4 font-semibold">
+        CONTACTO
+      </a>
+
+    </div>
+  </div>
+
+</header>
+
+<script>
+  const toggle = document.getElementById("menuToggle");
+  const menu = document.getElementById("mobileMenu");
+
+  if (toggle && menu) {
+    toggle.addEventListener("click", () => {
+      menu.classList.toggle("hidden");
+    });
+  }
+</script>

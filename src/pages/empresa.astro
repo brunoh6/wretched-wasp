@@ -1,0 +1,96 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import Section from "../components/Section.astro";
+import ValueCard from "../components/ValueCard.astro";
+---
+
+<BaseLayout
+  title="Empresa | DIHYC"
+  description="Conoce a DIHYC, nuestra experiencia, valores y compromiso en la distribución de productos y servicios industriales."
+>
+  <!-- HERO -->
+  <Hero
+    title="Nuestra Empresa"
+    subtitle="Comprometidos con la calidad, el respaldo técnico y soluciones industriales confiables."
+    image="/assets/hero/nuestraempresa.png"
+  />
+
+<!-- QUIÉNES SOMOS -->
+<Section>
+  <div class="grid md:grid-cols-2 gap-12 items-center">
+    
+    <!-- Columna izquierda -->
+    <div>
+      <h2 class="text-3xl font-bold mb-6">
+        ¿Quiénes somos?
+      </h2>
+
+      <p class="text-gray-700 mb-4">
+        DIHYC es una empresa especializada en la distribución de productos
+        industriales y en la prestación de servicios técnicos orientados a
+        proyectos comerciales e industriales.
+      </p>
+
+      <p class="text-gray-700">
+        Trabajamos con marcas reconocidas del mercado y brindamos asesoría
+        técnica personalizada, asegurando que cada solución cumpla con los
+        estándares de calidad y durabilidad que nuestros clientes requieren.
+      </p>
+    </div>
+
+    <!-- Columna derecha -->
+    <div class="overflow-hidden rounded-xl shadow-md">
+      <img
+        src="/assets/hero/empresa.png"
+        alt="Equipo DIHYC"
+        class="w-full h-full object-cover"
+        loading="lazy"
+      />
+    </div>
+
+  </div>
+</Section>
+
+<!-- LO QUE NOS DEFINE -->
+<Section title="Lo que nos define">
+  <div class="grid md:grid-cols-3 gap-8">
+
+    <ValueCard
+      title="Misión"
+      icon="🎯"
+      text="Proveer productos industriales de alta calidad y servicios técnicos especializados, generando valor real para cada proyecto de nuestros clientes."
+    />
+
+    <ValueCard
+      title="Visión"
+      icon="🔭"
+      text="Consolidarnos como un referente confiable en soluciones industriales, destacando por nuestra seriedad, conocimiento técnico y compromiso."
+    />
+
+    <ValueCard
+      title="Valores"
+      icon="🤝"
+      text="Calidad, responsabilidad, transparencia y orientación al cliente como base de todas nuestras operaciones."
+    />
+
+  </div>
+</Section>
+
+  <!-- CTA SUAVE -->
+  <Section>
+    <div class="text-center">
+      <p class="text-gray-700 max-w-2xl mx-auto">
+        Si deseas conocer más sobre nuestros productos o servicios, estaremos
+        encantados de atenderte.
+      </p>
+
+      <a
+        href="/contacto"
+        class="inline-block mt-6 rounded border px-6 py-3 text-sm font-medium hover:bg-gray-900 hover:text-white transition"
+      >
+        Contáctanos
+      </a>
+    </div>
+  </Section>
+</BaseLayout>

@@ -1,0 +1,102 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import Section from "../components/Section.astro";
+import { categories } from "../data/categories";
+import ProductFilters from "../components/ProductFilters.astro";
+import ProductGrid from "../components/ProductGrid.astro";
+import BrandCarouselVertical from "../components/BrandCarouselVertical.astro";
+import { products } from "../data/products";
+---
+<!-- 
+<BaseLayout
+  title="Productos | DIHYC"
+  description="Catálogo de productos industriales organizados por categorías y marcas."
+>
+  <Hero
+    title="Nuestros Productos"
+    subtitle="Explora nuestro catálogo de productos industriales por categoría y marca."
+  />
+
+  <Section>
+  <div class="grid md:grid-cols-[300px_1fr] gap-10"> -->
+
+    <!-- COLUMNA IZQUIERDA -->
+    <!-- <aside id="filtersSidebar" class="space-y-10 self-start"> -->
+
+      <!-- Filtros -->
+      <!-- <ProductFilters /> -->
+
+      <!-- Marcas (vertical, loop) -->
+      <!-- <div>
+        <h4 class="text-sm font-medium mb-4">
+          Marcas que distribuimos
+        </h4>
+
+        <BrandCarouselVertical
+          brands={[
+            { name: "+GF+", logo: "/assets/brands/gf.png" },
+            { name: "Hakan Plastik", logo: "/assets/brands/hakan.png" },
+            { name: "Simona", logo: "/assets/brands/simona.png" },
+            { name: "Cepex", logo: "/assets/brands/cepex.png" },
+            { name: "Leister", logo: "/assets/brands/leister.png" },
+            { name: "Victaulic", logo: "/assets/brands/victaulic.png" },
+            { name: "Arrow", logo: "/assets/brands/arrow.png" },
+            { name: "Cim", logo: "/assets/brands/cim.png" },
+            { name: "Integrity", logo: "/assets/brands/integrity.png" },
+            { name: "Era", logo: "/assets/brands/era.png" }
+          ]}
+        />
+      </div>
+
+    </aside> -->
+
+    <!-- COLUMNA DERECHA -->
+    <!-- <ProductGrid products={products} />
+
+  </div>
+</Section>
+</BaseLayout> -->
+
+<BaseLayout
+  title="Productos | DIHYC"
+  description="Catálogo de soluciones industriales organizado por categorías."
+>
+
+  <Hero
+    title="Nuestros Productos"
+    subtitle="Explora nuestras soluciones industriales organizadas por categorías."
+  />
+
+  <Section>
+    <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
+
+      {categories.map((category) => (
+        <a
+          href={`/productos/${category.slug}`}
+          class="group block border rounded-lg overflow-hidden hover:shadow-lg transition"
+        >
+          <div class="aspect-[4/3] overflow-hidden bg-gray-100">
+            <img
+              src={category.image}
+              alt={category.name}
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+
+          <div class="p-6">
+            <h3 class="text-lg font-semibold">
+              {category.name}
+            </h3>
+
+            <p class="text-sm text-gray-600 mt-2">
+              Ver productos
+            </p>
+          </div>
+        </a>
+      ))}
+
+    </div>
+  </Section>
+
+</BaseLayout>
