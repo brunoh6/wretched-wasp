@@ -224,6 +224,16 @@ done
 r=$(hdr https www.dihyc.com.pe '/productos/'); echo "$r" | grep -i '^Content-Security-Policy:' | grep -q "default-src 'self'" && ok "las páginas siguen con la CSP del sitio" || ko "CSP página" "$(echo "$r" | grep -i content-security)"
 r=$(hdr http otro-dominio.test '/assets/categories/conexiones-fm.svg'); has "$r" "Content-Security-Policy" && ko "el addon recibe la CSP de SVG" "" || ok "el addon NO recibe la CSP de SVG"
 
+echo "n) Carpeta del panel: sólo fichas e imágenes"
+echo '<script>alert(1)</script>' > "$T/www/assets/panel/lista-de-precios.html"
+echo '<script>alert(1)</script>' > "$T/www/assets/panel/tarjetas/OTRA.HTM"
+for s in /assets/panel/lista-de-precios.html /assets/panel/tarjetas/OTRA.HTM; do
+  r=$(hdr https www.dihyc.com.pe "$s"); [ "$(st "$r")" = 403 ] && ok "$s → 403 (no se sirve)" || ko "$s" "$(st "$r")"
+done
+for s in /assets/panel/fichas/especificaciones-brida-loca-pvc-georg-fischer.pdf /assets/panel/tarjetas/tuberias-fm.webp /assets/panel/tarjetas/conexiones-fm.svg; do
+  r=$(hdr https www.dihyc.com.pe "$s"); [ "$(st "$r")" = 200 ] && ok "$s → 200" || ko "$s" "$(st "$r")"
+done
+
 
 echo
 echo "k) Sin mod_headers, mod_deflate ni mod_filter el sitio NO da error 500"

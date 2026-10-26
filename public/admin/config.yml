@@ -69,6 +69,9 @@ media_libraries:
     # en cada campo, que manda sobre este. El tamaño se mide tras convertir.
     # En bytes decimales para que el aviso diga "10 MB" y no "10,5 MB".
     max_file_size: 10000000
+  # Sin "Fotos de stock" (Unsplash, Pexels...): guardan una URL externa que la
+  # CSP del sitio (img-src 'self') bloquea, y la foto sale vacía en la web.
+  stock_assets: false
 
 # Cómo se escribe el JSON al guardar. Se fija explícitamente para que los
 # commits del CMS no reformateen los archivos y los cambios reales se vean
@@ -187,17 +190,19 @@ collections:
         media_folder: /public/assets/panel/fotos
         public_folder: /assets/panel/fotos
         # Un `transformations` de campo reemplaza entero al global: aquí va
-        # completo. max_file_size se mide DESPUÉS de convertir.
+        # completo. max_file_size se mide DESPUÉS de convertir. 800 px de sobra:
+        # el catálogo la muestra a 40-64 px y carga una por fila.
         media_libraries:
+          stock_assets: false
           default:
             config:
               max_file_size: 1000000
               transformations:
                 raster_image:
                   format: webp
-                  quality: 82
-                  width: 1600
-                  height: 1600
+                  quality: 80
+                  width: 800
+                  height: 800
         hint: >-
           Es la miniatura que sale junto al nombre en cada fila del catálogo de
           agua. Sirve cualquier foto, también la del celular: al subirla se
@@ -284,6 +289,7 @@ collections:
                 public_folder: /assets/panel/tarjetas
                 # Máximo 1600×1200: la tarjeta es 4:3.
                 media_libraries:
+                  stock_assets: false
                   default:
                     config:
                       max_file_size: 1000000

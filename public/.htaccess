@@ -98,6 +98,13 @@ AddDefaultCharset UTF-8
   RewriteCond %{HTTP_HOST} ^(www\.)?dihyc\.com\.pe(:[0-9]+)?$ [NC]
   RewriteRule (^|/)\. - [F]
 
+  # 3b) /assets/panel/ es donde sube archivos el panel, y su biblioteca
+  #     ("Recursos") acepta cualquier tipo. Aquí sólo se sirven fichas e
+  #     imágenes: un .html subido se ejecutaría en este mismo origen.
+  RewriteCond %{HTTP_HOST} ^(www\.)?dihyc\.com\.pe(:[0-9]+)?$ [NC]
+  RewriteCond %{REQUEST_URI} !\.(pdf|jpe?g|png|webp|gif|svg)$ [NC]
+  RewriteRule ^assets/panel/. - [F]
+
   # 4) Marcas para las cabeceras de más abajo. "Header ... env=" admite una sola
   #    condición, así que aquí se combinan host + protocolo/ruta en una variable.
   #

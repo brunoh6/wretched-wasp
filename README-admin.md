@@ -36,9 +36,10 @@ todas sus medidas.
 
 1. Abra **www.dihyc.com.pe/admin/** en su navegador. Conviene guardarla en
    Favoritos.
-2. **El acceso (con su correo y un código) se lo configura el equipo técnico.**
-   Siga las indicaciones que le den el primer día; después el navegador lo
-   recuerda.
+2. **El acceso se lo configura el equipo técnico.** Siga las indicaciones que
+   le den el primer día; después el navegador lo recuerda. *(Esta sección se
+   completará con los pasos exactos cuando quede decidido el método de entrada;
+   ver Parte 2, G.)*
 
 **Si el panel sale en inglés:** pulse el botón redondo de arriba a la derecha
 (el de su cuenta) → **Ajustes** (*Settings*) → **Idioma** (*Language*) → abra
@@ -187,7 +188,8 @@ póngala en **Oculta**.
 | `public/admin/config.yml` | Colecciones, campos, carpetas y límites. Validado contra el esquema de 0.252.0. |
 | `src/data/catalog/overrides.json` | Una entrada por grupo de agua (lista en la raíz). La edita el panel y la mantiene el importador (`README-catalogo.md`). |
 | `src/data/catalog/cards.json` | Las 4 tarjetas de `/productos`. Formateado exactamente como lo escribe el panel, para que el primer guardado no reformatee el archivo. |
-| `public/assets/panel/` | Todo lo que sube el panel, más `logo-panel.png` (logo cuadrado del panel). |
+| `public/assets/panel/` | Todo lo que sube el panel. El `.htaccess` sólo sirve de aquí PDF e imágenes (403 para el resto). |
+| `public/admin/logo-panel.png` | Logo cuadrado del panel. Fuera de la biblioteca para que no se pueda borrar desde Recursos. |
 
 Sveltia es un CMS que funciona en el navegador: al pulsar **Guardar** hace un
 commit en `main` de `brunoh6/wretched-wasp` y el workflow publica en el cPanel
@@ -252,8 +254,10 @@ Los archivos que las tarjetas y la Brida loca PVC usaban se **copiaron** aquí
 ## D. Subidas: conversión, límites y nombres
 
 - **Fotos** (grupos y tarjetas): `accept` JPG, PNG, WebP, HEIC y HEIF (sin
-  SVG: un SVG es código servido desde el dominio). Se convierten a **WebP
-  calidad 82** en el navegador, como máximo 1600×1600 (tarjetas 1600×1200).
+  SVG: un SVG es código servido desde el dominio). Se convierten a WebP en el
+  navegador: fotos de grupo **calidad 80, máximo 800×800** (el catálogo las
+  muestra a 40–64 px, una por fila); tarjetas **calidad 82, máximo 1600×1200**.
+  Sin «Fotos de stock» (`stock_assets: false`).
   Límite **1 MB** medido después de convertir. El HEIC se decodifica con
   `@discourse/heic`, que Sveltia descarga de unpkg la primera vez (salvo en
   Safari, que lo lee solo). La conversión borra los datos EXIF (y el GPS).
@@ -380,8 +384,11 @@ en esto. Opciones técnicas:
 - Tarjetas: guardar conserva `slug`, `family` y `line` y el orden de claves.
 - «Ver en el sitio en vivo» abre `https://www.dihyc.com.pe/productos/conexiones/?linea=agua`
   (grupo de conexiones) y `https://www.dihyc.com.pe/productos/` (tarjetas).
-- Recursos sólo lista `public/assets/panel/` (7 archivos), sin el logo del
-  sitio ni las fichas FM.
+- Recursos sólo lista `public/assets/panel/`, sin el logo del sitio ni las
+  fichas FM.
+- Revisión independiente posterior: el selector de fotos ya no ofrece «Fotos de
+  stock» (`stock_assets: false`); antes guardaba URLs externas que la CSP del
+  sitio bloquea.
 
 **No comprobado:** guardar contra GitHub de verdad (hace falta una cuenta con
 acceso) y la conversión de fotos grandes en Safari del iPhone.
