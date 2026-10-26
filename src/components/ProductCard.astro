@@ -13,9 +13,11 @@ const {
   class="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:-translate-y-1 hover:border-[#003595]/30 hover:shadow-lg"
 >
   <div class="aspect-[4/3] overflow-hidden bg-gray-50">
+    <!-- alt vacío: el título ya está dentro del mismo enlace, y repetirlo hace
+         que el lector de pantalla lo anuncie dos veces. -->
     <img
       src={image}
-      alt={title}
+      alt=""
       loading="lazy"
       class="img-bright h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
     />

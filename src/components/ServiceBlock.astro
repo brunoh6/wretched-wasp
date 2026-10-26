@@ -1,5 +1,21 @@
 ---
-const { title, description, image, reverse = false } = Astro.props;
+import { Image } from "astro:assets";
+
+const {
+  title,
+  description,
+  /**
+   * Foto importada de src/assets (Astro la convierte a WebP con width/height)
+   * o ruta de texto de public/, que se sirve tal cual. La ruta de texto es la
+   * que admite una foto pendiente: si el archivo no existe, el script de abajo
+   * pone el marcador "Imagen próximamente". Una importada que no existe
+   * rompería la compilación.
+   */
+  image,
+  reverse = false
+} = Astro.props;
+
+const imageClass = "img-bright max-h-[400px] w-full rounded-xl object-contain";
 ---
 
 <section class="py-12 md:py-16">
@@ -10,13 +26,26 @@ const { title, description, image, reverse = false } = Astro.props;
     ]}
   >
     <div class:list={["relative", reverse && "md:order-2"]}>
-      <img
-        src={image}
-        alt={title}
-        loading="lazy"
-        data-fallback-image
-        class="img-bright max-h-[400px] w-full rounded-xl object-contain"
-      />
+      {typeof image === "string" ? (
+        <img
+          src={image}
+          alt={title}
+          loading="lazy"
+          data-fallback-image
+          class={imageClass}
+        />
+      ) : (
+        <Image
+          src={image}
+          alt={title}
+          format="webp"
+          quality={80}
+          loading="lazy"
+          decoding="async"
+          data-fallback-image
+          class={imageClass}
+        />
+      )}
     </div>
 
     <div class:list={[reverse && "md:order-1"]}>

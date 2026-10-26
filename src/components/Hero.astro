@@ -1,5 +1,5 @@
 ---
-import { Image } from "astro:assets";
+import { getImage } from "astro:assets";
 import fotoPorDefecto from "../assets/hero/home.png";
 
 const {
@@ -11,8 +11,8 @@ const {
   secondaryHref,
   /**
    * Fotos importadas desde src/assets (no rutas de public/): así Astro las
-   * convierte a WebP en dos tamaños y el móvil descarga la pequeña. Una ruta
-   * en texto sigue funcionando, pero se sirve tal cual, sin optimizar.
+   * convierte a WebP en varios tamaños y el móvil descarga la pequeña. Una
+   * ruta en texto sigue funcionando, pero se sirve tal cual, sin optimizar.
    */
   images = [fotoPorDefecto],
   /** `compact` para páginas interiores, donde el hero es sólo encabezado. */
@@ -22,6 +22,31 @@ const {
 // Tolera `images` como string suelto además de array.
 const slides = (Array.isArray(images) ? images : [images]).filter(Boolean);
 const hasCarousel = slides.length > 1;
+
+// Con sólo [960, 1920], un móvil 1080p (412 px a DPR 2,625) bajaba la de 1920;
+// con el paso de 1280 baja una bastante más liviana que se ve igual.
+const SIZES = "100vw";
+const slideImages = await Promise.all(
+  slides.map(async (image) => {
+    if (typeof image === "string") return { src: image };
+
+    const optimized = await getImage({
+      src: image,
+      widths: [640, 960, 1280, 1920],
+      sizes: SIZES,
+      format: "webp",
+      quality: 78
+    });
+
+    return {
+      src: optimized.src,
+      srcset: optimized.srcSet.attribute,
+      sizes: SIZES,
+      width: optimized.attributes.width,
+      height: optimized.attributes.height
+    };
+  })
+);
 
 const heightClass = compact
   ? "min-h-[38vh] md:min-h-[42vh]"
@@ -35,7 +60,11 @@ const heightClass = compact
 
   <!-- CAPA DE IMÁGENES -->
   <div class="absolute inset-0">
-    {slides.map((image, index) => (
+    <!-- Sólo la primera foto lleva src. Las demás llevan data-src/data-srcset/
+         data-sizes y el script las asigna tras el evento load (o antes, si el
+         usuario las pide): ocultas con opacity-0 siguen dentro del viewport,
+         así que loading="lazy" no las frenaba y competían con la primera. -->
+    {slideImages.map((image, index) => (
       <div
         class={`hero-slide absolute inset-0 transition-opacity duration-700 ease-out ${
           index === 0 ? "opacity-100" : "opacity-0"
@@ -43,34 +72,40 @@ const heightClass = compact
         data-slide={index}
         aria-hidden="true"
       >
-        {typeof image === "string" ? (
+        {index === 0 ? (
           <img
-            src={image}
+            src={image.src}
+            srcset={image.srcset}
+            sizes={image.sizes}
+            width={image.width}
+            height={image.height}
             alt=""
             class="img-bright-hero absolute inset-0 h-full w-full object-cover"
-            loading={index === 0 ? "eager" : "lazy"}
+            loading="eager"
+            fetchpriority="high"
             decoding="async"
           />
         ) : (
-          <Image
-            src={image}
+          <img
+            data-src={image.src}
+            data-srcset={image.srcset}
+            data-sizes={image.sizes}
+            width={image.width}
+            height={image.height}
             alt=""
-            widths={[960, 1920]}
-            sizes="100vw"
-            format="webp"
-            quality={78}
             class="img-bright-hero absolute inset-0 h-full w-full object-cover"
-            loading={index === 0 ? "eager" : "lazy"}
-            fetchpriority={index === 0 ? "high" : "auto"}
+            loading="lazy"
             decoding="async"
           />
         )}
       </div>
     ))}
 
-    <!-- Degradado direccional: aclara la foto y mantiene el texto legible. -->
+    <!-- Velo: en móvil el texto ocupa todo el ancho y un degradado lateral lo
+         dejaba sobre zonas claras, así que ahí oscurece toda la foto. Desde sm
+         el texto va a la izquierda y basta el degradado direccional. -->
     <div
-      class="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/10"
+      class="absolute inset-0 bg-gradient-to-b from-black/70 via-black/55 to-black/45 sm:bg-gradient-to-r sm:from-black/65 sm:via-black/35 sm:to-black/10"
       aria-hidden="true"
     ></div>
   </div>
@@ -106,7 +141,7 @@ const heightClass = compact
           {secondaryLabel && secondaryHref && (
             <a
               href={secondaryHref}
-              class="inline-flex items-center justify-center rounded border border-white/70 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white hover:text-gray-900"
+              class="inline-flex items-center justify-center rounded border border-white/70 bg-black/40 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white hover:text-gray-900"
             >
               {secondaryLabel}
             </a>
@@ -137,16 +172,23 @@ const heightClass = compact
         ›
       </button>
 
-      <div class="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 gap-2">
+      <!-- El botón (p-2) da un área táctil de 26 px o más; el punto visible es
+           el span de dentro. bottom-3 + p-2 deja el punto donde estaba. -->
+      <div class="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2">
         {slides.map((_, index) => (
           <button
             type="button"
-            class={`hero-dot h-2.5 rounded-full transition-all duration-300 ${
-              index === 0 ? "w-7 bg-white" : "w-2.5 bg-white/50 hover:bg-white/80"
-            }`}
+            class="hero-dot group/dot flex items-center justify-center p-2"
             data-dot={index}
             aria-label={`Ir a la imagen ${index + 1}`}
-          ></button>
+            aria-current={index === 0 ? "true" : undefined}
+          >
+            <span
+              class={`block h-2.5 rounded-full transition-all duration-300 ${
+                index === 0 ? "w-7 bg-white" : "w-2.5 bg-white/50 group-hover/dot:bg-white/80"
+              }`}
+            ></span>
+          </button>
         ))}
       </div>
     </>
@@ -165,17 +207,43 @@ const heightClass = compact
   let current = 0;
   let timer: ReturnType<typeof setInterval> | undefined;
 
+  // Pasa data-src/data-srcset/data-sizes a los atributos reales: desde ese
+  // momento el navegador pide la foto.
+  function loadSlide(slide: Element | undefined) {
+    slide?.querySelectorAll<HTMLImageElement>("img[data-src]").forEach((img) => {
+      const { src, srcset, sizes } = img.dataset;
+
+      if (sizes) img.sizes = sizes;
+      if (srcset) img.srcset = srcset;
+      if (src) img.src = src;
+      img.removeAttribute("data-src");
+    });
+  }
+
+  const loadAllSlides = () => slides.forEach(loadSlide);
+
+  if (document.readyState === "complete") loadAllSlides();
+  else window.addEventListener("load", loadAllSlides, { once: true });
+
   function showSlide(index: number) {
+    // Si el usuario se adelanta al evento load, se pide ya la que va a ver.
+    loadSlide(slides[index]);
+
     slides.forEach((slide, i) => {
       slide.classList.toggle("opacity-100", i === index);
       slide.classList.toggle("opacity-0", i !== index);
     });
 
     dots.forEach((dot, i) => {
-      dot.classList.toggle("w-7", i === index);
-      dot.classList.toggle("bg-white", i === index);
-      dot.classList.toggle("w-2.5", i !== index);
-      dot.classList.toggle("bg-white/50", i !== index);
+      const mark = dot.firstElementChild;
+
+      mark?.classList.toggle("w-7", i === index);
+      mark?.classList.toggle("bg-white", i === index);
+      mark?.classList.toggle("w-2.5", i !== index);
+      mark?.classList.toggle("bg-white/50", i !== index);
+
+      if (i === index) dot.setAttribute("aria-current", "true");
+      else dot.removeAttribute("aria-current");
     });
 
     current = index;

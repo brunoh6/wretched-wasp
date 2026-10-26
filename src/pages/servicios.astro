@@ -3,6 +3,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import Hero from "../components/Hero.astro";
 import ServiceBlock from "../components/ServiceBlock.astro";
 import { contactInfo } from "../data/contactInfo";
+import fotoTermofusion from "../assets/services/termofusion.png";
+import fotoElectrofusion from "../assets/services/electrofusion.png";
+import fotoCarpinteria from "../assets/services/carpinteria-plastica.jpeg";
 
 const phone = contactInfo.whatsapp[0].replace(/\D/g, "");
 
@@ -27,27 +30,30 @@ const services = [
     label: "Termofusión",
     title: "Soldadura por Termofusión",
     description: `Servicio especializado para la unión de tuberías plásticas mediante calor controlado, garantizando una conexión homogénea, resistente y de larga duración.${specialistLink("termofusión")}`,
-    image: "/assets/services/termofusion.png"
+    image: fotoTermofusion
   },
   {
     id: "electrofusion",
     label: "Electrofusión",
     title: "Soldadura por Electrofusión",
     description: `Técnica precisa que utiliza accesorios con resistencias eléctricas integradas, permitiendo una unión segura y eficiente. Recomendada para instalaciones industriales donde se requiere control y precisión en cada conexión.${specialistLink("electrofusión")}`,
-    image: "/assets/services/electrofusion.png"
+    image: fotoElectrofusion
   },
   {
     id: "carpinteria-plastica",
     label: "Carpintería Plástica",
     title: "Carpintería Plástica",
     description: `Fabricación y desarrollo de elementos industriales a medida en materiales plásticos de ingeniería. Ideal para aplicaciones industriales, químicas y proyectos que requieren resistencia a la corrosión, durabilidad y precisión en la fabricación.${specialistLink("carpintería plástica")}`,
-    image: "/assets/services/carpinteria-plastica.jpeg"
+    image: fotoCarpinteria
   },
   {
     id: "alquiler-maquinas",
     label: "Alquiler de Máquinas",
     title: "Alquiler de Máquinas",
     description: `Alquiler de equipos especializados para trabajos de termofusión y electrofusión, ideal para proyectos que requieren maquinaria confiable sin necesidad de adquisición permanente.${specialistLink("alquiler de máquinas")}`,
+    // Foto pendiente: va como ruta de texto para que ServiceBlock muestre el
+    // marcador "Imagen próximamente" mientras no exista. Cuando llegue,
+    // guardarla en src/assets/services/ e importarla como las demás.
     image: "/assets/services/alquiler-maquinas.png"
   }
 ];

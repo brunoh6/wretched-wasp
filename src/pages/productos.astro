@@ -64,9 +64,12 @@ const cards = (cardsData.cards as CatalogCard[])
          nivel de decisión (familia + línea) y partirlas en dos filas sugiere una
          jerarquía que no existe; en una sola fila el cliente las compara de un
          vistazo. `items-stretch` + `h-full` igualan la altura de las tarjetas
-         aunque un subtítulo ocupe dos líneas y otro sólo una. -->
+         aunque un subtítulo ocupe dos líneas y otro sólo una.
+         La primera foto es el elemento más grande de la primera pantalla (LCP):
+         va sin lazy y con prioridad alta. width/height (4:3, como la caja)
+         reservan el hueco antes de que llegue la imagen. -->
     <div class="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card) => (
+      {cards.map((card, index) => (
         <a
           href={`/productos/${card.family}/?linea=${card.line}`}
           class="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:-translate-y-1 hover:border-[#003595]/30 hover:shadow-lg"
@@ -75,7 +78,10 @@ const cards = (cardsData.cards as CatalogCard[])
             <img
               src={card.image}
               alt={`${card.title} — ${card.subtitle}`}
-              loading="lazy"
+              width="800"
+              height="600"
+              loading={index === 0 ? "eager" : "lazy"}
+              fetchpriority={index === 0 ? "high" : undefined}
               class="img-bright h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </div>

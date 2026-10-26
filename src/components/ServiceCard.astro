@@ -1,19 +1,36 @@
 ---
-const { title, description, image, href } = Astro.props;
+import { Image } from "astro:assets";
+
+const {
+  title,
+  description,
+  /** Foto importada de src/assets (sale en WebP) o ruta de texto de public/. */
+  image,
+  href
+} = Astro.props;
 
 const Tag = href ? "a" : "div";
+const imageClass =
+  "img-bright h-60 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-72";
 ---
 
 <Tag
   href={href}
   class="group relative block overflow-hidden rounded-xl shadow-lg transition hover:shadow-xl"
 >
-  <img
-    src={image}
-    alt={title}
-    loading="lazy"
-    class="img-bright h-60 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-72"
-  />
+  {typeof image === "string" ? (
+    <img src={image} alt={title} loading="lazy" class={imageClass} />
+  ) : (
+    <Image
+      src={image}
+      alt={title}
+      format="webp"
+      quality={80}
+      loading="lazy"
+      decoding="async"
+      class={imageClass}
+    />
+  )}
 
   <!-- Degradado sólo en la mitad inferior: la foto se ve, el texto se lee. -->
   <div

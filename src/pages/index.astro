@@ -7,13 +7,21 @@ import ServiceCard from "../components/ServiceCard.astro";
 import BrandCarousel from "../components/BrandCarousel.astro";
 import ContactForm from "../components/ContactForm.astro";
 import { getFeaturedFmProducts } from "../data/catalogDisplayItems";
+import { slugify } from "../data/searchQuery";
 import heroHome from "../assets/hero/home.png";
 import heroNuestraEmpresa from "../assets/hero/nuestraempresa.png";
 import heroSlide3 from "../assets/hero/slide3.png";
 import heroSlide4 from "../assets/hero/slide4.png";
+import fotoTermofusion from "../assets/services/termofusion.png";
+import fotoElectrofusion from "../assets/services/electrofusion.png";
 
 // La portada destaca el catálogo FM publicado (tuberías y conexiones).
 const featuredProducts = getFeaturedFmProducts(8);
+
+// Cada tarjeta abre el catálogo ya filtrado por su producto. El slug sale del
+// mismo slugify() que lee el catálogo en ?producto=, o la casilla no se marca.
+const productHref = (product: (typeof featuredProducts)[number]) =>
+  `/productos/${product.category}/?linea=fm&producto=${slugify(product.productName)}`;
 
 const brands = [
   { name: "+GF+", logo: "/assets/brands/gf.png" },
@@ -29,7 +37,7 @@ const brands = [
 
 <BaseLayout
   title="DIHYC | Tubosistemas y conexiones certificadas FM"
-  description="Distribución e importación de tuberías, conexiones y planchas termoplásticas de alta calidad para la industria peruana."
+  description="Distribución e importación de tuberías y conexiones de alta calidad para la industria peruana."
 >
 
   <!-- HERO -->
@@ -95,7 +103,7 @@ const brands = [
               title={product.productName}
               subtitle={`${product.brand} · ${product.sizeRange ?? ""}`}
               image={product.productImage}
-              href={`/productos/${product.category}/`}
+              href={productHref(product)}
               badge={product.certification}
             />
           </div>
@@ -148,13 +156,13 @@ const brands = [
       <ServiceCard
         title="Soldadura por Termofusión"
         description="Unión de tuberías plásticas con máxima resistencia y seguridad."
-        image="/assets/services/termofusion.png"
+        image={fotoTermofusion}
       />
 
       <ServiceCard
         title="Soldadura por Electrofusión"
         description="Instalaciones industriales con alta precisión y confiabilidad."
-        image="/assets/services/electrofusion.png"
+        image={fotoElectrofusion}
       />
     </div>
 
