@@ -43,10 +43,16 @@ const formAction = "https://formspree.io/f/xpqlyqok";
 
 // `grid-cols-1` explícito + `min-w-0`: sin ellos, el ancho mínimo del
 // contenido de los <select> estira la columna y desborda la pantalla en móvil.
-const field = "w-full min-w-0 rounded border border-gray-300 px-4 py-3 transition focus:border-[#003595] focus:outline-none focus:ring-2 focus:ring-[#003595]/30";
+// El placeholder es sólo un ejemplo (la etiqueta va siempre visible encima) y
+// en gray-500 llega a 4,8:1; el gris por defecto del navegador se quedaba en 3,4:1.
+const field = "w-full min-w-0 rounded border border-gray-300 px-4 py-3 transition placeholder:text-gray-500 focus:border-[#003595] focus:outline-none focus:ring-2 focus:ring-[#003595]/30";
 
-// Estilo único para los mensajes por campo: pequeños, rojos y debajo del campo.
-const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
+// Etiqueta visible: con sólo el placeholder, al empezar a escribir se pierde
+// la referencia de qué pedía cada campo.
+const label = "mb-1.5 block text-sm font-medium text-gray-800";
+
+// Estilo único para los mensajes por campo: rojos y debajo del campo.
+const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
 ---
 
 <form
@@ -59,7 +65,7 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 
     <div class="min-w-0">
-      <label class="sr-only" for="cf-name">Nombres y apellidos</label>
+      <label class={label} for="cf-name">Nombres y apellidos</label>
       <input
         id="cf-name"
         type="text"
@@ -67,7 +73,7 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
         required
         maxlength="80"
         autocomplete="name"
-        placeholder="Nombres y Apellidos"
+        placeholder="Ej.: María Pérez Gómez"
         class={field}
         data-validate="name"
       />
@@ -75,7 +81,7 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
     </div>
 
     <div class="min-w-0">
-      <label class="sr-only" for="cf-document">DNI / CE / RUC</label>
+      <label class={label} for="cf-document">DNI / CE / RUC (opcional)</label>
       <input
         id="cf-document"
         type="text"
@@ -89,7 +95,7 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
         {/* El CE puede llevar letras: un teclado sólo-numérico las bloquearía en iOS. */}
         inputmode="text"
         autocomplete="off"
-        placeholder="DNI / CE / RUC (opcional)"
+        placeholder="Ej.: 12345678 o 20123456789"
         class={field}
         data-validate="document"
       />
@@ -97,14 +103,14 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
     </div>
 
     <div class="min-w-0">
-      <label class="sr-only" for="cf-company">Razón social</label>
+      <label class={label} for="cf-company">Razón social (opcional)</label>
       <input
         id="cf-company"
         type="text"
         name="company"
         maxlength="120"
         autocomplete="organization"
-        placeholder="Razón social (opcional)"
+        placeholder="Ej.: Constructora Andina S.A.C."
         class={field}
         data-validate="company"
       />
@@ -112,7 +118,7 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
     </div>
 
     <div class="min-w-0">
-      <label class="sr-only" for="cf-preference">Preferencia de contacto</label>
+      <label class={label} for="cf-preference">Preferencia de contacto</label>
       <select
         id="cf-preference"
         name="contact_preference"
@@ -120,7 +126,7 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
         class={field}
         data-validate="contact"
       >
-        <option value="">Preferencia de contacto</option>
+        <option value="">Elige una opción</option>
         <option value="WhatsApp">WhatsApp</option>
         <option value="Llamada">Llamada telefónica</option>
         <option value="Correo">Correo electrónico</option>
@@ -129,11 +135,13 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
     </div>
 
     <div class="min-w-0 md:col-span-2">
-      <div class="flex min-w-0 items-center gap-2">
+      {/* items-end: si una etiqueta pasa a dos líneas, los campos siguen
+          alineados por abajo. */}
+      <div class="flex min-w-0 items-end gap-2">
         <div class="min-w-0 basis-2/5 sm:basis-1/3">
-          <label class="sr-only" for="country">País</label>
+          <label class={label} for="country">País</label>
           <select id="country" name="country" required class={field} data-validate="country">
-            <option value="">País</option>
+            <option value="">Elige</option>
             <option value="PE" data-prefix="+51" data-length="9">🇵🇪 Perú (+51)</option>
             <option value="CL" data-prefix="+56" data-length="9">🇨🇱 Chile (+56)</option>
             <option value="CO" data-prefix="+57" data-length="10">🇨🇴 Colombia (+57)</option>
@@ -142,7 +150,9 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
         </div>
 
         <div class="min-w-0 flex-1">
-          <label class="sr-only" id="phone-label" for="phone">Número de teléfono</label>
+          {/* Lo visible es corto para caber junto al país a 375 px; el detalle
+              de dígitos y prefijo lo completa el script en la parte sr-only. */}
+          <label class={label} id="phone-label" for="phone">Teléfono<span id="phone-label-hint" class="sr-only"></span></label>
           <!-- El prefijo se muestra al lado del campo cuando ya hay país elegido:
                deja claro que el número va SIN el código internacional.
                En móvil va como texto suelto (cada píxel cuenta a 375 px) y
@@ -162,7 +172,7 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
               maxlength="20"
               inputmode="tel"
               autocomplete="tel"
-              placeholder="Número"
+              placeholder="Ej.: 987 654 321"
               class={field}
               data-validate="phone"
             />
@@ -177,7 +187,7 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
     </div>
 
     <div class="min-w-0 md:col-span-2">
-      <label class="sr-only" for="cf-email">Correo electrónico</label>
+      <label class={label} for="cf-email">Correo electrónico</label>
       <input
         id="cf-email"
         type="email"
@@ -185,7 +195,7 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
         required
         maxlength="120"
         autocomplete="email"
-        placeholder="Correo electrónico"
+        placeholder="Ej.: nombre@empresa.com"
         class={field}
         data-validate="email"
       />
@@ -194,14 +204,14 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
   </div>
 
   <div class="min-w-0">
-    <label class="sr-only" for="cf-message">Mensaje</label>
+    <label class={label} for="cf-message">Mensaje</label>
     <textarea
       id="cf-message"
       name="message"
       required
       rows="5"
       maxlength="2000"
-      placeholder="Mensaje"
+      placeholder="Ej.: Necesito cotizar 20 codos de 90° HDPE SDR 11 de 4 pulgadas."
       class={`${field} resize-y`}
       data-validate="message"
     ></textarea>
@@ -410,13 +420,11 @@ const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
     }
 
     // La pastilla del prefijo es decorativa (aria-hidden), así que el dato
-    // se le da al lector de pantalla por la etiqueta sr-only del campo.
-    const etiqueta = document.getElementById("phone-label");
-    if (etiqueta) {
+    // se le da al lector de pantalla por la parte sr-only de la etiqueta.
+    const pista = document.getElementById("phone-label-hint");
+    if (pista) {
       const largo = Number(opcion?.dataset.length) || 0;
-      etiqueta.textContent = prefijo
-        ? `Número de teléfono (${largo} dígitos, sin el prefijo ${prefijo})`
-        : "Número de teléfono";
+      pista.textContent = prefijo ? ` (${largo} dígitos, sin el prefijo ${prefijo})` : "";
     }
   };
 

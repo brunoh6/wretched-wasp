@@ -18,7 +18,9 @@ const searchPayload = {
 
 const {
   title = "H & C | DIHYC",
-  description = "Distribuidora e importadora de tuberías, conexiones y planchas termoplásticas para la industria en Perú.",
+  // Sin "planchas" mientras esa categoría no esté publicada: la descripción no
+  // debe prometer algo que el catálogo no muestra.
+  description = "Distribuidora e importadora de tuberías y conexiones termoplásticas para la industria en Perú.",
   /**
    * `true` en páginas que no deben aparecer en buscadores (la 404). Emite
    * `<meta name="robots" content="noindex">` y omite el canonical: una página

@@ -3,7 +3,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import Hero from "../components/Hero.astro";
 import Section from "../components/Section.astro";
 import ContactForm from "../components/ContactForm.astro";
-import { contactInfo } from "../data/contactInfo";
+import { contactInfo, telHref } from "../data/contactInfo";
 
 const whatsappNumber = contactInfo.whatsapp[0].replace(/\D/g, "");
 const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
@@ -11,7 +11,6 @@ const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
 )}`;
 
 // `tel:` y `mailto:` hacen que los datos sean accionables desde el móvil.
-const telHref = (value: string) => `tel:${value.replace(/[^\d+]/g, "")}`;
 
 const details = [
   {
@@ -89,15 +88,17 @@ const icons: Record<string, string> = {
             <div class="min-w-0">
               <p class="text-sm font-semibold text-gray-900">{detail.label}</p>
 
-              <p class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-sm text-gray-700">
+              <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-700">
                 {detail.values.map((value, index) => (
                   <>
-                    {index > 0 && <span class="text-gray-300">|</span>}
+                    {index > 0 && <span class="text-gray-300" aria-hidden="true">|</span>}
 
+                    {/* py-1: 28 px de alto, por encima del área táctil mínima de
+                        24 px; con 4 números por fila es fácil tocar el vecino. */}
                     {value.href ? (
                       <a
                         href={value.href}
-                        class="break-words transition hover:text-[#003595] hover:underline"
+                        class="inline-block break-words py-1 transition hover:text-[#003595] hover:underline"
                       >
                         {value.text}
                       </a>

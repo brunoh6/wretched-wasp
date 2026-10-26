@@ -5,6 +5,17 @@
 // así que emitir el JSON dentro del componente lo duplicaba en cada página: el
 // script cliente sólo lee el primero y el segundo era peso muerto. Ahora lo
 // publica BaseLayout una sola vez por página y aquí sólo se consume.
+
+interface Props {
+  /**
+   * Prefijo de id, distinto en cada instancia de la página: el combobox apunta
+   * a SU lista con aria-controls y dos ids iguales romperían esa relación.
+   */
+  id?: string;
+}
+
+const { id = "buscador" } = Astro.props;
+const listboxId = `${id}-sugerencias`;
 ---
 
 <!-- `data-search-root` permite montar varias instancias (escritorio y móvil)
@@ -28,8 +39,9 @@
       role="combobox"
       aria-expanded="false"
       aria-autocomplete="list"
+      aria-controls={listboxId}
       data-search-input
-      class="w-full rounded-md border border-gray-300 py-2 pl-9 pr-8 text-sm transition focus:border-[#003595] focus:outline-none focus:ring-2 focus:ring-[#003595]/30"
+      class="w-full rounded-md border border-gray-300 py-2 pl-9 pr-8 text-base transition focus:border-[#003595] focus:outline-none focus:ring-2 focus:ring-[#003595]/30"
     />
 
     <button
@@ -45,8 +57,10 @@
   </div>
 
   <div
+    id={listboxId}
     data-search-results
     role="listbox"
+    aria-label="Sugerencias de búsqueda"
     class="absolute left-0 right-0 z-50 mt-2 hidden max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-xl"
   ></div>
 
@@ -220,17 +234,26 @@ function highlight(text, query) {
   );
 }
 
-function renderSuggestions() {
+/**
+ * Todo lo que se puede elegir dentro del desplegable lleva role="option":
+ * un listbox sólo admite opciones (o grupos de opciones), y un <button> suelto
+ * ahí dentro es un error ARIA que los lectores de pantalla anuncian mal.
+ * `prefix` es el id de la lista: hace único el id del rótulo del grupo en cada
+ * instancia del buscador.
+ */
+function renderSuggestions(prefix) {
   if (!POPULAR.length) return "";
 
+  const headingId = `${prefix}-frecuentes`;
+
   return `
-    <div class="p-3">
-      <div class="px-1 pb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+    <div class="p-3" role="group" aria-labelledby="${headingId}">
+      <div id="${headingId}" class="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-600">
         Búsquedas frecuentes
       </div>
       <div class="flex flex-wrap gap-2">
         ${POPULAR.map(term => `
-          <button type="button" data-suggestion="${escapeHtml(term)}"
+          <button type="button" role="option" data-suggestion="${escapeHtml(term)}"
             class="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-700 transition hover:border-[#003595] hover:text-[#003595]">
             ${escapeHtml(term)}
           </button>
@@ -285,7 +308,7 @@ function renderEmpty(query) {
     return `
       <div class="px-4 py-5 text-center text-sm text-gray-500">
         Sin resultados para <span class="font-medium text-gray-800">${escapeHtml(query)}</span>.
-        <button type="button" data-suggestion="${escapeHtml(suggestion)}"
+        <button type="button" role="option" data-suggestion="${escapeHtml(suggestion)}"
           class="mt-3 block w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 transition hover:border-[#003595] hover:text-[#003595] focus:border-[#003595] focus:outline-none focus:ring-2 focus:ring-[#003595]/30">
           ¿Quisiste decir <b class="font-semibold text-[#003595]">${escapeHtml(suggestion)}</b>?
         </button>
@@ -296,7 +319,7 @@ function renderEmpty(query) {
   return `
     <div class="px-4 py-5 text-center text-sm text-gray-500">
       Sin resultados para <span class="font-medium text-gray-800">${escapeHtml(query)}</span>.
-      <a href="/contacto/" class="mt-1 block font-medium text-[#003595] hover:underline">
+      <a href="/contacto/" role="option" class="mt-1 block font-medium text-[#003595] hover:underline">
         Consúltanos por este producto →
       </a>
     </div>
@@ -319,7 +342,7 @@ function renderDidYouMean(query) {
   return `
     <div class="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-gray-700">
       ¿Quisiste decir
-      <button type="button" data-suggestion="${escapeHtml(suggestion)}"
+      <button type="button" role="option" data-suggestion="${escapeHtml(suggestion)}"
         class="font-semibold text-[#003595] underline decoration-dotted underline-offset-2 hover:decoration-solid focus:outline-none focus:ring-2 focus:ring-[#003595]/30">
         ${escapeHtml(suggestion)}
       </button>?
@@ -384,7 +407,7 @@ document.querySelectorAll("[data-search-root]").forEach((root) => {
 
     // Sin texto: se proponen las búsquedas frecuentes.
     if (!query) {
-      results.innerHTML = renderSuggestions();
+      results.innerHTML = renderSuggestions(results.id);
       results.innerHTML ? open() : close();
       return;
     }

@@ -29,6 +29,23 @@ body {
   border-radius: 4px;
 }
 
+/* Sobre fondo azul el contorno de marca no se ve (1,4-1,7:1 en el pie y nada
+   en la franja bg-[#003595] de servicios): ahí va en blanco. */
+footer :focus-visible,
+.bg-\[\#003595\] :focus-visible {
+  outline-color: #fff;
+}
+
+/* Los chips de material del catálogo móvil esconden su casilla (sr-only), así
+   que el foco se pinta en la etiqueta. Contorno hacia dentro y anillo blanco:
+   la fila de chips tiene overflow-x-auto y recorta lo que sobresale, y el chip
+   marcado es casi negro, donde el azul solo apenas se distingue. */
+.material-chip:has(:focus-visible) {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 4px #fff;
+}
+
 /* =========================================================
    IMÁGENES
    Realce sutil y uniforme: más luz, algo más de contraste y

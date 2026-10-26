@@ -1,5 +1,5 @@
 ---
-import { contactInfo } from "../data/contactInfo";
+import { contactInfo, telHref } from "../data/contactInfo";
 import { visibleCategories } from "../data/categories";
 // Igual que en el Header: el enlace sólo existe si la sección está publicada.
 import { CERTIFICATIONS_ENABLED } from "../data/certifications";
@@ -8,8 +8,6 @@ const year = new Date().getFullYear();
 
 const whatsappNumber = contactInfo.whatsapp[0].replace(/\D/g, "");
 const whatsappHref = `https://wa.me/${whatsappNumber}`;
-
-const telHref = (value: string) => `tel:${value.replace(/[^\d+]/g, "")}`;
 
 // Se filtra la entrada oculta en vez de envolverla en un `{cond && ...}` dentro
 // del <ul>: así el marcado del pie queda idéntico al actual cuando el flag está
@@ -42,7 +40,7 @@ const links = [
       />
 
       <p class="mt-4 max-w-xs text-sm leading-relaxed text-gray-400">
-        Distribuidora e importadora de tubosistemas, conexiones y planchas
+        Distribuidora e importadora de tubosistemas y conexiones
         termoplásticas para la industria peruana.
       </p>
     </div>
@@ -53,15 +51,18 @@ const links = [
 
       <ul class="space-y-3 text-sm">
         <li class="flex items-start gap-3">
-          <svg class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          {/* Los enlaces llevan py-1 (28 px de alto) para cumplir el área táctil
+              mínima de 24 px (WCAG 2.5.8); el icono baja lo mismo para seguir
+              alineado con la primera línea. */}
+          <svg class="mt-1.5 h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M3 5a2 2 0 012-2h3l2 5-2 1a11 11 0 005 5l1-2 5 2v3a2 2 0 01-2 2h-1C8 20 4 16 4 11V5z"/>
           </svg>
 
-          <span class="flex flex-wrap gap-x-2">
+          <span class="flex flex-wrap items-center gap-x-2 gap-y-2">
             {contactInfo.phones.map((phone, index) => (
               <>
-                {index > 0 && <span class="text-gray-600">|</span>}
-                <a href={telHref(phone)} class="transition hover:text-white">{phone}</a>
+                {index > 0 && <span class="text-gray-600" aria-hidden="true">|</span>}
+                <a href={telHref(phone)} class="inline-block py-1 transition hover:text-white">{phone}</a>
               </>
             ))}
           </span>
@@ -78,16 +79,16 @@ const links = [
         </li>
 
         <li class="flex items-start gap-3">
-          <svg class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <svg class="mt-1.5 h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 4h16v16H4z"/>
             <path d="M4 4l8 7 8-7"/>
           </svg>
 
-          <span class="flex flex-wrap gap-x-2">
+          <span class="flex flex-wrap items-center gap-x-2 gap-y-2">
             {contactInfo.emails.map((email, index) => (
               <>
-                {index > 0 && <span class="text-gray-600">|</span>}
-                <a href={`mailto:${email}`} class="break-all transition hover:text-white">{email}</a>
+                {index > 0 && <span class="text-gray-600" aria-hidden="true">|</span>}
+                <a href={`mailto:${email}`} class="inline-block break-all py-1 transition hover:text-white">{email}</a>
               </>
             ))}
           </span>
@@ -156,7 +157,7 @@ const links = [
 
   </div>
 
-  <div class="border-t border-white/10 py-5 text-center text-xs text-gray-500">
+  <div class="border-t border-white/10 py-5 text-center text-xs text-gray-400">
     © {year} DIHYC. Todos los derechos reservados.
   </div>
 </footer>
