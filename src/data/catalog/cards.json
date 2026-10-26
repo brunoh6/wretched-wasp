@@ -1,0 +1,16 @@
+{
+  "cards": [
+    { "slug": "tuberias-fm",   "family": "tuberias",   "line": "fm",
+      "title": "Tuberías FM",  "subtitle": "Contra incendio · HDPE certificado FM",
+      "image": "/assets/categories/tuberias.png",          "visible": true, "order": 1 },
+    { "slug": "tuberias",      "family": "tuberias",   "line": "agua",
+      "title": "Tuberías",     "subtitle": "Agua fría y caliente · PVC y CPVC",
+      "image": "/assets/products/pvc.png",                 "visible": true, "order": 2 },
+    { "slug": "conexiones-fm", "family": "conexiones", "line": "fm",
+      "title": "Conexiones FM","subtitle": "Contra incendio · HDPE certificado FM",
+      "image": "/assets/categories/conexiones-fm.svg",     "visible": true, "order": 3 },
+    { "slug": "conexiones",    "family": "conexiones", "line": "agua",
+      "title": "Conexiones",   "subtitle": "Agua fría y caliente · PVC y CPVC",
+      "image": "/assets/products/codo_gf.jpg",             "visible": true, "order": 4 }
+  ]
+}

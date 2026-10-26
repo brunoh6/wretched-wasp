@@ -1,0 +1,16 @@
+# robots.txt de www.dihyc.com.pe
+#
+# Todo el sitio público se puede rastrear. Sólo se excluye /admin/, que es el
+# panel interno del CMS (además lleva <meta name="robots" content="noindex">).
+# Ojo: esto NO protege nada; robots.txt es público y sólo lo respetan los
+# buscadores bien educados. La protección del panel es el login de GitHub.
+#
+# La línea Sitemap apunta al ÍNDICE que genera @astrojs/sitemap en el build
+# (dist/sitemap-index.xml), que a su vez enlaza a sitemap-0.xml. Va con la URL
+# absoluta y con www porque es el dominio canónico (decisión D1).
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+
+Sitemap: https://www.dihyc.com.pe/sitemap-index.xml

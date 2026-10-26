@@ -1,0 +1,303 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Construir y publicar www.dihyc.com.pe en el cPanel de la empresa.
+#
+# Flujo: push a main (o un guardado desde el panel /admin) → compilar y validar
+# → publicar por FTPS o por SSH → prueba automática contra el sitio en vivo.
+#
+# CÓMO SE ELIGE EL MÉTODO (Settings → Secrets and variables → Actions → Variables)
+#   DEPLOY_METHOD = ftps   → publica por FTP cifrado (lo que siempre trae cPanel)
+#   DEPLOY_METHOD = ssh    → publica por rsync sobre SSH (si el hosting lo permite)
+#   (sin la variable)      → SÓLO compila y valida. Un push nunca falla por falta
+#                            de credenciales; nada se publica hasta configurarlo.
+#
+# Guía paso a paso para configurarlo: README-deploy.md
+#
+# ⚠ El push de este archivo exige un token de GitHub con permiso "workflow".
+#   Sin él GitHub rechaza el push (pasó en el commit b23c350, "push without
+#   workflow", que borró un deploy.yml anterior para poder subir lo demás).
+#
+# Todas las actions externas van fijadas por SHA de commit completo, no por
+# etiqueta: una etiqueta se puede mover a otro código; un SHA no.
+# SHAs obtenidos con `git ls-remote` (octubre 2026).
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Construir y publicar
+
+on:
+  push:
+    branches: [main]
+  # Permite lanzarlo a mano desde la pestaña Actions de GitHub.
+  workflow_dispatch:
+
+# Permisos mínimos: sólo leer el repositorio.
+permissions:
+  contents: read
+
+# El panel /admin guarda cada cambio como un commit y el cliente puede guardar
+# varias veces seguidas. NUNCA se cancela una publicación a medias (dejaría el
+# sitio con archivos de dos versiones): las ejecuciones se ponen en cola y, si se
+# acumulan varias, GitHub conserva sólo la más reciente, que es la que importa.
+concurrency:
+  group: publicar-dihyc
+  cancel-in-progress: false
+
+env:
+  SITIO: https://www.dihyc.com.pe
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  construir:
+    name: Compilar y validar
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Después de descargar no hace falta seguir autenticado contra GitHub.
+          persist-credentials: false
+
+      - name: Preparar Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          # Astro 5 NO admite Node 18 (el workflow anterior usaba 18 y nunca
+          # habría compilado).
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        # `npm ci` respeta package-lock.json al pie de la letra: la compilación
+        # aquí es idéntica a la de local.
+        run: npm ci
+
+      - name: Compilar
+        env:
+          # Marca de versión: cada página lleva <meta name="dihyc-build"> con el
+          # commit. La prueba final la usa para confirmar que lo que se ve en
+          # vivo es ESTA versión y no una copia vieja en caché.
+          PUBLIC_BUILD_ID: ${{ github.sha }}
+        run: npm run build
+
+      - name: Validar el sitio compilado
+        # Si falta algo de esto, mejor fallar aquí que publicar un sitio roto.
+        run: |
+          set -euo pipefail
+          falta=0
+          for f in index.html 404.html .htaccess robots.txt sitemap-index.xml \
+                   productos/index.html productos/tuberias/index.html productos/conexiones/index.html \
+                   admin/index.html admin/config.yml admin/.htaccess; do
+            if [ ! -f "dist/$f" ]; then echo "::error::Falta dist/$f"; falta=1; fi
+          done
+          [ "$falta" = 0 ] || exit 1
+
+          grep -q "name=\"dihyc-build\" content=\"${GITHUB_SHA}\"" dist/index.html \
+            || { echo "::error::La marca de versión no lleva el commit ${GITHUB_SHA}"; exit 1; }
+
+          if grep -rl "localhost" dist --include='*.html' | grep -q .; then
+            echo "::error::Hay enlaces a localhost en el HTML compilado:"
+            grep -rl "localhost" dist --include='*.html'
+            exit 1
+          fi
+          echo "Sitio compilado OK: $(find dist -type f | wc -l) archivos, $(du -sh dist | cut -f1)."
+
+      - name: Guardar el sitio compilado
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sitio-compilado
+          path: dist/
+          # IMPRESCINDIBLE: sin esto se pierden .htaccess y admin/.htaccess (los
+          # archivos que empiezan por punto se excluyen por defecto) y el sitio
+          # se publicaría sin redirecciones, sin seguridad y sin página 404.
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  publicar-ftps:
+    name: Publicar por FTPS
+    needs: construir
+    if: vars.DEPLOY_METHOD == 'ftps'
+    runs-on: ubuntu-latest
+    environment:
+      name: produccion
+      url: https://www.dihyc.com.pe
+    steps:
+      - name: Comprobar que las credenciales están cargadas
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          for v in FTP_SERVER FTP_USERNAME FTP_PASSWORD; do
+            [ -n "${!v}" ] || { echo "::error::Falta el secret $v (ver README-deploy.md)"; exit 1; }
+          done
+
+      - name: Descargar el sitio compilado
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: sitio-compilado
+          path: dist/
+
+      - name: Subir a public_html
+        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ vars.FTP_PORT || 21 }}
+          # OJO: esta action trae por defecto protocol "ftp" (SIN cifrar: la
+          # contraseña viajaría en texto plano) y security "loose" (acepta
+          # cualquier certificado). Por eso ambos van explícitos.
+          protocol: ftps
+          # strict = sólo acepta un certificado válido para FTP_SERVER. En un
+          # hosting compartido ese certificado suele ser del NOMBRE DEL SERVIDOR
+          # (el que muestra cPanel en "Configurar cliente FTP"), no de
+          # dihyc.com.pe: usar ese nombre como FTP_SERVER. "loose" sólo como último
+          # recurso (ver README-deploy.md: cifra igual, pero no verifica con quién).
+          security: ${{ vars.FTP_SECURITY || 'strict' }}
+          local-dir: ./dist/
+          # Recomendado: crear la cuenta FTP en cPanel con directorio public_html,
+          # así "./" ES public_html y la cuenta no puede tocar nada más.
+          server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
+          # La action guarda en el servidor .ftp-deploy-sync-state.json con la
+          # lista de lo que subió, y en cada publicación sólo borra archivos de
+          # esa lista. Lo que no subió ella (cgi-bin, .well-known del SSL, la
+          # carpeta de otro dominio) nunca se toca. dangerous-clean-slate queda
+          # en su valor por defecto (false) a propósito. El .htaccess bloquea el
+          # acceso público a ese archivo de estado.
+          log-level: standard
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  publicar-ssh:
+    name: Publicar por SSH (rsync)
+    needs: construir
+    if: vars.DEPLOY_METHOD == 'ssh'
+    runs-on: ubuntu-latest
+    environment:
+      name: produccion
+      url: https://www.dihyc.com.pe
+    steps:
+      - name: Descargar el sitio compilado
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: sitio-compilado
+          path: dist/
+
+      - name: Preparar la conexión SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          for v in SSH_KEY SSH_KNOWN_HOSTS SSH_HOST SSH_USER; do
+            [ -n "${!v}" ] || { echo "::error::Falta el secret $v (ver README-deploy.md)"; exit 1; }
+          done
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # La huella del servidor se FIJA desde un secret. Nunca se desactiva la
+          # verificación (StrictHostKeyChecking=no): sin ella, cualquiera que se
+          # interponga en la red podría hacerse pasar por el hosting y recibir el
+          # sitio y la llave.
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Subir con rsync
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+          DESTINO: ${{ vars.SSH_TARGET_DIR || 'public_html/' }}
+          BORRAR: ${{ vars.SSH_ALLOW_DELETE || 'false' }}
+          PROTEGER: ${{ vars.DEPLOY_PROTECT || '' }}
+        run: |
+          set -euo pipefail
+          # -rltz: recursivo, enlaces, fechas y compresión. NO se usa -a: intentaría
+          # conservar dueño y grupo, cosa que una cuenta de hosting no puede hacer.
+          # --chmod: carpetas 755 y archivos 644, los permisos que cPanel espera
+          # (con permisos más abiertos algunos servidores responden error 500).
+          args=(-rltz --chmod=D755,F644
+                -e "ssh -i $HOME/.ssh/deploy_key -p ${SSH_PORT} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts")
+
+          # Borrar en el servidor lo que ya no existe en el sitio está APAGADO por
+          # defecto. Un --delete mal apuntado puede borrar el sitio de otro dominio
+          # alojado dentro de public_html, o .well-known/ (y con ella la
+          # renovación del SSL). Sólo se activa con SSH_ALLOW_DELETE=true, y aun
+          # así esas rutas quedan protegidas.
+          if [ "$BORRAR" = "true" ]; then
+            case "$DESTINO" in
+              ""|"/"|"."|"./"|"~"|"~/")
+                echo "::error::Con SSH_ALLOW_DELETE=true el destino no puede ser '$DESTINO'. Usa public_html/"; exit 1 ;;
+            esac
+            args+=(--delete
+                   --filter='P .well-known/'
+                   --filter='P cgi-bin/'
+                   --filter='P .ftp-deploy-sync-state.json')
+            for ruta in $PROTEGER; do args+=(--filter="P ${ruta}"); done
+            echo "Modo con borrado. Protegidas: .well-known/ cgi-bin/ .ftp-deploy-sync-state.json ${PROTEGER}"
+          else
+            echo "Modo sin borrado: sólo se añaden y actualizan archivos."
+          fi
+
+          rsync "${args[@]}" dist/ "${SSH_USER}@${SSH_HOST}:${DESTINO}"
+
+      - name: Borrar la llave del runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  probar-en-vivo:
+    name: Probar el sitio en vivo
+    needs: [publicar-ftps, publicar-ssh]
+    # Corre si UNO de los dos métodos publicó con éxito (el otro queda omitido).
+    if: >-
+      always() &&
+      (needs.publicar-ftps.result == 'success' || needs.publicar-ssh.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comprobar páginas, redirecciones y versión publicada
+        run: |
+          set -uo pipefail
+          fallos=0
+          codigo() { curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$1"; }
+
+          # 1) La portada debe traer ESTE commit. Se reintenta ~3 minutos por si el
+          #    hosting tarda en servir la versión nueva.
+          for intento in $(seq 1 12); do
+            if curl -s --max-time 20 "$SITIO/" | grep -q "name=\"dihyc-build\" content=\"${GITHUB_SHA}\""; then
+              echo "✅ La portada en vivo es la versión ${GITHUB_SHA}"; break
+            fi
+            if [ "$intento" = 12 ]; then
+              echo "::error::La portada en vivo no muestra la versión ${GITHUB_SHA}"; fallos=1
+            else
+              echo "Esperando la versión nueva (intento $intento/12)…"; sleep 15
+            fi
+          done
+
+          # 2) Páginas que deben responder 200.
+          for ruta in / /productos/ /productos/tuberias/ /productos/conexiones/ \
+                      /servicios/ /empresa/ /contacto/ /admin/ /robots.txt /sitemap-index.xml; do
+            c=$(codigo "$SITIO$ruta")
+            if [ "$c" = 200 ]; then echo "✅ $c $ruta"; else echo "::error::$ruta respondió $c (esperado 200)"; fallos=1; fi
+          done
+
+          # 3) Una ruta inexistente debe dar 404 (y no 200 ni 500).
+          c=$(codigo "$SITIO/esta-ruta-no-existe-${GITHUB_SHA}")
+          if [ "$c" = 404 ]; then echo "✅ 404 en rutas inexistentes"; else echo "::error::Ruta inexistente respondió $c (esperado 404)"; fallos=1; fi
+
+          # 4) Sin www y sin https deben llevar a la dirección canónica en un salto.
+          for origen in "http://dihyc.com.pe/" "https://dihyc.com.pe/" "http://www.dihyc.com.pe/"; do
+            r=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 20 "$origen")
+            if [ "$r" = "301 https://www.dihyc.com.pe/" ]; then echo "✅ $origen → 301 a https://www"
+            else echo "::error::$origen respondió '$r' (esperado 301 a https://www.dihyc.com.pe/)"; fallos=1; fi
+          done
+
+          # 5) Cabeceras de seguridad: AVISO, no error. Si el hosting no tiene
+          #    mod_headers el sitio funciona igual, pero conviene saberlo.
+          cab=$(curl -s -o /dev/null -D - --max-time 20 "$SITIO/")
+          for h in Content-Security-Policy Strict-Transport-Security X-Content-Type-Options X-Frame-Options; do
+            if echo "$cab" | grep -qi "^$h:"; then echo "✅ cabecera $h"
+            else echo "::warning::El sitio en vivo no envía $h (¿mod_headers desactivado en el hosting?)"; fi
+          done
+
+          exit $fallos

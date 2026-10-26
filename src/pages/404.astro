@@ -1,0 +1,158 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Section from "../components/Section.astro";
+import cardsData from "../data/catalog/cards.json";
+import { contactInfo } from "../data/contactInfo";
+
+/*
+ * Página 404.
+ *
+ * Astro la emite como `dist/404.html` (archivo suelto, no carpeta). El servidor
+ * la devuelve para CUALQUIER ruta inexistente, incluidas rutas profundas como
+ * /productos/valvulas/abc; por eso todos los enlaces de esta página son
+ * absolutos desde la raíz ("/...") y nunca relativos.
+ *
+ * Quien llega aquí casi siempre venía de un enlace viejo (el sitio anterior
+ * tenía otras URLs) o buscaba un producto. En vez de un "no existe" seco, le
+ * damos las cuatro puertas de entrada del catálogo, el contacto y WhatsApp.
+ *
+ * `noindex`: una página de error no debe aparecer en Google.
+ */
+
+type CatalogCard = {
+  slug: string;
+  family: string;
+  line: string;
+  title: string;
+  subtitle: string;
+  visible: boolean;
+  order: number;
+};
+
+// Mismas cuatro entradas que la portada de /productos (familia × línea), leídas
+// del mismo JSON que edita el CMS: si se apaga o renombra una tarjeta allí, esta
+// página la sigue sin tocar código.
+//
+// El enlace va en la forma canónica CON barra final (/productos/tuberias/?linea=fm,
+// decisión D2): así el visitante llega directo con 200, sin pasar por el 301 que
+// Apache hace desde la forma sin barra.
+const productLinks = (cardsData.cards as CatalogCard[])
+  .filter((card) => card.visible)
+  .sort((a, b) => a.order - b.order)
+  .map((card) => ({
+    href: `/productos/${card.family}/?linea=${encodeURIComponent(card.line)}`,
+    title: card.title,
+    subtitle: card.subtitle
+  }));
+
+const whatsappNumber = contactInfo.whatsapp[0].replace(/\D/g, "");
+const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+  "Hola, entré a una página de su web que no existe. Estoy buscando: "
+)}`;
+---
+
+<BaseLayout
+  title="Página no encontrada | DIHYC"
+  description="La página que buscas no existe o cambió de dirección. Revisa nuestro catálogo de tuberías y conexiones o contáctanos."
+  noindex
+>
+  <Section>
+    <div class="max-w-2xl">
+      <p class="text-sm font-semibold uppercase tracking-wider text-[#003595]">
+        Error 404
+      </p>
+
+      <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">
+        No encontramos esta página
+      </h1>
+
+      <p class="mt-4 text-gray-600">
+        Es posible que el enlace esté desactualizado o que la dirección se haya
+        escrito mal. Nuestro sitio cambió hace poco y algunas páginas tienen ahora
+        una dirección nueva.
+      </p>
+
+      <p class="mt-3 text-gray-600">
+        ¿Buscas un producto concreto? Escribe la medida, la marca o el tipo en el
+        <span class="font-medium text-gray-900">buscador del encabezado</span>
+        (en el celular está dentro del menú
+        <span class="whitespace-nowrap">☰</span>).
+      </p>
+    </div>
+
+    <!-- Entradas al catálogo: 1 columna en móvil, 2 en tablet, 4 en escritorio,
+         igual que la portada de /productos para que el cliente las reconozca. -->
+    {productLinks.length > 0 && (
+      <div class="mt-10">
+        <h2 class="text-lg font-semibold text-gray-900">
+          Ir al catálogo
+        </h2>
+
+        <ul class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {productLinks.map((link) => (
+            <li class="min-w-0">
+              <a
+                href={link.href}
+                class="group flex h-full items-start justify-between gap-3 rounded-xl border border-gray-200 bg-white p-5 transition hover:border-[#003595]/30 hover:shadow-md"
+              >
+                <span class="min-w-0">
+                  <span class="block font-semibold text-gray-900">
+                    {link.title}
+                  </span>
+                  <span class="mt-1 block text-sm text-gray-600">
+                    {link.subtitle}
+                  </span>
+                </span>
+
+                <span
+                  class="shrink-0 text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-[#003595]"
+                  aria-hidden="true"
+                >
+                  →
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    <div class="mt-10 rounded-xl border border-gray-200 bg-gray-50 p-5 sm:p-6">
+      <h2 class="text-lg font-semibold text-gray-900">
+        ¿Prefieres que te ayudemos?
+      </h2>
+
+      <p class="mt-2 text-sm text-gray-600">
+        Cuéntanos qué necesitas y te respondemos con disponibilidad y precio.
+      </p>
+
+      <!-- flex-wrap: en 375px los botones bajan a otra línea en vez de desbordar. -->
+      <!-- Verde más oscuro que el #25D366 de WhatsApp: con texto blanco pequeño
+           el verde de marca no llega al contraste mínimo legible (4.5:1). -->
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a
+          href={whatsappHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center justify-center rounded-md bg-[#15803d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#166534]"
+        >
+          Escríbenos por WhatsApp
+        </a>
+
+        <a
+          href="/contacto/"
+          class="inline-flex items-center justify-center rounded-md bg-[#003595] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#002a75]"
+        >
+          Ir a Contacto
+        </a>
+
+        <a
+          href="/"
+          class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-[#003595] hover:text-[#003595]"
+        >
+          Volver al inicio
+        </a>
+      </div>
+    </div>
+  </Section>
+</BaseLayout>

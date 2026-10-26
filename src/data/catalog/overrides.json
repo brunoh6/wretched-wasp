@@ -1,0 +1,242 @@
+{
+  "overrides": [
+    {
+      "groupKey": "agua|conexiones|adaptador-hembra|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|adaptador-hembra|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|adaptador-macho|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|adaptador-macho|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|brida-ciega|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|brida-fija|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|brida-fija|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|brida-loca|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|brida-loca|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES BRIDA LOCA PVC GEORG FISCHER.pdf",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|bushing|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|bushing|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|codo|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|codo|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|niple|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|niple|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|reduccion|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|reduccion|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|tapon-hembra|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|tapon-hembra|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|tapon-macho|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|tee|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|tee|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|union|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|union-simple|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|union-universal|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|union-universal|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|yee|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|yee|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|tuberias|tubo|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|tuberias|tubo|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|codo-45|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|codo-45|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|codo-90|cpvc-corzan|agua-caliente",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    },
+    {
+      "groupKey": "agua|conexiones|codo-90|pvc|agua-fria",
+      "visible": true,
+      "technicalSheet": "",
+      "image": "",
+      "notes": ""
+    }
+  ]
+}

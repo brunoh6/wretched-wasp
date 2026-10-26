@@ -1,85 +1,162 @@
 ---
+import { contactInfo } from "../data/contactInfo";
+import { visibleCategories } from "../data/categories";
+// Igual que en el Header: el enlace sólo existe si la sección está publicada.
+import { CERTIFICATIONS_ENABLED } from "../data/certifications";
+
+const year = new Date().getFullYear();
+
+const whatsappNumber = contactInfo.whatsapp[0].replace(/\D/g, "");
+const whatsappHref = `https://wa.me/${whatsappNumber}`;
+
+const telHref = (value: string) => `tel:${value.replace(/[^\d+]/g, "")}`;
+
+// Se filtra la entrada oculta en vez de envolverla en un `{cond && ...}` dentro
+// del <ul>: así el marcado del pie queda idéntico al actual cuando el flag está
+// en `false` (ni un nodo de más en el DOM).
+const links = [
+  { href: "/", label: "Inicio" },
+  { href: "/empresa/", label: "Empresa" },
+  { href: "/productos/", label: "Productos" },
+  { href: "/servicios/", label: "Servicios" },
+  { href: "/certificaciones/", label: "Certificaciones", enabled: CERTIFICATIONS_ENABLED },
+  { href: "/contacto/", label: "Contáctanos" }
+].filter((link) => link.enabled !== false);
 ---
 
-<!-- <footer class="bg-gray-100 mt-20">
-  <div class="mx-auto max-w-7xl px-6 py-10 grid gap-8 md:grid-cols-3"> -->
-    
-    <!-- Empresa -->
-    <!-- <div>
-      <h3 class="font-bold">DIHYC</h3>
-      <p class="text-sm text-gray-600 mt-2">
-        Distribuidora de soluciones industriales y productos especializados.
-      </p>
-    </div> -->
+<footer
+  class="text-gray-300"
+  style="background: radial-gradient(56.08% 98.22% at 15.8% 5.66%, #002ea8 0%, #001d66 50%, #010a44 100%);"
+>
+  <div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.1fr_1.3fr_1fr] md:gap-12 md:py-16">
 
-    <!-- Contacto -->
-    <!-- <div>
-      <h4 class="font-semibold mb-2">Contacto</h4>
-      <ul class="text-sm text-gray-600 space-y-1">
-        <li>Teléfono: (01) XXX-XXXX</li>
-        <li>WhatsApp: +51 XXX XXX XXX</li>
-        <li>Email: contacto@dihyc.com</li>
-        <li>Lima, Perú</li>
-      </ul>
-    </div> -->
-
-    <!-- Links -->
-    <!-- <div>
-      <h4 class="font-semibold mb-2">Menú</h4>
-      <ul class="text-sm text-gray-600 space-y-1">
-        <li><a href="/">Inicio</a></li>
-        <li><a href="/empresa">Empresa</a></li>
-        <li><a href="/productos">Productos</a></li>
-        <li><a href="/servicios">Servicios</a></li>
-        <li><a href="/contacto">Contáctanos</a></li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="border-t text-center text-xs text-gray-500 py-4">
-    © {new Date().getFullYear()} DIHYC. Todos los derechos reservados.
-  </div>
-</footer> -->
-
-<footer class="bg-gray-900 text-gray-300 mt-24">
-  <div class="mx-auto max-w-7xl px-6 py-16 grid gap-12 md:grid-cols-3">
-
-    <!-- Empresa -->
+    <!-- Marca -->
     <div>
-      <h3 class="text-white font-bold text-lg">DIHYC</h3>
-      <p class="text-sm mt-4 leading-relaxed">
-        Distribuciones e Importaciones H&C, soluciones industriales en
-        tubosistemas, conexiones y servicios especializados para proyectos
-        comerciales e industriales en Perú.
+      <img
+        src="/assets/hero/logonofondo.png"
+        alt="DIHYC"
+        width="180"
+        height="80"
+        loading="lazy"
+        class="h-16 w-auto md:h-20"
+      />
+
+      <p class="mt-4 max-w-xs text-sm leading-relaxed text-gray-400">
+        Distribuidora e importadora de tubosistemas, conexiones y planchas
+        termoplásticas para la industria peruana.
       </p>
     </div>
 
     <!-- Contacto -->
     <div>
-      <h4 class="text-white font-semibold mb-4">Contacto</h4>
-      <ul class="text-sm space-y-2">
-        <li>Teléfono: (01) XXX-XXXX</li>
-        <li>WhatsApp: +51 XXX XXX XXX</li>
-        <li>Email: contacto@dihyc.com</li>
-        <li>Lima, Perú</li>
+      <h2 class="mb-4 font-semibold text-white">Contacto</h2>
+
+      <ul class="space-y-3 text-sm">
+        <li class="flex items-start gap-3">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 5a2 2 0 012-2h3l2 5-2 1a11 11 0 005 5l1-2 5 2v3a2 2 0 01-2 2h-1C8 20 4 16 4 11V5z"/>
+          </svg>
+
+          <span class="flex flex-wrap gap-x-2">
+            {contactInfo.phones.map((phone, index) => (
+              <>
+                {index > 0 && <span class="text-gray-600">|</span>}
+                <a href={telHref(phone)} class="transition hover:text-white">{phone}</a>
+              </>
+            ))}
+          </span>
+        </li>
+
+        <li class="flex items-start gap-3">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 3.5A11.8 11.8 0 0012.1 0C5.6 0 .4 5.2.4 11.7c0 2 .5 4 1.6 5.7L0 24l6.8-1.8c1.7.9 3.6 1.4 5.5 1.4h.1c6.5 0 11.7-5.2 11.7-11.7A11.6 11.6 0 0020 3.5z"/>
+          </svg>
+
+          <a href={whatsappHref} target="_blank" rel="noopener noreferrer" class="transition hover:text-white">
+            {contactInfo.whatsapp.join(" | ")}
+          </a>
+        </li>
+
+        <li class="flex items-start gap-3">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 4h16v16H4z"/>
+            <path d="M4 4l8 7 8-7"/>
+          </svg>
+
+          <span class="flex flex-wrap gap-x-2">
+            {contactInfo.emails.map((email, index) => (
+              <>
+                {index > 0 && <span class="text-gray-600">|</span>}
+                <a href={`mailto:${email}`} class="break-all transition hover:text-white">{email}</a>
+              </>
+            ))}
+          </span>
+        </li>
+
+        <li class="flex items-start gap-3">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 21s6-4.5 6-10a6 6 0 10-12 0c0 5.5 6 10 6 10z"/>
+            <circle cx="12" cy="11" r="2"/>
+          </svg>
+          <span>{contactInfo.address}</span>
+        </li>
+
+        <li class="flex items-start gap-3">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          <span>{contactInfo.schedule}</span>
+        </li>
       </ul>
+
+      <div class="mt-5 flex items-center gap-4">
+        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook" class="text-gray-400 transition hover:text-white">
+          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M22 12a10 10 0 10-11.5 9.9v-7H8v-3h2.5V9.5c0-2.5 1.5-3.9 3.7-3.9 1.1 0 2.2.2 2.2.2v2.4H15c-1.2 0-1.6.7-1.6 1.5V12H17l-.5 3h-3v7A10 10 0 0022 12z"/>
+          </svg>
+        </a>
+
+        <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" class="text-gray-400 transition hover:text-white">
+          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.05-1.86-3.05-1.86 0-2.14 1.45-2.14 2.95v5.67H9.33V9h3.42v1.56h.05c.48-.9 1.66-1.86 3.42-1.86 3.66 0 4.33 2.41 4.33 5.54v6.21zM5.34 7.43a2.06 2.06 0 110-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/>
+          </svg>
+        </a>
+      </div>
     </div>
 
     <!-- Navegación -->
-    <div>
-      <h4 class="text-white font-semibold mb-4">Enlaces</h4>
-      <ul class="text-sm space-y-2">
-        <li><a href="/" class="hover:text-white transition">Inicio</a></li>
-        <li><a href="/empresa" class="hover:text-white transition">Empresa</a></li>
-        <li><a href="/productos" class="hover:text-white transition">Productos</a></li>
-        <li><a href="/servicios" class="hover:text-white transition">Servicios</a></li>
-        <li><a href="/contacto" class="hover:text-white transition">Contáctanos</a></li>
-      </ul>
+    <div class="grid grid-cols-2 gap-8 md:grid-cols-1 md:gap-6">
+      <div>
+        <h2 class="mb-4 font-semibold text-white">Enlaces</h2>
+
+        <ul class="space-y-2 text-sm">
+          {links.map((link) => (
+            <li>
+              <a href={link.href} class="transition hover:text-white">{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="mb-4 font-semibold text-white">Catálogo</h2>
+
+        <ul class="space-y-2 text-sm">
+          {visibleCategories.map((category) => (
+            <li>
+              <a href={`/productos/${category.slug}/`} class="transition hover:text-white">
+                {category.navLabel ?? category.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
 
   </div>
 
-  <div class="border-t border-gray-700 text-center text-xs text-gray-500 py-6">
-    © {new Date().getFullYear()} DIHYC. Todos los derechos reservados.
+  <div class="border-t border-white/10 py-5 text-center text-xs text-gray-500">
+    © {year} DIHYC. Todos los derechos reservados.
   </div>
 </footer>

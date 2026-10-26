@@ -2,8 +2,55 @@
 import "../styles/global.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import WhatsAppButton from "../components/WhatsAppButton.astro";
+import { searchIndex, SEARCH_SYNONYMS, popularSearches } from "../data/searchIndex";
 
-const { title = "H & C", description = "" } = Astro.props;
+// El índice viaja una sola vez por página. Vive aquí y no en SearchBar porque
+// el Header monta el buscador dos veces (escritorio y móvil) y el JSON se
+// duplicaba en cada página sin que nadie leyera la segunda copia.
+const searchPayload = {
+  items: searchIndex,
+  synonyms: SEARCH_SYNONYMS,
+  popular: popularSearches
+};
+
+const {
+  title = "H & C | DIHYC",
+  description = "Distribuidora e importadora de tuberías, conexiones y planchas termoplásticas para la industria en Perú.",
+  /**
+   * `true` en páginas que no deben aparecer en buscadores (la 404). Emite
+   * `<meta name="robots" content="noindex">` y omite el canonical: una página
+   * de error no tiene una URL "canónica" que proponer a Google.
+   */
+  noindex = false
+} = Astro.props;
+
+// Todas las URLs absolutas salen de `site` (astro.config.mjs) y NUNCA del
+// origen de la petición. Antes se usaba `Astro.url.origin` como respaldo y el
+// build escribía "http://localhost:4321/..." en el canonical, que es justo lo
+// que Google no debe ver. Si algún día faltara `site`, preferimos no emitir
+// canonical ni og:url antes que publicar uno incorrecto.
+const site = Astro.site;
+
+// Forma de la ruta: comprobado en el build estático, con build.format
+// 'directory' Astro entrega `Astro.url.pathname` CON barra final
+// ("/productos/tuberias/"), que es la forma canónica acordada (D2: la que
+// Apache sirve con 200). Por eso se usa tal cual, sin normalizar. La query
+// (?linea=fm) no forma parte de `pathname`, así que las variantes filtradas
+// del catálogo apuntan todas a la misma URL canónica.
+const canonical = site && !noindex ? new URL(Astro.url.pathname, site).href : undefined;
+
+// og:image tiene que ser ABSOLUTA: Facebook, WhatsApp o LinkedIn no resuelven
+// rutas relativas y el enlace compartido saldría sin imagen.
+const ogImagePath = "/assets/hero/slide3.png";
+const ogImage = site ? new URL(ogImagePath, site).href : ogImagePath;
+
+// Marca de build (contrato con la GitHub Action): la Action compila con
+// PUBLIC_BUILD_ID=<sha del commit> y, tras publicar, comprueba que el HTML en
+// vivo trae ese mismo valor. Así distingue "se ve la versión nueva" de "el
+// servidor o una caché sigue sirviendo la anterior". En local no hay SHA y se
+// emite "local". Es pública a propósito: un SHA de commit no es un secreto.
+const buildId = import.meta.env.PUBLIC_BUILD_ID ?? "local";
 ---
 
 <!DOCTYPE html>
@@ -14,60 +61,107 @@ const { title = "H & C", description = "" } = Astro.props;
 
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
+    {noindex && <meta name="robots" content="noindex" />}
+    {canonical && <link rel="canonical" href={canonical} />}
 
-    <link rel="icon" href="/favicon.svg" />
+    <meta name="theme-color" content="#003595" />
+    <meta name="dihyc-build" content={buildId} />
+
+    <!-- Open Graph: cómo se ve el enlace al compartirlo -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DIHYC" />
+    <meta property="og:title" content={title} />
+    {description && <meta property="og:description" content={description} />}
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="es_PE" />
+
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/assets/hero/logo.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
     />
   </head>
 
-  <body>
+  <!-- Columna flex: el footer queda al fondo en páginas cortas sin necesidad
+       de un `min-h-screen` en <main>, que abría un hueco en las páginas largas. -->
+  <body class="flex min-h-screen flex-col">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded focus:bg-[#003595] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+    >
+      Saltar al contenido
+    </a>
+
+    <script class="search-data" type="application/json" set:html={JSON.stringify(searchPayload)}></script>
+
     <Header />
 
-    <main class="min-h-screen">
+    <main id="main" class="flex-1">
       <slot />
     </main>
 
     <Footer />
+    <WhatsAppButton />
+
     <script>
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.2 }
-    );
+      // Revelado progresivo de bloques marcados con `data-animate`.
+      const animated = document.querySelectorAll<HTMLElement>("[data-animate]");
 
-    document.querySelectorAll('[data-animate]').forEach((el, index) => {
-      el.style.transitionDelay = `${index * 150}ms`;
-      observer.observe(el);
-    });
-  }
-</script>
-<script>
-  const navbar = document.getElementById('site-navbar');
-
-  if (navbar) {
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 20) {
-        navbar.classList.add('navbar-scrolled');
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        animated.forEach((el) => el.classList.add("in-view"));
       } else {
-        navbar.classList.remove('navbar-scrolled');
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return;
+
+              entry.target.classList.add("in-view");
+              observer.unobserve(entry.target);
+            });
+          },
+          { threshold: 0.15, rootMargin: "0px 0px -60px 0px" }
+        );
+
+        animated.forEach((el, index) => {
+          // El retardo se reinicia cada 4 elementos para que una fila entre
+          // casi a la vez en lugar de encadenar esperas largas.
+          el.style.transitionDelay = `${(index % 4) * 90}ms`;
+          observer.observe(el);
+        });
       }
-    });
-  }
-</script>
+    </script>
+
+    <script>
+      // Estado compacto/translúcido del navbar al hacer scroll.
+      const navbar = document.getElementById("site-navbar");
+
+      if (navbar) {
+        let ticking = false;
+
+        const update = () => {
+          navbar.classList.toggle("navbar-scrolled", window.scrollY > 20);
+          ticking = false;
+        };
+
+        window.addEventListener(
+          "scroll",
+          () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(update);
+          },
+          { passive: true }
+        );
+
+        update();
+      }
+    </script>
   </body>
 </html>
-
-<style is:global>
-  @import "../styles/global.css";
-</style>

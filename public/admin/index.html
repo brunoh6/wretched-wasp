@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      El panel es una herramienta interna: no queremos que Google lo indexe ni
+      que aparezca en resultados de búsqueda junto al catálogo público.
+      (No es una medida de seguridad: la seguridad la da el login de GitHub.)
+    -->
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Panel de administración · DIHYC</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <!--
+      Sveltia CMS se carga como UN SOLO script clásico desde la CDN.
+
+      Dos avisos explícitos de la documentación oficial
+      (https://sveltiacms.app/en/docs/start) que hay que respetar:
+        1. NO añadir type="module" al script.
+        2. NO enlazar ninguna hoja de estilos.
+      El CMS construye toda su interfaz por su cuenta; cualquiera de esas dos
+      cosas produce comportamientos inesperados.
+
+      La URL no lleva versión fijada, tal como recomienda la documentación: así
+      el panel recibe correcciones de fallos sin tocar el repositorio. Si algún
+      día una actualización rompiera algo, se puede congelar la versión
+      escribiendo la última que funcionaba, por ejemplo:
+        https://unpkg.com/@sveltia/cms@0.196.0/dist/sveltia-cms.js
+      (0.196.0 es la versión con la que se probó este panel; consultar la actual
+      en https://www.npmjs.com/package/@sveltia/cms antes de fijar otra).
+      Ver README-admin.md, apartado "El panel deja de funcionar...".
+    -->
+    <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+  </body>
+</html>

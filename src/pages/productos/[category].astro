@@ -2,11 +2,16 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Section from "../../components/Section.astro";
 import Breadcrumbs from "../../components/Breadcrumbs.astro";
-import { categories } from "../../data/categories";
-import { productLines } from "../../data/productLines";
+import { categories, visibleCategories } from "../../data/categories";
+import {
+  getCatalogDisplayItemsByCategory,
+  type CatalogDisplayItem
+} from "../../data/catalogDisplayItems";
 
+// Sólo se generan rutas para categorías publicadas. Las demás quedan ocultas
+// hasta tener su data y fichas técnicas (ver src/data/categories.ts).
 export async function getStaticPaths() {
-  return categories.map((category) => ({
+  return visibleCategories.map((category) => ({
     params: { category: category.slug }
   }));
 }
@@ -15,347 +20,2028 @@ const { category } = Astro.params;
 
 const currentCategory = categories.find(c => c.slug === category);
 
-// 🔴 variantes + imagen
-const products = productLines.filter(p => p.category === category);
+const items = getCatalogDisplayItemsByCategory(category || "");
 
-const variants = products.flatMap(p =>
-  p.variants.map(v => ({
-    ...v,
-    image: p.image,
-    material: p.material.toLowerCase().trim(),
-    brand: v.brand.toLowerCase().trim(),
-    pressure: v.pressure.toLowerCase().trim(),
-    application: v.application?.toLowerCase().trim(),
-    productName: p.name
-  }))
+const TYPE_CLASS_ORDER = [
+  "SDR11",
+  "RDE11",
+  "SR11",
+  "SDR9",
+  "RDE9",
+  "SR9",
+  "SDR7",
+  "RDE7",
+  "SDR17",
+  "SDR21",
+  "PN5",
+  "PN7.5",
+  "PN10",
+  "PN15",
+  "PN16",
+  "PN20",
+  "SCH-40",
+  "SCH 40",
+  "SCH-80",
+  "SCH 80",
+  "SCH-80 CORZAN",
+  "C-5",
+  "C5",
+  "C7.5",
+  "C10",
+  "C15",
+  "CTS",
+  "SEL",
+  "SAP",
+  "SAP DSCP",
+  "SAL DSCL",
+  "A.C."
+];
+
+function getTypeClassOrder(value: string) {
+  const normalized = value?.toUpperCase?.().trim() || "";
+  const index = TYPE_CLASS_ORDER.indexOf(normalized);
+  return index === -1 ? 9999 : index;
+}
+
+// Faceta "Línea": el corte más grueso del catálogo, el que separa la línea
+// contra incendio certificada FM de la de agua fría/caliente.
+//
+// El valor de la casilla es el código interno ("fm" / "agua") y NO la etiqueta,
+// porque ese mismo valor es el que compara contra `item.line` y el que viaja a
+// la URL como ?linea=fm (contrato del sitio: las tarjetas de /productos
+// enlazan así). La etiqueta legible viaja aparte en `data-label`, que es lo que
+// leen los chips de filtros activos.
+//
+// El orden es fijo y no alfabético: primero la línea certificada, que es la que
+// trae ficha técnica y por la que pregunta la mayoría de clientes.
+const LINE_OPTIONS = [
+  { value: "fm", label: "Contra incendio FM" },
+  { value: "agua", label: "Agua" }
+];
+
+const lines = LINE_OPTIONS.filter(line => items.some(item => item.line === line.value));
+
+// Faceta "Aplicación": la que separa la línea contra incendio (certificada, con
+// ficha) de la línea de agua. Antes valía siempre "Contra incendio" y por eso
+// nacía oculta; con el catálogo de agua pasa a tener tres valores y se enciende
+// sola (ver facetStyle y syncFacetVisibility).
+//
+// El orden es fijo y NO alfabético: alfabéticamente "Agua caliente" iría delante
+// de "Agua fría" y "Contra incendio" quedaría al final, justo al revés de como
+// el cliente lee su catálogo.
+const APPLICATION_ORDER = ["Contra incendio", "Agua fría", "Agua caliente"];
+
+function getApplicationOrder(value: string) {
+  const index = APPLICATION_ORDER.indexOf(value);
+  return index === -1 ? APPLICATION_ORDER.length : index;
+}
+
+const applications = [
+  ...new Set(items.map(i => i.application || i.subcategory).filter(Boolean))
+].sort(
+  (a, b) => getApplicationOrder(a) - getApplicationOrder(b) || a.localeCompare(b, "es")
 );
 
-// 🔴 filtros
-const materials = [...new Set(variants.map(v => v.material))].sort();
-const brands = [...new Set(variants.map(v => v.brand))].sort();
-const pressures = [...new Set(variants.map(v => v.pressure))].sort();
-const applications = [...new Set(
-  variants.map(v => v.application).filter(Boolean)
-)].sort();
+const materials = [
+  ...new Set(
+    items.map(i => i.filterMaterial || i.material).filter(Boolean)
+  )
+].sort();
+
+const typeClasses = [
+  ...new Set(items.map(i => i.typeClass).filter(Boolean))
+].sort((a, b) => getTypeClassOrder(a) - getTypeClassOrder(b));
+
+// D2: Georg Fischer encabeza toda lista de marcas porque es el socio
+// principal del cliente; el resto sigue en alfabético. Se detecta por NOMBRE
+// y nunca por un índice fijo: en una categoría futura donde GF no venda, la
+// lista queda simplemente alfabética sin hueco ni error.
+function isGeorgFischer(brand: string) {
+  return brand.trim().toLowerCase() === "georg fischer";
+}
+
+const brands = [
+  ...new Set(items.map(i => i.brand).filter(Boolean))
+].sort((a, b) => {
+  if (isGeorgFischer(a) !== isGeorgFischer(b)) return isGeorgFischer(a) ? -1 : 1;
+  return a.localeCompare(b, "es");
+});
+
+// Faceta "Producto": el nombre comercial (Tubo, Codo 90°, Tee...). Sale de los
+// mismos items que el resto de facetas para que barra lateral y hoja móvil
+// compartan exactamente el mismo origen de datos.
+const productNames = [
+  ...new Set(items.map(i => i.productName).filter((v): v is string => Boolean(v)))
+].sort((a, b) => {
+  // "Tubo" encabeza siempre: es la puerta de entrada del catálogo y el usuario
+  // lo busca antes que cualquier conexión.
+  const aIsPipe = a.trim().toLowerCase() === "tubo";
+  const bIsPipe = b.trim().toLowerCase() === "tubo";
+
+  if (aIsPipe !== bIsPipe) return aIsPipe ? -1 : 1;
+
+  return a.localeCompare(b, "es");
+});
+
+// La presión se ordena por su valor numérico, no alfabéticamente: con el juego
+// actual (200, 240, 250, 290, 335) coinciden por casualidad, pero en cuanto
+// aparezca un "1000 PSI" el orden alfabético lo colocaría antes que "200 PSI".
+function getPressureValue(value: string) {
+  const number = parseFloat(value.replace(/[^\d.]/g, ""));
+  return Number.isNaN(number) ? Number.POSITIVE_INFINITY : number;
+}
+
+const pressureClasses = [
+  ...new Set(items.map(i => i.pressureClass).filter((v): v is string => Boolean(v)))
+].sort((a, b) => getPressureValue(a) - getPressureValue(b));
+
+// Una faceta con 0 o 1 opción no ayuda a filtrar, sólo ocupa espacio (caso real:
+// "Marca" en tuberías, o la propia "Aplicación" mientras el catálogo era sólo
+// contra incendio). Se renderiza igualmente para que la hidratación desde la URL
+// siga encontrando las casillas, pero nace oculta con estilo en línea: así no
+// parpadea antes de que arranque el script.
+// Se usa `display` en línea y no la clase `hidden` para no depender del orden
+// de las utilidades de Tailwind frente a `flex` en el contenedor de chips.
+function facetStyle(options: unknown[]) {
+  return options.length > 1 ? undefined : "display:none";
+}
+
+// ---------------------------------------------------------------------------
+// Carga que viaja al navegador
+// ---------------------------------------------------------------------------
+// El catálogo se hidrata desde un <div data-json> incrustado en el HTML: cada
+// byte de este objeto se descarga sí o sí, aunque el usuario no filtre nada.
+// Con 36 filas FM daba igual volcar el item entero; con 443 productos de agua
+// pasa a pesar. Y la mitad de los campos (unidad, presentación, longitud, uso
+// principal, material base, URL sugerida, notas) NO los lee ni el filtrado ni
+// renderTables: sólo engordaban la página.
+//
+// Aquí se envía únicamente lo que el script usa de verdad y se omiten los
+// valores vacíos, que en la línea de agua son mayoría (sin presión, sin norma,
+// sin certificación). Si mañana el script necesita un campo nuevo, hay que
+// añadirlo a esta lista.
+function toClientItem(item: CatalogDisplayItem) {
+  const client: Record<string, unknown> = {
+    // Obligatorios: los usan el filtrado, la agrupación por marca y el id de
+    // cotización.
+    category: item.category,
+    line: item.line,
+    application: item.application,
+    brand: item.brand,
+    productName: item.productName,
+    material: item.material,
+    materialAliases: item.materialAliases,
+    typeClass: item.typeClass
+  };
+
+  // filterMaterial sólo viaja cuando difiere del material (los FM filtran como
+  // "HDPE FM"); en la línea de agua es idéntico y el script ya cae al material.
+  if (item.filterMaterial && item.filterMaterial !== item.material) {
+    client.filterMaterial = item.filterMaterial;
+  }
+
+  if (item.sizes.length) client.sizes = item.sizes;
+  if (item.sizeRange) client.sizeRange = item.sizeRange;
+  if (item.pressureClass) client.pressureClass = item.pressureClass;
+  if (item.certification) client.certification = item.certification;
+  if (item.standard) client.standard = item.standard;
+  if (item.jointType) client.jointType = item.jointType;
+  if (item.technicalSheet) client.technicalSheet = item.technicalSheet;
+  if (item.productImage) client.productImage = item.productImage;
+  if (item.webSku) client.webSku = item.webSku;
+
+  return client;
+}
+
+const clientItems = items.map(toClientItem);
+
+/**
+ * Serializa un objeto para incrustarlo en un <script type="application/json">.
+ *
+ * Antes viajaba en un atributo `data-json`, y ahí Astro tiene que escapar CADA
+ * comilla como `&quot;` (6 bytes por comilla). En un catálogo lleno de medidas
+ * en pulgadas —1/2", 3/4"— y de claves JSON entrecomilladas, eso duplicaba el
+ * peso: 195 kB de atributo para 90 kB de JSON real. Dentro de un <script> las
+ * comillas viajan tal cual.
+ *
+ * A cambio hay que protegerse de lo único peligroso ahí dentro: que un dato
+ * traiga un cierre de etiqueta y termine el bloque antes de tiempo. Se escapa
+ * todo "<" como \u003c —sigue siendo JSON válido y JSON.parse lo devuelve
+ * como "<"— junto con U+2028/U+2029, que el parser de JavaScript trata como
+ * saltos de línea y romperían el literal.
+ */
+function toJsonScript(value: unknown) {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
+const materialDescriptions: Record<string, string> = {
+  PVC: "Policloruro de vinilo",
+  CPVC: "Policloruro de vinilo clorado",
+  HDPE: "Polietileno de alta densidad",
+  PP: "Polipropileno",
+  "PP-H": "Polipropileno homopolímero",
+  "PP-R": "Polipropileno random",
+  "PP-R100": "Polipropileno random PP-R100",
+  "Hierro dúctil": "Hierro dúctil",
+  CORZAN: "Línea CPVC Corzan",
+  FM: "Sistema certificado contra incendio"
+};
+
+// ---------------------------------------------------------------------------
+// D3: franja de fotos de referencia por material
+// ---------------------------------------------------------------------------
+// Se declara POR CATEGORÍA (y no con un if sobre el slug en el markup) porque
+// la decisión es de datos, no de lógica: hoy sólo CONEXIONES tiene fotos
+// entregadas por el cliente; cuando otra categoría las tenga, se añade su
+// entrada aquí y nada más. Tuberías, por decisión del cliente, NO lleva franja.
+//
+//  - filterValue: value EXACTO de la casilla .filter-material que activa la
+//    tarjeta (mapeo del contrato: hdpe -> "HDPE FM", pvc -> "PVC",
+//    cpvc -> "CPVC Corzan"). null = material aún sin productos (PP): la
+//    tarjeta se pinta en gris con "Próximamente" y no filtra.
+//  - "Hierro dúctil FM" también existe como material de conexiones, pero el
+//    cliente no entregó foto: la franja muestra sólo los 4 materiales con foto.
+type MaterialStripCard = {
+  label: string;
+  image: string;
+  alt: string;
+  filterValue: string | null;
+};
+
+const MATERIAL_STRIPS: Record<string, MaterialStripCard[]> = {
+  conexiones: [
+    {
+      label: "HDPE (FM)",
+      image: "/assets/materiales/conexiones-hdpe.jpeg",
+      alt: "Conexiones de HDPE para red contra incendio FM",
+      filterValue: "HDPE FM"
+    },
+    {
+      label: "PVC",
+      image: "/assets/materiales/conexiones-pvc.jpeg",
+      alt: "Conexiones de PVC para agua fría",
+      filterValue: "PVC"
+    },
+    {
+      label: "CPVC",
+      image: "/assets/materiales/conexiones-cpvc.jpeg",
+      alt: "Conexiones de CPVC Corzan para agua caliente",
+      filterValue: "CPVC Corzan"
+    },
+    {
+      label: "PP",
+      image: "/assets/materiales/conexiones-pp.jpeg",
+      alt: "Conexiones de polipropileno, disponibles próximamente",
+      filterValue: null
+    }
+  ]
+};
+
+const materialStrip = MATERIAL_STRIPS[category ?? ""] ?? [];
 ---
 
 <BaseLayout title={`${currentCategory?.name ?? "Productos"} | DIHYC`}>
+  <Section>
+    <Breadcrumbs
+      items={[
+        { label: "Productos", href: "/productos/" },
+        { label: currentCategory?.name }
+      ]}
+    />
 
-<Section>
+    <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-semibold sm:text-4xl">
+          {currentCategory?.name}
+        </h1>
 
-<Breadcrumbs
-  items={[
-    { label: "Productos", href: "/productos" },
-    { label: currentCategory?.name }
-  ]}
-/>
+        <p class="mt-2 text-gray-600">
+          Filtra por material, marca, línea, aplicación, tipo/clase, presión y producto.
+        </p>
+      </div>
 
-<div class="mb-8">
-  <h1 class="text-3xl font-semibold">
-    {currentCategory?.name}
-  </h1>
-
-  <p class="text-gray-600 mt-2">
-    Filtra y encuentra productos rápidamente.
-  </p>
-</div>
-
-<div class="grid md:grid-cols-[260px_1fr] gap-10">
-
-<!-- FILTROS -->
-<aside class="space-y-8 sticky top-24 self-start">
-
-  <div>
-    <h4 class="font-semibold mb-3">Material</h4>
-    {materials.map(m => (
-      <label class="block text-sm">
-        <input type="checkbox" class="filter-material mr-2" value={m} />
-        {m.toUpperCase()}
-      </label>
-    ))}
-  </div>
-
-  <div>
-    <h4 class="font-semibold mb-3">Marca</h4>
-    {brands.map(b => (
-      <label class="block text-sm">
-        <input type="checkbox" class="filter-brand mr-2" value={b} />
-        {b}
-      </label>
-    ))}
-  </div>
-
-  <div>
-    <h4 class="font-semibold mb-3">Presión</h4>
-    {pressures.map(p => (
-      <label class="block text-sm">
-        <input type="checkbox" class="filter-pressure mr-2" value={p} />
-        {p}
-      </label>
-    ))}
-  </div>
-
-  {applications.length > 0 && (
-    <div>
-      <h4 class="font-semibold mb-3">Aplicación</h4>
-      {applications.map(a => (
-        <label class="block text-sm">
-          <input type="checkbox" class="filter-app mr-2" value={a} />
-          {a}
-        </label>
-      ))}
+      {items.length > 0 && (
+        <p class="text-sm text-gray-500">
+          <span id="resultCount" class="font-semibold text-gray-900">{items.length}</span>
+          productos disponibles
+        </p>
+      )}
     </div>
-  )}
 
-</aside>
+    <!-- Banda "Resultados para «...»": la rellena el script si llega ?q= en la URL.
+         Vive fuera del bloque condicional para que también se vea cuando la
+         categoría todavía no tiene productos publicados. -->
+    <div id="searchNotice"></div>
 
-<!-- RESULTADOS -->
-<div>
+    <!-- D3: franja de fotos de referencia por material. Sólo se pinta en las
+         categorías declaradas en MATERIAL_STRIPS (hoy: conexiones) y cuando
+         hay productos que filtrar. Las tarjetas con filterValue son botones
+         que activan/desactivan la casilla de Material correspondiente (el
+         cableado vive en el script, junto al resto de filtros); la de PP es
+         un div inerte con "Próximamente" porque aún no hay productos PP.
+         En móvil la franja se desplaza en horizontal con la scrollbar oculta,
+         igual que los chips de material, para no desbordar la página. -->
+    {materialStrip.length > 0 && items.length > 0 && (
+      <div class="mb-6 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {materialStrip.map(card =>
+          card.filterValue ? (
+            <button
+              type="button"
+              class="material-strip-card w-36 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 border-gray-200 bg-white text-left transition hover:border-[#003595]/50 sm:w-44"
+              data-material-value={card.filterValue}
+              aria-pressed="false"
+            >
+              <img
+                src={card.image}
+                alt={card.alt}
+                loading="lazy"
+                class="h-24 w-full object-cover"
+              />
+              <div class="px-3 py-2 text-sm font-semibold text-gray-900">
+                {card.label}
+              </div>
+            </button>
+          ) : (
+            <div
+              class="material-strip-card w-36 shrink-0 overflow-hidden rounded-xl border-2 border-gray-200 bg-gray-100 sm:w-44"
+              aria-disabled="true"
+            >
+              <img
+                src={card.image}
+                alt={card.alt}
+                loading="lazy"
+                class="h-24 w-full object-cover opacity-60 grayscale"
+              />
+              <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 px-3 py-2 text-sm font-semibold text-gray-500">
+                {card.label}
+                <span class="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-600">
+                  Próximamente
+                </span>
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    )}
 
-<div id="activeFilters" class="mb-6 flex flex-wrap gap-2"></div>
+    {items.length === 0 ? (
+      <div class="rounded-xl border bg-gray-50 p-8 text-center text-gray-600">
+        Aún no hay productos visibles para esta categoría.
+      </div>
+    ) : (
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-[240px_1fr] lg:gap-8">
+        <aside
+          class="sticky hidden max-h-[calc(100dvh-8rem)] space-y-6 self-start overflow-y-auto pr-1 md:block"
+          style="top: calc(var(--header-height) + 1.5rem)"
+        >
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500">
+              Filtros
+            </h2>
 
-<div id="results"></div>
+            <button
+              id="clearFiltersDesktop"
+              type="button"
+              class="hidden text-xs font-medium text-[#003595] hover:underline"
+            >
+              Limpiar
+            </button>
+          </div>
 
-</div>
+          <!-- D1: orden de facetas decidido por el cliente — Material, Marca,
+               Línea, Aplicación, Tipo / Clase, Presión y Producto AL FINAL.
+               La hoja de filtros móvil replica exactamente este mismo orden. -->
+          {materials.length > 0 && (
+            <div data-facet="material" style={facetStyle(materials)}>
+              <h3 class="mb-2 font-semibold">Material</h3>
+              {materials.map(material => (
+                <label class="flex cursor-pointer items-center gap-2 rounded py-1.5 text-sm hover:text-[#003595]">
+                  <input type="checkbox" class="filter-material h-4 w-4 rounded border-gray-300" value={material} />
+                  {material.toUpperCase()}
+                </label>
+              ))}
+            </div>
+          )}
 
-</div>
+          {brands.length > 0 && (
+            <div data-facet="brand" style={facetStyle(brands)}>
+              <h3 class="mb-2 font-semibold">Marca</h3>
+              {brands.map(brand => (
+                <label class="flex cursor-pointer items-center gap-2 rounded py-1.5 text-sm hover:text-[#003595]">
+                  <input type="checkbox" class="filter-brand h-4 w-4 rounded border-gray-300" value={brand} />
+                  {brand}
+                </label>
+              ))}
+            </div>
+          )}
 
-</Section>
+          {lines.length > 0 && (
+            <div data-facet="line" style={facetStyle(lines)}>
+              <h3 class="mb-2 font-semibold">Línea</h3>
+              {lines.map(line => (
+                <label class="flex cursor-pointer items-center gap-2 rounded py-1.5 text-sm hover:text-[#003595]">
+                  <input
+                    type="checkbox"
+                    class="filter-line h-4 w-4 rounded border-gray-300"
+                    value={line.value}
+                    data-label={line.label}
+                  />
+                  {line.label}
+                </label>
+              ))}
+            </div>
+          )}
 
+          {applications.length > 0 && (
+            <div data-facet="application" style={facetStyle(applications)}>
+              <h3 class="mb-2 font-semibold">Aplicación</h3>
+              {applications.map(application => (
+                <label class="flex cursor-pointer items-center gap-2 rounded py-1.5 text-sm hover:text-[#003595]">
+                  {/* Se conserva la clase histórica `filter-subcategory` junto a la
+                      nueva para no romper nada que aún apunte al selector viejo. */}
+                  <input type="checkbox" class="filter-application filter-subcategory h-4 w-4 rounded border-gray-300" value={application} />
+                  {application}
+                </label>
+              ))}
+            </div>
+          )}
+
+          {typeClasses.length > 0 && (
+            <div data-facet="type" style={facetStyle(typeClasses)}>
+              <h3 class="mb-2 font-semibold">Tipo / Clase</h3>
+              {typeClasses.map(typeClass => (
+                <label class="flex cursor-pointer items-center gap-2 rounded py-1.5 text-sm hover:text-[#003595]">
+                  <input type="checkbox" class="filter-type h-4 w-4 rounded border-gray-300" value={typeClass} />
+                  {typeClass.toUpperCase()}
+                </label>
+              ))}
+            </div>
+          )}
+
+          {pressureClasses.length > 0 && (
+            <div data-facet="pressure" style={facetStyle(pressureClasses)}>
+              <h3 class="mb-2 font-semibold">Presión</h3>
+              {pressureClasses.map(pressureClass => (
+                <label class="flex cursor-pointer items-center gap-2 rounded py-1.5 text-sm hover:text-[#003595]">
+                  <input type="checkbox" class="filter-pressure h-4 w-4 rounded border-gray-300" value={pressureClass} />
+                  {pressureClass.toUpperCase()}
+                </label>
+              ))}
+            </div>
+          )}
+
+          {productNames.length > 0 && (
+            <div data-facet="product" style={facetStyle(productNames)}>
+              <h3 class="mb-2 font-semibold">Producto</h3>
+              {productNames.map(productName => (
+                <label class="flex cursor-pointer items-center gap-2 rounded py-1.5 text-sm hover:text-[#003595]">
+                  <input type="checkbox" class="filter-product h-4 w-4 rounded border-gray-300" value={productName} />
+                  {productName}
+                </label>
+              ))}
+            </div>
+          )}
+        </aside>
+
+        <div>
+          <!-- Filtro rápido por material en móvil (chips) -->
+          <div class="mb-4 md:hidden">
+            <div class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {materials.length > 0 && (
+                <div class="flex shrink-0 gap-2" data-facet="material" style={facetStyle(materials)}>
+                  {materials.map(material => (
+                    <!-- `relative` es obligatorio: la casilla interior usa `sr-only`, que es
+                         `position:absolute`. Sin un ancestro posicionado, esa casilla se
+                         ancla al documento y lo estira hasta su propia posición dentro del
+                         carrusel de chips, provocando scroll horizontal en TODA la página.
+                         Con 2 materiales (FM) no se notaba porque los chips cabían en 375px;
+                         al entrar la línea de agua son 4 y el último se sale de la pantalla. -->
+                    <label class="material-chip relative inline-flex shrink-0 cursor-pointer items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 transition">
+                      <input type="checkbox" class="filter-material sr-only" value={material} />
+                      <span>{material.toUpperCase()}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              <button
+                id="openFilters"
+                type="button"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-900"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" d="M4 6h16M7 12h10M10 18h4" />
+                </svg>
+                Más filtros
+                <span id="filterCountBadge" class="hidden rounded-full bg-[#003595] px-1.5 text-[10px] font-bold text-white"></span>
+              </button>
+            </div>
+          </div>
+
+          <div id="activeFilters" class="mb-5 flex flex-wrap gap-2"></div>
+          <div id="results"></div>
+        </div>
+      </div>
+    )}
+  </Section>
+
+  <!-- PANEL DE COTIZACIÓN: se eleva sobre el botón de WhatsApp -->
+  <div
+    id="quotePanel"
+    class="fixed bottom-20 right-4 z-[55] hidden w-[min(360px,calc(100vw-2rem))] rounded-xl border bg-white p-4 shadow-2xl sm:bottom-24 sm:right-5"
+  >
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div id="quoteCount" class="font-semibold text-gray-900">
+          0 productos seleccionados
+        </div>
+        <div class="text-xs text-gray-500">
+          Solicita cotización por WhatsApp
+        </div>
+      </div>
+
+      <button id="quoteClear" type="button" class="text-xs text-gray-500 hover:text-gray-900">
+        Limpiar
+      </button>
+    </div>
+
+    <div id="quoteItems" class="mt-3 max-h-40 space-y-2 overflow-auto text-xs text-gray-600"></div>
+
+    <a
+      id="quoteWhatsapp"
+      href="#"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="cta mt-4 block rounded-lg bg-[#25D366] px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-90"
+    >
+      Solicitar cotización
+    </a>
+  </div>
+
+  <!-- FILTROS EN MÓVIL: hoja completa -->
+  <div id="mobileFilters" class="fixed inset-0 z-[70] hidden flex-col bg-white md:hidden">
+    <div class="flex items-center justify-between border-b px-4 py-3">
+      <h2 class="font-semibold">Filtros</h2>
+
+      <button
+        id="closeFilters"
+        type="button"
+        class="flex h-10 w-10 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100"
+        aria-label="Cerrar filtros"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="flex-1 space-y-7 overflow-y-auto p-4">
+      <!-- D1: mismo orden que la barra lateral de escritorio — Material, Marca,
+           Línea, Aplicación, Tipo / Clase, Presión, Producto. La sección de
+           Material antes NO existía en esta hoja (sólo vivía en los chips);
+           añadirla es seguro porque toda la sincronización de casillas trabaja
+           por valor sobre TODAS las copias de cada faceta, sean dos o tres. -->
+      {materials.length > 0 && (
+        <div data-facet="material" style={facetStyle(materials)}>
+          <h3 class="mb-2 font-semibold">Material</h3>
+          {materials.map(material => (
+            <label class="flex cursor-pointer items-center gap-2.5 py-2 text-sm">
+              <input type="checkbox" class="filter-material h-4 w-4 rounded border-gray-300" value={material} />
+              {material.toUpperCase()}
+            </label>
+          ))}
+        </div>
+      )}
+
+      {brands.length > 0 && (
+        <div data-facet="brand" style={facetStyle(brands)}>
+          <h3 class="mb-2 font-semibold">Marca</h3>
+          {brands.map(brand => (
+            <label class="flex cursor-pointer items-center gap-2.5 py-2 text-sm">
+              <input type="checkbox" class="filter-brand h-4 w-4 rounded border-gray-300" value={brand} />
+              {brand}
+            </label>
+          ))}
+        </div>
+      )}
+
+      {lines.length > 0 && (
+        <div data-facet="line" style={facetStyle(lines)}>
+          <h3 class="mb-2 font-semibold">Línea</h3>
+          {lines.map(line => (
+            <label class="flex cursor-pointer items-center gap-2.5 py-2 text-sm">
+              <input
+                type="checkbox"
+                class="filter-line h-4 w-4 rounded border-gray-300"
+                value={line.value}
+                data-label={line.label}
+              />
+              {line.label}
+            </label>
+          ))}
+        </div>
+      )}
+
+      {applications.length > 0 && (
+        <div data-facet="application" style={facetStyle(applications)}>
+          <h3 class="mb-2 font-semibold">Aplicación</h3>
+          {applications.map(application => (
+            <label class="flex cursor-pointer items-center gap-2.5 py-2 text-sm">
+              <input type="checkbox" class="filter-application filter-subcategory h-4 w-4 rounded border-gray-300" value={application} />
+              {application}
+            </label>
+          ))}
+        </div>
+      )}
+
+      {typeClasses.length > 0 && (
+        <div data-facet="type" style={facetStyle(typeClasses)}>
+          <h3 class="mb-2 font-semibold">Tipo / Clase</h3>
+          {typeClasses.map(typeClass => (
+            <label class="flex cursor-pointer items-center gap-2.5 py-2 text-sm">
+              <input type="checkbox" class="filter-type h-4 w-4 rounded border-gray-300" value={typeClass} />
+              {typeClass.toUpperCase()}
+            </label>
+          ))}
+        </div>
+      )}
+
+      {pressureClasses.length > 0 && (
+        <div data-facet="pressure" style={facetStyle(pressureClasses)}>
+          <h3 class="mb-2 font-semibold">Presión</h3>
+          {pressureClasses.map(pressureClass => (
+            <label class="flex cursor-pointer items-center gap-2.5 py-2 text-sm">
+              <input type="checkbox" class="filter-pressure h-4 w-4 rounded border-gray-300" value={pressureClass} />
+              {pressureClass.toUpperCase()}
+            </label>
+          ))}
+        </div>
+      )}
+
+      {productNames.length > 0 && (
+        <div data-facet="product" style={facetStyle(productNames)}>
+          <h3 class="mb-2 font-semibold">Producto</h3>
+          {productNames.map(productName => (
+            <label class="flex cursor-pointer items-center gap-2.5 py-2 text-sm">
+              <input type="checkbox" class="filter-product h-4 w-4 rounded border-gray-300" value={productName} />
+              {productName}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+
+    <div class="flex gap-3 border-t p-4">
+      <button
+        id="clearFiltersMobile"
+        type="button"
+        class="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium"
+      >
+        Limpiar
+      </button>
+
+      <button
+        id="applyFiltersMobile"
+        type="button"
+        class="flex-1 rounded-lg bg-[#003595] px-4 py-3 text-sm font-semibold text-white"
+      >
+        Ver resultados
+      </button>
+    </div>
+  </div>
+
+  <!-- Los datos viajan como JSON en un <script>, no en un atributo: ver
+       toJsonScript(). El navegador no ejecuta type="application/json". -->
+  <script id="catalog-data" type="application/json" set:html={toJsonScript(clientItems)}></script>
+  <script id="material-descriptions" type="application/json" set:html={toJsonScript(materialDescriptions)}></script>
 </BaseLayout>
 
-<div id="variants-data" data-json={JSON.stringify(variants)}></div>
-
 <script is:inline>
-
 const data = JSON.parse(
-  document.getElementById("variants-data")?.dataset.json || "[]"
+  document.getElementById("catalog-data")?.textContent || "[]"
 );
 
-const searchInput = document.getElementById("searchInput");
-
-const materialFilters = document.querySelectorAll(".filter-material");
-const brandFilters = document.querySelectorAll(".filter-brand");
-const pressureFilters = document.querySelectorAll(".filter-pressure");
-const appFilters = document.querySelectorAll(".filter-app");
+const materialDescriptions = JSON.parse(
+  document.getElementById("material-descriptions")?.textContent || "{}"
+);
 
 const container = document.getElementById("results");
 
-// ================= NORMALIZE =================
+const TYPE_CLASS_ORDER = [
+  "SDR11",
+  "RDE11",
+  "SR11",
+  "SDR9",
+  "RDE9",
+  "SR9",
+  "SDR7",
+  "RDE7",
+  "SDR17",
+  "SDR21",
+  "PN5",
+  "PN7.5",
+  "PN10",
+  "PN15",
+  "PN16",
+  "PN20",
+  "SCH-40",
+  "SCH 40",
+  "SCH-80",
+  "SCH 80",
+  "SCH-80 CORZAN",
+  "C-5",
+  "C5",
+  "C7.5",
+  "C10",
+  "C15",
+  "CTS",
+  "SEL",
+  "SAP",
+  "SAP DSCP",
+  "SAL DSCL",
+  "A.C."
+];
+
+function getTypeClassOrder(value) {
+  const normalized = value?.toString().toUpperCase().trim() || "";
+  const index = TYPE_CLASS_ORDER.indexOf(normalized);
+  return index === -1 ? 9999 : index;
+}
 
 function normalize(text) {
   return text
     ?.toString()
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[-_/]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-// ================= GROUP =================
-
-function groupByBrand(items) {
-  const grouped = {};
-  items.forEach(i => {
-    if (!grouped[i.brand]) grouped[i.brand] = [];
-    grouped[i.brand].push(i);
-  });
-  return grouped;
+// slugify() es el contrato compartido con el resto del sitio (buscador, enlaces
+// entrantes): produce y consume exactamente los mismos slugs que la URL.
+// Ojo: NO sustituye a normalize(), que es la comparaci\u00f3n interna del cat\u00e1logo.
+function slugify(value) {
+  return String(value)
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // quita tildes
+    .replace(/["'\u00b0]/g, "")                         // quita comillas y grados
+    .replace(/[^a-z0-9]+/g, "-")                        // no alfanum\u00e9rico -> -
+    .replace(/^-+|-+$/g, "");
 }
 
-// ================= HIGHLIGHT =================
-
-function highlight(text, tokens) {
-  if (!tokens.length) return text;
-
-  const safe = tokens
-    .filter(t => t.length > 2)
-    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-
-  if (!safe.length) return text;
-
-  const regex = new RegExp(`\\b(${safe.join("|")})\\b`, "gi");
-
-  return text.replace(regex, `<mark class="bg-yellow-200">$1</mark>`);
-}
-
-// ================= FILTER =================
-
-window.applyFilters = function () {
-
-  const tokens = normalize(searchInput?.value || "")
+function titleCase(text) {
+  return text
+    ?.toString()
     .split(" ")
-    .filter(t => t.length > 2);
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
-  const selectedMaterials = [...materialFilters]
-    .filter(cb => cb.checked)
-    .map(cb => normalize(cb.value));
+function getSelected(filters) {
+  // Cada filtro existe dos veces (barra lateral + hoja móvil) y ambas copias
+  // se mantienen sincronizadas, así que hay que deduplicar por valor.
+  return [...new Set(
+    [...filters]
+      .filter(cb => cb.checked)
+      .map(cb => normalize(cb.value))
+  )];
+}
 
-  const selectedBrands = [...brandFilters]
-    .filter(cb => cb.checked)
-    .map(cb => normalize(cb.value));
+// La comparación es por PALABRA COMPLETA, nunca por subcadena. Con subcadena,
+// elegir "PVC" también seleccionaba el CPVC Corzan (la cadena "cpvc corzan"
+// contiene literalmente "pvc") y el filtro devolvía productos de agua caliente
+// a quien pedía agua fría. Comparar contra los tokens del material y contra los
+// alias declarados ("CPVC Corzan" -> ["CPVC", "Corzan"]) da el mismo resultado
+// para los FM ("HDPE FM") sin ese falso positivo.
+function materialMatches(item, selectedMaterials) {
+  if (!selectedMaterials.length) return true;
 
-  const selectedPressures = [...pressureFilters]
-    .filter(cb => cb.checked)
-    .map(cb => normalize(cb.value));
+  const normalizedMaterial = normalize(item.filterMaterial || item.material);
+  const words = normalizedMaterial.split(" ").filter(Boolean);
+  const normalizedAliases = (item.materialAliases || []).map(alias => normalize(alias));
 
-  const selectedApps = [...appFilters]
-    .filter(cb => cb.checked)
-    .map(cb => normalize(cb.value));
+  return selectedMaterials.some(selected => (
+    normalizedMaterial === selected ||
+    words.includes(selected) ||
+    normalizedAliases.includes(selected)
+  ));
+}
 
-  const filtered = data.filter(item => {
+// Definición única de las facetas. Antes la misma lógica estaba copiada en
+// applyFilters(), updateAvailableFilters() y renderActiveFilters(); con esta
+// tabla añadir una faceta es añadir una fila y su bloque de markup.
+//  - selector   : clase de las casillas (duplicadas: lateral + hoja móvil)
+//  - urlKey     : clave del contrato de URL (null = no se expone en la URL)
+//  - legacyKeys : claves antiguas que se siguen LEYENDO pero ya no se escriben,
+//                 para que un enlace compartido antes del cambio no se rompa
+//  - single     : selección única (sólo el material se comporta así)
+//  - matches    : ¿esta fila pasa la faceta con estos valores seleccionados?
+//
+// El ORDEN del array sigue el orden visual que decidió el cliente (D1:
+// Material, Marca, Línea, Aplicación, Tipo/Clase, Presión, Producto). No es
+// sólo estética interna: de este orden salen los chips de filtros activos y
+// el orden de los parámetros al escribir la URL, así que debe ir siempre a
+// juego con el markup de la barra lateral y de la hoja móvil. El filtrado y
+// la poda de disponibilidad, en cambio, no dependen de él.
+const FACET_DEFS = [
+  {
+    name: "material",
+    selector: ".filter-material",
+    urlKey: "material",
+    single: true,
+    matches: (item, selected) => materialMatches(item, selected)
+  },
+  {
+    name: "brand",
+    selector: ".filter-brand",
+    urlKey: "marca",
+    single: false,
+    matches: (item, selected) =>
+      !selected.length || selected.includes(normalize(item.brand || ""))
+  },
+  {
+    // El corte más grueso del catálogo: contra incendio FM frente a agua.
+    // El valor de la casilla ES el código de línea ("fm" / "agua"), así que
+    // slugify() lo deja igual y la URL queda tal cual manda el contrato
+    // (?linea=fm). La etiqueta legible vive en data-label.
+    name: "line",
+    selector: ".filter-line",
+    urlKey: "linea",
+    // Selección única: un producto pertenece a UNA línea, así que marcar las
+    // dos equivale a no filtrar y sólo confunde.
+    single: true,
+    matches: (item, selected) =>
+      !selected.length || selected.includes(normalize(item.line || ""))
+  },
+  {
+    // Separa las aplicaciones dentro de una línea (agua fría / agua caliente).
+    name: "application",
+    selector: ".filter-application",
+    urlKey: "aplicacion",
+    legacyKeys: ["subcategoria"],
+    // Selección única: ningún producto es a la vez de agua fría y de contra
+    // incendio, así que marcar dos aplicaciones sólo devuelve la unión de dos
+    // catálogos distintos. Marcar una desmarca la anterior.
+    single: true,
+    matches: (item, selected) =>
+      !selected.length ||
+      selected.includes(normalize(item.application || item.subcategory || ""))
+  },
+  {
+    name: "type",
+    selector: ".filter-type",
+    urlKey: "tipo",
+    single: false,
+    matches: (item, selected) =>
+      !selected.length || selected.includes(normalize(item.typeClass || ""))
+  },
+  {
+    name: "pressure",
+    selector: ".filter-pressure",
+    urlKey: "presion",
+    single: false,
+    matches: (item, selected) =>
+      !selected.length || selected.includes(normalize(item.pressureClass || ""))
+  },
+  {
+    // "Al final poner producto" (decisión literal del cliente, D1).
+    name: "product",
+    selector: ".filter-product",
+    urlKey: "producto",
+    single: false,
+    matches: (item, selected) =>
+      !selected.length || selected.includes(normalize(item.productName || ""))
+  }
+];
 
-    const matchMaterial =
-      !selectedMaterials.length ||
-      selectedMaterials.includes(item.material);
+const FILTER_SELECTOR = FACET_DEFS.map(def => def.selector).join(", ");
 
-    const matchBrand =
-      !selectedBrands.length ||
-      selectedBrands.includes(item.brand);
+function getFacetBoxes(def) {
+  return [...document.querySelectorAll(def.selector)];
+}
 
-    // 🔥 MATCH EXACTO (CORRECTO)
-    const matchPressure =
-  !selectedPressures.length ||
-  selectedPressures.some(p =>
-    normalize(item.pressure) === normalize(p)
-  );
+// La clase de faceta puede no ser la primera del atributo class, así que se
+// busca por nombre en vez de asumir classList[0].
+function getFacetOf(input) {
+  return FACET_DEFS.find(def => input.classList.contains(def.selector.slice(1))) || null;
+}
 
-    const matchApp =
-      !selectedApps.length ||
-      selectedApps.includes(item.application);
+function getSelectedByFacet() {
+  const selected = {};
 
-    return matchMaterial && matchBrand && matchPressure && matchApp;
+  FACET_DEFS.forEach(def => {
+    selected[def.name] = getSelected(getFacetBoxes(def));
   });
 
-  renderActiveFilters({
-    materials: selectedMaterials,
-    brands: selectedBrands,
-    pressures: selectedPressures,
-    applications: selectedApps
+  return selected;
+}
+
+function sortRows(rows) {
+  return [...rows].sort((a, b) => {
+    const orderA = getTypeClassOrder(a.typeClass);
+    const orderB = getTypeClassOrder(b.typeClass);
+
+    if (orderA !== orderB) return orderA - orderB;
+
+    const productCompare = (a.productName || "").localeCompare(b.productName || "", "es");
+    if (productCompare !== 0) return productCompare;
+
+    const materialCompare = (a.material || "").localeCompare(b.material || "", "es");
+    if (materialCompare !== 0) return materialCompare;
+
+    // Dentro de un mismo producto y material quedan varias filas (una por tipo
+    // de unión y por clase), y sin este criterio salían en el orden en que
+    // venían del Excel: el bushing de 3/4" podía aparecer detrás del de 4".
+    // Se compara por el rango, que es lo que el cliente lee en la tabla.
+    const sizeCompare = compareSizes(
+      a.sizeRange || a.sizes?.[0],
+      b.sizeRange || b.sizes?.[0]
+    );
+
+    if (sizeCompare !== 0) return sizeCompare;
+
+    // Último desempate: dos filas con el mismo rango sólo se distinguen por la
+    // unión (SP / Rosca), así que deben salir siempre en el mismo orden.
+    return (a.jointType || "").localeCompare(b.jointType || "", "es");
+  });
+}
+
+function getImageKey(item) {
+  const aliases = (item.materialAliases || []).map(alias => normalize(alias));
+
+  if (aliases.includes("cpvc") || aliases.includes("corzan")) return "cpvc";
+  if (aliases.includes("hdpe") || aliases.includes("fm")) return "hdpe";
+  if (aliases.includes("pvc")) return "pvc";
+  if (
+    aliases.includes("pp") ||
+    aliases.includes("pp h") ||
+    aliases.includes("pp r") ||
+    aliases.includes("pp r100")
+  ) return "pp";
+
+  return "pvc";
+}
+
+function renderMaterialLegend(rows) {
+  const hiddenLegendAliases = ["FM", "CORZAN"];
+  const uniqueMaterials = [];
+
+  rows.forEach(row => {
+    const aliases = (row.materialAliases || []).filter(
+      alias => !hiddenLegendAliases.includes(alias.toUpperCase())
+    );
+
+    const materialToShow = aliases[0] || row.material;
+
+    if (materialToShow && !uniqueMaterials.includes(materialToShow)) {
+      uniqueMaterials.push(materialToShow);
+    }
   });
 
-  renderTables(filtered, tokens);
-};
+  return `
+    <div class="flex flex-wrap gap-2 mb-4">
+      ${uniqueMaterials.map(material => `
+        <div class="text-xs px-2 py-1 rounded bg-gray-100 border">
+          <span class="font-semibold uppercase">${safeText(material)}</span>
+          ${
+            materialDescriptions[material]
+              ? `<span class="text-gray-500"> — ${safeText(materialDescriptions[material])}</span>`
+              : ""
+          }
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
 
-// ================= ACTIVE FILTERS =================
+// ---------------------------------------------------------------------------
+// Medidas: se comparan por TRAMOS, nunca como una sola cadena
+// ---------------------------------------------------------------------------
+// La línea de agua trae medidas compuestas ('3/4" X 1/2"', '2" EMBONE X 1"',
+// '1" X 45°') y la línea FM trae rangos ('2" - 16"', '63MM - 400MM'). Medir la
+// cadena entera con parseFloat daba parseFloat("3/8X1/4") = 3, así que el 3/8"
+// —la medida más pequeña del catálogo— acababa ordenado detrás del 2.1/2".
+// Separando los tramos, cada uno se mide con su propia regla de fracciones.
 
-function renderActiveFilters(filters) {
+/**
+ * Parte una medida en sus tramos comparables.
+ * Los dos separadores del catálogo son la "X" de la línea de agua ('3/4" X 1/2"')
+ * y la "a" de las reducciones FM ('3" a 2"'); ambos van siempre aislados entre
+ * espacios, así que separar por ellos no rompe palabras que los contengan
+ * ("EMBONE"). De un rango sólo cuenta su extremo menor, que es como se ordenaba
+ * antes y como lo lee el cliente.
+ */
+function splitSizeSegments(size) {
+  return String(size)
+    .split(/\s+(?:[x×]|a)\s+/i)
+    .map(segment => segment.split(/[-–—]/)[0]);
+}
 
-  const container = document.getElementById("activeFilters");
+/** Valor numérico de un tramo suelto: '1.1/4"' -> 1.25, '2" EMBONE' -> 2. */
+function parseSegmentValue(segment) {
+  // Sólo cuentan dígitos, punto y barra; el resto (comillas, °, "EMBONE", "MM")
+  // se convierte en separador para que no contamine el número.
+  const raw = String(segment).replace(/[^0-9./]+/g, " ").trim();
+  const clean = raw.replace(/\s+/g, "");
 
-  const all = Object.entries(filters).flatMap(([type, values]) =>
-    values.map(v => ({ type: type.slice(0, -1), value: v }))
+  if (!clean) return Number.POSITIVE_INFINITY;
+
+  if (/^\d+\.\d+\/\d+$/.test(clean)) {
+    const [whole, fraction] = clean.split(".");
+    const [num, den] = fraction.split("/").map(Number);
+    return Number(whole) + num / den;
+  }
+
+  // Forma con espacio ('2 1/2"'). Se admite más de un espacio porque al limpiar
+  // la cadena cada símbolo descartado deja el suyo.
+  if (/^\d+\s+\d+\/\d+$/.test(raw)) {
+    const [whole, fraction] = raw.split(/\s+/);
+    const [num, den] = fraction.split("/").map(Number);
+    return Number(whole) + num / den;
+  }
+
+  if (/^\d+\/\d+$/.test(clean)) {
+    const [num, den] = clean.split("/").map(Number);
+    return num / den;
+  }
+
+  const number = parseFloat(clean);
+  return Number.isNaN(number) ? Number.POSITIVE_INFINITY : number;
+}
+
+/**
+ * Compara dos medidas completas: primero el diámetro mayor y, si empatan, el
+ * segundo tramo (el diámetro menor de una reducción, o el ángulo de un codo).
+ * Una medida sin segundo tramo va antes que la misma medida con reducción.
+ */
+function compareSizes(a, b) {
+  const left = a ? splitSizeSegments(a).map(segment => parseSegmentValue(segment)) : [];
+  const right = b ? splitSizeSegments(b).map(segment => parseSegmentValue(segment)) : [];
+  const length = Math.max(left.length, right.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const valueA = index < left.length ? left[index] : Number.NEGATIVE_INFINITY;
+    const valueB = index < right.length ? right[index] : Number.NEGATIVE_INFINITY;
+
+    if (valueA === valueB) continue;
+
+    return valueA < valueB ? -1 : 1;
+  }
+
+  return 0;
+}
+
+// Etiqueta legible de una medida: '2.1/2"' -> '2 1/2"'.
+//
+// El punto del Excel separa el entero de la fracción, no es un decimal, así que
+// se sustituye por un espacio. Se sustituyen TODOS los que aparezcan: al agrupar
+// la línea de agua entran medidas compuestas con dos ('1.1/4" X 1.5/8"') y la
+// versión anterior, que hacía replace(".", " ") sin bandera global, sólo
+// arreglaba el primero.
+//
+// El resto del dato se respeta tal cual. Antes se borraban todas las comillas y
+// se pegaba una al final: eso valía para '2"' pero destrozaba las medidas
+// compuestas de la línea de agua ('1/2" X 45°' salía como '1/2 X 45°"') y las
+// reducciones FM ('4" a 2"' salía como '4 a 2"').
+function normalizeSizeLabel(size) {
+  return String(size).replace(/(\d)\.(\d+\/\d+)/g, "$1 $2").trim();
+}
+
+// Mismo criterio que las filas: las listas FM traen reducciones ('4" a 2"',
+// '4" a 3"') que empatan en su primer tramo y hay que desempatar por el segundo.
+function sortSizes(sizes) {
+  return [...new Set(sizes || [])].sort((a, b) => compareSizes(a, b));
+}
+
+function formatSizeRange(row) {
+  if (row.sizeRange) return row.sizeRange;
+
+  if (!row.sizes?.length) return "Por definir";
+
+  const sorted = sortSizes(row.sizes);
+
+  if (sorted.length === 1) {
+    return normalizeSizeLabel(sorted[0]);
+  }
+
+  return `${normalizeSizeLabel(sorted[0])} – ${normalizeSizeLabel(sorted[sorted.length - 1])}`;
+}
+
+function renderSizesCell(row) {
+  const range = formatSizeRange(row);
+
+  if (!row.sizes?.length) {
+    return `<span class="text-gray-700">${safeText(range)}</span>`;
+  }
+
+  const sorted = sortSizes(row.sizes);
+
+  // Con una sola medida el desplegable repetiría lo que ya se ve arriba.
+  if (sorted.length < 2) {
+    return `<span class="text-gray-700">${safeText(range)}</span>`;
+  }
+
+  return `
+    <div>
+      <span class="font-medium">${safeText(range)}</span>
+
+      <details class="mt-1 text-xs text-gray-500">
+        <summary class="cursor-pointer text-[#003595] font-medium">
+          Ver medidas
+        </summary>
+        <div class="mt-1">
+          ${sorted.map(size => safeText(normalizeSizeLabel(size))).join(", ")}
+        </div>
+      </details>
+    </div>
+  `;
+}
+
+function hasTechnicalSheet(row) {
+  return Boolean(row.technicalSheet);
+}
+
+function renderTechnicalSheetLink(row, label = "Descargar ficha") {
+  if (!hasTechnicalSheet(row)) {
+    return `<span class="text-xs font-medium text-gray-500">Ficha pendiente</span>`;
+  }
+
+  return `
+    <a
+      href="${safeText(row.technicalSheet)}"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="text-[#003595] font-medium hover:underline"
+    >
+      ${safeText(label)}
+    </a>
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// Insignia de línea
+// ---------------------------------------------------------------------------
+// "FM Approved" se pinta SÓLO si la fila trae certificación propia. La línea de
+// agua todavía no está certificada y no se le inventa ningún sello: lleva una
+// insignia neutra con su aplicación ("Agua fría" / "Agua caliente") para que se
+// vea de un vistazo de qué línea es cada fila sin sugerir una homologación que
+// no existe.
+function renderLineBadge(row) {
+  if (row.certification) {
+    return `
+      <span class="inline-flex items-center rounded-full border border-[#003595]/30 bg-[#003595]/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#003595]">
+        ${safeText(row.certification)}
+      </span>
+    `;
+  }
+
+  if (row.application) {
+    return `
+      <span class="inline-flex items-center rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+        ${safeText(row.application)}
+      </span>
+    `;
+  }
+
+  return "";
+}
+
+// Material + insignia. `flex-wrap` es lo que evita el desbordamiento a 375px
+// cuando el material y la insignia no caben en la misma línea.
+function renderMaterialLine(row) {
+  return `
+    <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+      <span class="text-xs uppercase text-gray-500">${safeText(row.material)}</span>
+      ${renderLineBadge(row)}
+    </div>
+  `;
+}
+
+// Dos SKU de agua pueden compartir producto, material y medida y diferenciarse
+// SÓLO por el tipo de unión (SP frente a Rosca). Si no se muestra, la tabla
+// enseña dos filas aparentemente idénticas y el cliente no sabe cuál pedir.
+function renderJointType(row) {
+  if (!row.jointType) return "";
+
+  return `<div class="mt-0.5 text-xs text-gray-500">Unión: ${safeText(row.jointType)}</div>`;
+}
+
+function renderProductName(row) {
+  const productTitle = row.productName || titleCase(row.category || "");
+
+  if (!hasTechnicalSheet(row)) {
+    return safeText(productTitle);
+  }
+
+  return `
+    <a
+      href="${safeText(row.technicalSheet)}"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="hover:text-[#003595] hover:underline"
+    >
+      ${safeText(productTitle)}
+    </a>
+  `;
+}
+
+function applyFilters() {
+  if (!data.length) return;
+
+  // Se poda ANTES de filtrar: updateAvailableFilters() puede desmarcar una
+  // opción imposible (o llegada por URL), y los resultados deben reflejar el
+  // estado ya podado, no el anterior.
+  updateAvailableFilters();
+
+  const selected = getSelectedByFacet();
+
+  // Una fila sólo entra si pasa TODAS las facetas.
+  const filtered = data.filter(item =>
+    FACET_DEFS.every(def => def.matches(item, selected[def.name]))
   );
 
-  if (!all.length) {
-    container.innerHTML = "";
+  renderActiveFilters(getActiveFilterChips());
+  renderTables(filtered);
+  updateMobileMaterialStyles();
+  updateMaterialStripStyles();
+  syncFacetVisibility();
+  syncFilterChrome(filtered.length);
+  syncUrl();
+}
+
+// Devuelve los filtros activos con su etiqueta original ("Codo 90°", "200 PSI")
+// además del valor normalizado que usa la comparación interna.
+function getActiveFilterChips() {
+  const chips = [];
+
+  FACET_DEFS.forEach(def => {
+    const seen = new Set();
+
+    getFacetBoxes(def).forEach(cb => {
+      if (!cb.checked) return;
+
+      const value = normalize(cb.value);
+      // La misma opción existe en la barra lateral y en la hoja móvil.
+      if (seen.has(value)) return;
+
+      seen.add(value);
+      // La faceta "Línea" guarda en `value` el código interno ("fm") y en
+      // data-label lo que lee el cliente ("Contra incendio FM"). El resto de
+      // facetas no declara data-label y sigue mostrando su propio valor.
+      chips.push({ type: def.name, value, label: cb.dataset.label || cb.value });
+    });
+  });
+
+  return chips;
+}
+
+function renderActiveFilters(chips) {
+  const activeContainer = document.getElementById("activeFilters");
+  if (!activeContainer) return;
+
+  if (!chips.length) {
+    activeContainer.innerHTML = "";
     return;
   }
 
-  container.innerHTML = all.map(f => `
-    <button data-type="${f.type}" data-value="${f.value}"
-      class="px-3 py-1 text-xs rounded-full bg-gray-900 text-white flex items-center gap-2">
-      ${f.value} ✕
+  // Todo lo interpolado se escapa: el texto sale de los datos del catálogo.
+  activeContainer.innerHTML = chips.map(chip => `
+    <button
+      type="button"
+      data-type="${safeText(chip.type)}"
+      data-value="${safeText(chip.value)}"
+      class="px-3 py-1 text-xs rounded-full bg-gray-900 text-white flex items-center gap-2"
+      aria-label="Quitar filtro ${safeText(chip.label)}"
+    >
+      ${safeText(chip.label)}
+      <span aria-hidden="true">✕</span>
     </button>
   `).join("");
 
-  container.querySelectorAll("button").forEach(btn => {
-    btn.onclick = () => {
+  activeContainer.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const def = FACET_DEFS.find(item => item.name === btn.dataset.type);
+      if (!def) return;
 
-      document.querySelectorAll(`.filter-${btn.dataset.type}`)
-        .forEach(cb => {
-          if (normalize(cb.value) === btn.dataset.value) cb.checked = false;
-        });
+      const value = btn.dataset.value;
+
+      getFacetBoxes(def).forEach(cb => {
+        if (normalize(cb.value) === value) cb.checked = false;
+      });
 
       applyFilters();
-    };
+    });
   });
 }
 
-// ================= TABLE =================
+function updateAvailableFilters() {
+  // Se repite la pasada hasta que ninguna casilla más se desmarque. Motivo: al
+  // descartar una opción imposible cambia lo que está disponible en las facetas
+  // YA recorridas en esa misma pasada, y su estado se quedaba congelado. Con
+  // una URL contradictoria (p. ej. ?tipo=sdr7&presion=200-psi) eso dejaba
+  // Producto, Material y Marca enteras deshabilitadas pese a haber resultados.
+  // Cada pasada extra desmarca al menos una casilla y nunca vuelve a marcarlas,
+  // así que el número de casillas acota las iteraciones y el bucle termina.
+  const maxPasses = document.querySelectorAll(FILTER_SELECTOR).length + 1;
 
-function renderTables(items, tokens) {
+  for (let pass = 0; pass < maxPasses; pass += 1) {
+    const selected = getSelectedByFacet();
+    let pruned = false;
 
-  if (!items.length) {
-    container.innerHTML = `
-      <div class="text-center py-10 text-gray-500">
-        No se encontraron productos con esos filtros.
-      </div>
-    `;
+    FACET_DEFS.forEach(def => {
+      // La disponibilidad de una faceta se mide contra las filas que sobreviven
+      // al RESTO de facetas: si se incluyera a sí misma, sólo quedaría visible lo
+      // ya marcado y sería imposible ampliar la selección.
+      const others = FACET_DEFS.filter(other => other.name !== def.name);
+
+      const reduced = data.filter(item =>
+        others.every(other => other.matches(item, selected[other.name]))
+      );
+
+      getFacetBoxes(def).forEach(cb => {
+        const option = normalize(cb.value);
+        // Se reutiliza el mismo matcher de la faceta (el material compara con
+        // alias, no por igualdad), así disponibilidad y filtrado nunca divergen.
+        const available = reduced.some(item => def.matches(item, [option]));
+        const label = cb.closest("label") || cb.parentElement;
+
+        if (!available) {
+          if (cb.checked) {
+            cb.checked = false;
+            // Las facetas siguientes deben verse ya sin esta opción imposible.
+            selected[def.name] = selected[def.name].filter(value => value !== option);
+            pruned = true;
+          }
+
+          cb.disabled = true;
+          if (label) label.style.display = "none";
+        } else {
+          cb.disabled = false;
+          if (label) label.style.display = "";
+        }
+      });
+    });
+
+    if (!pruned) return;
+  }
+}
+
+// Una faceta con 0 o 1 opción posible no permite decidir nada, así que se
+// esconde entera (título incluido) en escritorio y en móvil. Se usa
+// style.display en lugar de la clase `hidden` porque algunos contenedores son
+// `flex` y el resultado dependería del orden de las utilidades de Tailwind.
+function syncFacetVisibility() {
+  document.querySelectorAll("[data-facet]").forEach(group => {
+    const def = FACET_DEFS.find(item => item.name === group.dataset.facet);
+    if (!def) return;
+
+    const usable = [...group.querySelectorAll(def.selector)].filter(cb => !cb.disabled);
+
+    group.style.display = usable.length > 1 ? "" : "none";
+  });
+}
+
+const WHATSAPP_PHONE = "51998134102";
+const selectedQuoteItems = new Map();
+
+function safeText(value) {
+  return value
+    ?.toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;") || "";
+}
+
+function getQuoteId(row) {
+  return row.webSku || [
+    row.category,
+    row.brand,
+    row.productName,
+    row.material,
+    row.typeClass,
+    row.pressureClass,
+    row.sizeRange
+  ].map(value => normalize(value || "")).join("__");
+}
+
+// Descripción comercial de la fila para el mensaje de WhatsApp.
+//
+// Ya NO se manda ningún código de producto. Antes la fila de agua era un SKU
+// suelto (PD00879) y ese código se enviaba tal cual; ahora cada fila agrupa
+// todas las medidas de una combinación, así que no existe UN código que la
+// represente —mandar el de una medida cualquiera induciría a error—. En su
+// lugar viaja la descripción completa (producto, material, clase, unión, rango
+// de medidas y marca), que es con lo que el vendedor localiza la fila y luego
+// pregunta la medida exacta.
+function getQuoteLabel(row) {
+  return [
+    row.productName,
+    row.material,
+    row.certification,
+    row.typeClass,
+    row.pressureClass,
+    row.jointType,
+    formatSizeRange(row),
+    row.brand
+  ].filter(Boolean).join(" · ");
+}
+
+function renderQuoteCheckbox(row) {
+  const quoteId = getQuoteId(row);
+  const checked = selectedQuoteItems.has(quoteId) ? "checked" : "";
+
+  return `
+    <label class="inline-flex items-center gap-2 cursor-pointer">
+      <input
+        type="checkbox"
+        class="quote-checkbox h-4 w-4 rounded border-gray-300"
+        data-quote-id="${safeText(quoteId)}"
+        ${checked}
+      />
+      <span class="text-xs text-gray-600">Cotizar</span>
+    </label>
+  `;
+}
+
+function findQuoteItemById(id) {
+  return data.find(row => getQuoteId(row) === id);
+}
+
+function buildWhatsAppUrl(items) {
+  const lines = items.map((item, index) => {
+    return `${index + 1}. ${getQuoteLabel(item)}`;
+  });
+
+  const message = [
+    "Hola DIHYC,",
+    "",
+    "Deseo solicitar cotización de los siguientes productos:",
+    "",
+    ...lines,
+    "",
+    "Quedo atento a su respuesta."
+  ].join("\n");
+
+  return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`;
+}
+
+function updateQuotePanel() {
+  const panel = document.getElementById("quotePanel");
+  const count = document.getElementById("quoteCount");
+  const itemsContainer = document.getElementById("quoteItems");
+  const whatsapp = document.getElementById("quoteWhatsapp");
+
+  const selected = [...selectedQuoteItems.values()];
+
+  if (!selected.length) {
+    panel.classList.add("hidden");
+    itemsContainer.innerHTML = "";
     return;
   }
 
-  const grouped = groupByBrand(items);
+  panel.classList.remove("hidden");
 
-  container.innerHTML = Object.entries(grouped).map(([brand, rows]) => `
+  count.textContent =
+    selected.length === 1
+      ? "1 producto seleccionado"
+      : `${selected.length} productos seleccionados`;
 
-    <div class="mb-12 p-6 border rounded-xl bg-white shadow-sm">
+  itemsContainer.innerHTML = selected.map(item => {
+    const id = getQuoteId(item);
 
-      <div class="flex items-center gap-4 mb-4">
-
-        <img
-          src="/assets/products/${rows[0].material}.png"
-          class="w-16 h-16 object-cover rounded border"
-        />
-
-        <div>
-          <h2 class="text-lg font-semibold">${brand.toUpperCase()}</h2>
-          <span class="text-xs text-gray-500">${rows.length} resultados</span>
-        </div>
-
+    return `
+      <div class="flex items-start justify-between gap-3 rounded bg-gray-50 px-3 py-2">
+        <span>${safeText(getQuoteLabel(item))}</span>
+        <button
+          class="remove-quote-item text-gray-400 hover:text-gray-900"
+          data-quote-id="${safeText(id)}"
+        >
+          ✕
+        </button>
       </div>
+    `;
+  }).join("");
 
-      <div class="overflow-x-auto border rounded-lg">
+  whatsapp.href = buildWhatsAppUrl(selected);
 
-        <table class="w-full text-sm">
+  document.querySelectorAll(".remove-quote-item").forEach(button => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.quoteId;
+      selectedQuoteItems.delete(id);
 
-          <thead class="bg-gray-100 text-xs uppercase">
-            <tr>
-              <th class="px-4 py-3 text-left">Código</th>
-              <th class="px-4 py-3 text-left">Producto</th>
-              <th class="px-4 py-3 text-left">Presión</th>
-              <th class="px-4 py-3 text-left">Descripción</th>
-            </tr>
-          </thead>
+      document.querySelectorAll(".quote-checkbox").forEach(input => {
+        if (input.dataset.quoteId === id) input.checked = false;
+      });
 
-          <tbody>
-
-            ${rows.map((r, i) => `
-              <tr class="${i % 2 ? "bg-gray-50" : "bg-white"}">
-
-                <td class="px-4 py-3 font-mono text-xs">${r.code}</td>
-                <td class="px-4 py-3 font-medium">${r.productName}</td>
-
-                <td class="px-4 py-3">
-                  <span class="px-2 py-1 text-xs bg-gray-200 rounded">
-                    ${r.pressure}
-                  </span>
-                </td>
-
-                <td class="px-4 py-3 text-gray-600">
-                  ${highlight(r.description, tokens)}
-                </td>
-
-              </tr>
-            `).join("")}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-    </div>
-
-  `).join("");
+      updateQuotePanel();
+    });
+  });
 }
 
-// ================= EVENTS =================
+function attachQuoteListeners() {
+  document.querySelectorAll(".quote-checkbox").forEach(input => {
+    input.addEventListener("change", () => {
+      const id = input.dataset.quoteId;
+      const item = findQuoteItemById(id);
 
-document.querySelectorAll("input").forEach(cb =>
-  cb.addEventListener("change", applyFilters)
-);
+      if (!item) return;
 
-renderTables(data, []);
+      if (input.checked) {
+        selectedQuoteItems.set(id, item);
+      } else {
+        selectedQuoteItems.delete(id);
+      }
 
+      updateQuotePanel();
+    });
+  });
+}
+
+function renderTables(items) {
+  if (!items.length) {
+    container.innerHTML = `
+      <div class="text-center py-10 text-gray-500">
+        No se encontraron productos.
+      </div>
+    `;
+
+    attachQuoteListeners();
+    updateQuotePanel();
+    return;
+  }
+
+  const groupedByBrand = {};
+
+  items.forEach(row => {
+    if (!groupedByBrand[row.brand]) groupedByBrand[row.brand] = [];
+    groupedByBrand[row.brand].push(row);
+  });
+
+  // D2: los bloques de marca salen con Georg Fischer PRIMERO —es el socio
+  // principal del cliente— y el resto en alfabético. Antes seguían el orden
+  // de aparición de las filas, que dependía del Excel de origen. Se detecta
+  // por nombre y nunca por un índice fijo: en una categoría sin GF el orden
+  // queda simplemente alfabético. (Misma regla que las casillas de Marca,
+  // ordenadas en el frontmatter.)
+  const isGeorgFischerBrand = brand =>
+    String(brand).trim().toLowerCase() === "georg fischer";
+
+  const compareBrandNames = (a, b) => {
+    if (isGeorgFischerBrand(a) !== isGeorgFischerBrand(b)) {
+      return isGeorgFischerBrand(a) ? -1 : 1;
+    }
+
+    return String(a).localeCompare(String(b), "es");
+  };
+
+  container.innerHTML = Object.entries(groupedByBrand)
+    .sort(([brandA], [brandB]) => compareBrandNames(brandA, brandB))
+    .map(([brand, rows]) => {
+    const sortedRows = sortRows(rows);
+    const firstRow = sortedRows[0];
+    const imageKey = getImageKey(firstRow);
+    const tableImage = firstRow.productImage || `/assets/products/${imageKey}.png`;
+
+    return `
+      <div class="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+        <div class="mb-4 flex items-center gap-4">
+          <img
+            src="${safeText(tableImage)}"
+            alt="${safeText(brand)}"
+            loading="lazy"
+            class="img-bright h-16 w-16 rounded border object-cover"
+            onerror="this.style.display='none'"
+          />
+
+          <div>
+            <h2 class="text-lg font-semibold">${safeText(String(brand).toUpperCase())}</h2>
+            <span class="text-xs text-gray-500">${sortedRows.length} productos disponibles</span>
+          </div>
+        </div>
+
+        ${renderMaterialLegend(sortedRows)}
+
+        <div class="hidden md:block overflow-x-auto border rounded-lg">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100 text-xs uppercase text-gray-700">
+              <tr>
+                <th class="px-4 py-3 text-left">Producto / Material</th>
+                <th class="px-4 py-3 text-left">Tipo / Clase</th>
+                <th class="px-4 py-3 text-left">Presión</th>
+                <th class="px-4 py-3 text-left">Medidas disponibles</th>
+                <th class="px-4 py-3 text-left">Norma</th>
+                <th class="px-4 py-3 text-left">Ficha técnica</th>
+                <th class="px-4 py-3 text-left">Cotizar</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${sortedRows.map(row => `
+                <tr class="border-t">
+                  <td class="px-4 py-3">
+                    <div class="font-medium capitalize">
+                      ${renderProductName(row)}
+                    </div>
+                    ${renderMaterialLine(row)}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    ${safeText(row.typeClass) || "—"}
+                    ${renderJointType(row)}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    ${safeText(row.pressureClass) || "—"}
+                  </td>
+
+                  <td class="px-4 py-3 text-gray-700">
+                    ${renderSizesCell(row)}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    ${safeText(row.standard) || "—"}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    ${renderTechnicalSheetLink(row)}
+                  </td>
+                  <td class="px-4 py-3">
+  ${renderQuoteCheckbox(row)}
+</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="md:hidden space-y-4">
+          ${sortedRows.map(row => `
+            <div class="border rounded-lg p-4">
+              <div class="font-medium capitalize">
+                ${renderProductName(row)}
+              </div>
+
+              ${renderMaterialLine(row)}
+
+              <div class="text-sm text-gray-700 mt-2">
+                <span class="font-medium">Tipo / Clase:</span> ${safeText(row.typeClass) || "—"}
+                ${renderJointType(row)}
+              </div>
+
+              <div class="text-sm text-gray-700 mt-2">
+                <span class="font-medium">Presión:</span> ${safeText(row.pressureClass) || "—"}
+              </div>
+
+              <div class="text-sm text-gray-700 mt-2">
+                <span class="font-medium">Medidas:</span> ${renderSizesCell(row)}
+              </div>
+
+              <div class="text-sm text-gray-700 mt-2">
+                <span class="font-medium">Norma:</span> ${safeText(row.standard) || "—"}
+              </div>
+
+              <div class="mt-3">
+                ${renderTechnicalSheetLink(row)}
+              </div>
+              <div class="mt-3">
+  ${renderQuoteCheckbox(row)}
+</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
+  attachQuoteListeners();
+  updateQuotePanel();
+}
+
+// ---------------------------------------------------------------------------
+// Estado compartido con la URL
+// (?linea=&aplicacion=&producto=&material=&marca=&tipo=&presion=&q=)
+// `?linea=` acepta fm | agua y es la clave con la que enlazan las tarjetas de
+// /productos. `?subcategoria=` se sigue leyendo por compatibilidad, pero ya no
+// se escribe. Una clave o un valor desconocido se ignoran en silencio.
+// ---------------------------------------------------------------------------
+
+// La escritura en la URL se activa sólo DESPUÉS de la hidratación inicial: una
+// URL compartida (aunque traiga parámetros desconocidos) debe respetarse tal
+// cual hasta que el usuario toque un filtro.
+let urlSyncEnabled = false;
+
+// 'q' no filtra: sólo rotula la banda "Resultados para ...".
+let searchTerm = readSearchTerm();
+
+function readSearchTerm() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get("q") || "";
+    // Se recorta para que un término absurdamente largo no desborde a 375px.
+    return raw.trim().slice(0, 120);
+  } catch (error) {
+    return "";
+  }
+}
+
+// Marca las casillas que vengan en la URL. Todo va dentro de un try: una URL
+// manipulada jamás debe dejar el catálogo sin pintar.
+function hydrateFiltersFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+
+    FACET_DEFS.forEach(def => {
+      if (!def.urlKey) return;
+
+      // Gana la clave nueva; las antiguas sólo actúan si la nueva no viene.
+      const raw = [def.urlKey, ...(def.legacyKeys || [])]
+        .map(key => params.get(key))
+        .find(value => value);
+
+      if (!raw) return;
+
+      // Se re-slugifica lo recibido: así "Codo 90°" o "SDR 11" también encajan.
+      const slugs = raw.split(",").map(part => slugify(part)).filter(Boolean);
+      if (!slugs.length) return;
+
+      const boxes = getFacetBoxes(def);
+
+      if (def.single) {
+        // Faceta de selección única (línea, aplicación, material): gana el
+        // primer slug que exista y los demás se ignoran en silencio. Un valor
+        // inexistente (?linea=basura) no marca nada y no rompe la página.
+        const winner = slugs.find(slug => boxes.some(cb => slugify(cb.value) === slug));
+        if (!winner) return;
+
+        boxes.forEach(cb => {
+          cb.checked = slugify(cb.value) === winner;
+        });
+
+        return;
+      }
+
+      boxes.forEach(cb => {
+        if (slugs.includes(slugify(cb.value))) cb.checked = true;
+      });
+    });
+  } catch (error) {
+    // Claves o valores inválidos: se ignoran sin romper nada.
+  }
+}
+
+// Refleja el estado actual en la URL para que el enlace sea compartible.
+function syncUrl() {
+  if (!urlSyncEnabled) return;
+
+  try {
+    // Se construye a mano en vez de con URLSearchParams.toString() para que las
+    // comas del contrato (?tipo=sdr11,sdr9) no acaben como %2C.
+    const parts = [];
+
+    FACET_DEFS.forEach(def => {
+      if (!def.urlKey) return;
+
+      const slugs = [...new Set(
+        getFacetBoxes(def)
+          .filter(cb => cb.checked)
+          .map(cb => slugify(cb.value))
+          .filter(Boolean)
+      )];
+
+      if (slugs.length) parts.push(`${def.urlKey}=${slugs.join(",")}`);
+    });
+
+    // 'q' sobrevive a los filtros: sólo desaparece con "Limpiar búsqueda".
+    if (searchTerm) parts.push(`q=${encodeURIComponent(searchTerm)}`);
+
+    const query = parts.join("&");
+    const base = window.location.pathname + window.location.hash;
+
+    // Sin filtros ni búsqueda la URL queda limpia, sin parámetros.
+    window.history.replaceState(null, "", query ? `${window.location.pathname}?${query}${window.location.hash}` : base);
+  } catch (error) {
+    // replaceState puede fallar en contextos exóticos; nunca debe romper la UI.
+  }
+}
+
+function renderSearchNotice() {
+  const notice = document.getElementById("searchNotice");
+  if (!notice) return;
+
+  if (!searchTerm) {
+    notice.innerHTML = "";
+    return;
+  }
+
+  // searchTerm viene de la URL: se escapa SIEMPRE antes de inyectarlo.
+  notice.innerHTML = `
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-gray-50 px-4 py-2.5 text-sm text-gray-600">
+      <span class="min-w-0 break-words">
+        Resultados para
+        <span class="font-medium text-gray-900">«${safeText(searchTerm)}»</span>
+      </span>
+
+      <a
+        id="clearSearch"
+        href="${safeText(window.location.pathname)}"
+        class="shrink-0 font-medium text-[#003595] hover:underline"
+      >
+        Limpiar búsqueda
+      </a>
+    </div>
+  `;
+
+  document.getElementById("clearSearch")?.addEventListener("click", (event) => {
+    // Se evita la recarga: basta con limpiar filtros, banda y parámetros.
+    event.preventDefault();
+
+    searchTerm = "";
+    renderSearchNotice();
+    clearAllFilters();
+    // clearAllFilters() no llega a syncUrl() si la categoría está vacía.
+    syncUrl();
+  });
+}
+
+// Sólo los controles de filtro disparan el re-render (no la búsqueda ni las
+// casillas de cotización, que viven en la misma página).
+document.querySelectorAll(FILTER_SELECTOR).forEach(cb => {
+  cb.addEventListener("change", (event) => {
+    const target = event.target;
+    const def = getFacetOf(target);
+
+    if (!def) return;
+
+    if (def.single) {
+      // Selección única (línea, aplicación, material): marcar una opción limpia
+      // las demás de esa faceta y el estado se replica en la copia gemela
+      // (barra lateral / hoja móvil) de cada casilla.
+      getFacetBoxes(def).forEach(input => {
+        input.checked = target.checked && input.value === target.value;
+      });
+    } else {
+      // El resto de filtros se replica entre la barra lateral y la hoja móvil.
+      getFacetBoxes(def).forEach(input => {
+        if (input.value === target.value) input.checked = target.checked;
+      });
+    }
+
+    applyFilters();
+  });
+});
+
+// Arranque: primero se hidrata desde la URL y luego se pinta UNA sola vez.
+hydrateFiltersFromUrl();
+renderSearchNotice();
+
+if (data.length > 0) {
+  applyFilters();
+} else {
+  syncFacetVisibility();
+}
+
+urlSyncEnabled = true;
+
+const openBtn = document.getElementById("openFilters");
+const closeBtn = document.getElementById("closeFilters");
+const modal = document.getElementById("mobileFilters");
+
+function setFilterSheet(open) {
+  if (!modal) return;
+
+  modal.classList.toggle("hidden", !open);
+  modal.classList.toggle("flex", open);
+  // Bloquea el scroll del fondo mientras la hoja está abierta.
+  document.body.style.overflow = open ? "hidden" : "";
+}
+
+openBtn?.addEventListener("click", () => setFilterSheet(true));
+closeBtn?.addEventListener("click", () => setFilterSheet(false));
+document.getElementById("applyFiltersMobile")?.addEventListener("click", () => setFilterSheet(false));
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") setFilterSheet(false);
+});
+
+// Al pasar a escritorio la hoja móvil no debe quedar abierta.
+window.matchMedia("(min-width: 768px)").addEventListener("change", (event) => {
+  if (event.matches) setFilterSheet(false);
+});
+
+function clearAllFilters() {
+  document.querySelectorAll(FILTER_SELECTOR).forEach(input => {
+    input.checked = false;
+    // Una opción oculta y deshabilitada debe volver a ser elegible al limpiar.
+    input.disabled = false;
+  });
+
+  applyFilters();
+}
+
+document.getElementById("clearFiltersDesktop")?.addEventListener("click", clearAllFilters);
+document.getElementById("clearFiltersMobile")?.addEventListener("click", clearAllFilters);
+
+function countActiveFilters() {
+  // Los checkboxes están duplicados (barra lateral + chips/hoja móvil),
+  // por eso se cuentan por faceta+valor y no por elemento.
+  const values = new Set();
+
+  document.querySelectorAll(FILTER_SELECTOR).forEach(input => {
+    if (!input.checked) return;
+
+    const def = getFacetOf(input);
+    values.add(`${def ? def.name : "?"}:${normalize(input.value)}`);
+  });
+
+  return values.size;
+}
+
+function syncFilterChrome(visibleCount) {
+  const active = countActiveFilters();
+
+  const badge = document.getElementById("filterCountBadge");
+  if (badge) {
+    badge.textContent = String(active);
+    badge.classList.toggle("hidden", active === 0);
+  }
+
+  const clearDesktop = document.getElementById("clearFiltersDesktop");
+  clearDesktop?.classList.toggle("hidden", active === 0);
+
+  const resultCount = document.getElementById("resultCount");
+  if (resultCount && typeof visibleCount === "number") {
+    resultCount.textContent = String(visibleCount);
+  }
+}
+
+function updateMobileMaterialStyles() {
+  document.querySelectorAll(".material-chip .filter-material").forEach(input => {
+    const label = input.closest("label");
+    if (!label) return;
+
+    label.classList.toggle("bg-gray-900", input.checked);
+    label.classList.toggle("text-white", input.checked);
+    label.classList.toggle("border-gray-900", input.checked);
+    label.classList.toggle("bg-white", !input.checked);
+    label.classList.toggle("text-gray-900", !input.checked);
+    label.classList.toggle("border-gray-300", !input.checked);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// D3: franja de fotos por material (hoy sólo existe en conexiones)
+// ---------------------------------------------------------------------------
+// Cada tarjeta clicable reutiliza el MISMO camino de eventos que un clic en la
+// casilla de Material: se voltea la casilla real y se dispara su "change", de
+// modo que la selección única, la réplica entre copias (lateral / chips /
+// hoja móvil), la poda, la URL y el re-render salen del listener que ya
+// existe, sin duplicar lógica. Volver a pulsar la tarjeta activa la desmarca
+// por el mismo volteo. La tarjeta de PP no lleva data-material-value y este
+// código la ignora entera.
+document.querySelectorAll(".material-strip-card[data-material-value]").forEach(card => {
+  card.addEventListener("click", () => {
+    const value = card.dataset.materialValue;
+
+    const target = [...document.querySelectorAll(".filter-material")]
+      .find(cb => cb.value === value);
+
+    if (!target) return;
+
+    target.checked = !target.checked;
+    target.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+});
+
+// Realce azul corporativo de la tarjeta cuyo material está filtrando. Se lee
+// el estado REAL de las casillas (no un estado propio de la franja) para que
+// la tarjeta acompañe a la faceta también cuando el filtro llega por URL, por
+// chip móvil o por la propia barra lateral.
+function updateMaterialStripStyles() {
+  document.querySelectorAll(".material-strip-card[data-material-value]").forEach(card => {
+    const active = [...document.querySelectorAll(".filter-material")]
+      .some(cb => cb.value === card.dataset.materialValue && cb.checked);
+
+    card.classList.toggle("border-[#003595]", active);
+    card.classList.toggle("ring-2", active);
+    card.classList.toggle("ring-[#003595]/20", active);
+    card.classList.toggle("border-gray-200", !active);
+    card.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+document.getElementById("quoteClear")?.addEventListener("click", () => {
+  selectedQuoteItems.clear();
+
+  document.querySelectorAll(".quote-checkbox").forEach(input => {
+    input.checked = false;
+  });
+
+  updateQuotePanel();
+});
 </script>

@@ -1,110 +1,480 @@
 ---
-import { productLines } from "../data/productLines";
+// El índice del buscador (~34 kB) NO se emite aquí a propósito.
+//
+// El Header monta este componente dos veces —barra de escritorio y menú móvil—,
+// así que emitir el JSON dentro del componente lo duplicaba en cada página: el
+// script cliente sólo lee el primero y el segundo era peso muerto. Ahora lo
+// publica BaseLayout una sola vez por página y aquí sólo se consume.
 ---
 
-<div class="relative w-full max-w-sm">
+<!-- `data-search-root` permite montar varias instancias (escritorio y móvil)
+     sin colisiones de id. -->
+<div class="relative w-full" data-search-root>
 
-  <input
-    id="searchInput"
-    type="text"
-    placeholder="Buscar productos..."
-    class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-  />
+  <div class="relative">
+    <svg
+      class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+      fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path stroke-linecap="round" d="M20 20l-3.5-3.5" />
+    </svg>
+
+    <input
+      type="search"
+      placeholder="Buscar productos..."
+      autocomplete="off"
+      aria-label="Buscar productos"
+      role="combobox"
+      aria-expanded="false"
+      aria-autocomplete="list"
+      data-search-input
+      class="w-full rounded-md border border-gray-300 py-2 pl-9 pr-8 text-sm transition focus:border-[#003595] focus:outline-none focus:ring-2 focus:ring-[#003595]/30"
+    />
+
+    <button
+      type="button"
+      data-search-clear
+      aria-label="Limpiar búsqueda"
+      class="absolute right-2 top-1/2 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+    >
+      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
 
   <div
-    id="searchResults"
-    class="absolute left-0 right-0 bg-white border rounded-md mt-2 shadow-lg hidden z-50 max-h-80 overflow-auto"
+    data-search-results
+    role="listbox"
+    class="absolute left-0 right-0 z-50 mt-2 hidden max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-xl"
   ></div>
 
 </div>
 
-<!-- DATA -->
-<script
-  id="searchData"
-  type="application/json"
-  set:html={JSON.stringify(productLines)}
-></script>
+<style>
+  /* WebKit/Chrome dibujan su propia "x" dentro de los input[type="search"],
+     lo que hacía aparecer DOS cruces junto al botón [data-search-clear].
+     Ocultamos la nativa y dejamos sólo la del componente, que además es la
+     única accesible por teclado con su aria-label. */
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
+</style>
+
 
 <script>
+// Astro empaqueta este <script> con Vite, así que puede importar el módulo .ts
+// de inteligencia del buscador; el índice pesado sigue viajando como JSON.
+import {
+  parseQuery,
+  buildCatalogUrl,
+  didYouMean,
+  parsedLabels
+} from "../data/searchQuery";
 
-const productLines = JSON.parse(
-  document.getElementById("searchData").textContent
-);
+const dataEl = document.querySelector(".search-data");
+const payload = JSON.parse(dataEl?.textContent || '{"items":[],"synonyms":{},"popular":[]}');
+
+const ITEMS = payload.items || [];
+const SYNONYMS = payload.synonyms || {};
+const POPULAR = payload.popular || [];
 
 function normalize(text) {
-  return text
+  return (text ?? "")
+    .toString()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/["'°]/g, "")
+    .replace(/[-_/.,]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
-const input = document.getElementById("searchInput");
-const results = document.getElementById("searchResults");
+function escapeHtml(text) {
+  return (text ?? "")
+    .toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-if (input && results) {
+/** Expande la consulta con sinónimos: "gf" también busca "georg fischer". */
+function expandQuery(query) {
+  const base = normalize(query);
+  if (!base) return [];
 
-  input.addEventListener("input", () => {
+  const variants = new Set([base]);
 
-    const rawQuery = input.value.trim();
-    const query = normalize(rawQuery);
+  // Sinónimo de la frase completa y de cada palabra suelta.
+  [base, ...base.split(" ")].forEach(token => {
+    (SYNONYMS[token] || []).forEach(syn => variants.add(normalize(syn)));
+  });
 
-    // 🔴 SI NO HAY TEXTO
+  return [...variants].filter(Boolean);
+}
+
+/**
+ * Cuántas PALABRAS de lo tecleado responde este item.
+ *
+ * scoreItem() se queda con la MEJOR variante (Math.max), así que un item que
+ * sólo acierta una palabra empata con otro que las acierta todas. Con dos
+ * líneas en el catálogo eso se notaba en las propias búsquedas frecuentes:
+ * "Codo 90°" ponía el "Codo 45°" arriba (ambos tienen el token "codo" y
+ * desempataba el orden alfabético), "Agua fría" abría con productos de agua
+ * caliente y "tubo pvc" ni siquiera listaba el tubo de PVC. Contar la
+ * cobertura desempata a favor de quien contesta a la consulta entera.
+ *
+ * Se mide contra las palabras REALES tecleadas, no contra los sinónimos: los
+ * sinónimos existen para ampliar el recall y aquí se mide justo lo contrario.
+ *
+ * El bono es de 8 por palabra extra porque debe poder superar la distancia
+ * máxima entre pesos (categoría 9 frente a producto 2): un producto que
+ * responde a las dos palabras tiene que ganarle a la ficha de categoría que
+ * sólo responde a una. Con una sola palabra no hay nada que desempatar y el
+ * bono es 0, así que TODAS las consultas de una palabra puntúan igual que antes.
+ */
+function coverageBonus(item, words) {
+  if (words.length < 2) return 0;
+
+  const terms = item.terms || [];
+  let hits = 0;
+
+  for (const word of words) {
+    if (terms.some(term => term === word || term.startsWith(word))) hits += 1;
+  }
+
+  return Math.max(0, hits - 1) * 8;
+}
+
+/**
+ * Puntúa un item. El prefijo manda: escribir "tu" debe proponer "Tubos"
+ * igual que en un autocompletado de buscador.
+ */
+function scoreItem(item, variants, words) {
+  const terms = item.terms || [];
+  let best = 0;
+
+  for (const q of variants) {
+    for (const term of terms) {
+      if (term === q) {
+        best = Math.max(best, 100);
+      } else if (term.startsWith(q)) {
+        // Cuanto más se parece el token a lo tecleado, más relevante.
+        best = Math.max(best, 70 + Math.round((q.length / term.length) * 20));
+      } else if (q.length >= 5 && term.includes(q)) {
+        // Coincidencia a mitad de palabra: sólo para consultas largas, para
+        // no llenar el desplegable de resultados poco relacionados.
+        best = Math.max(best, 30);
+      }
+    }
+  }
+
+  if (!best) return 0;
+
+  return best + (item.weight || 0) + coverageBonus(item, words);
+}
+
+function searchProducts(query, limit = 6) {
+  const variants = expandQuery(query);
+  if (!variants.length) return [];
+
+  // Palabras tecleadas, sin repetir: una consulta "pvc pvc" no debe cobrar el
+  // bono de cobertura dos veces.
+  const words = [...new Set(normalize(query).split(" ").filter(word => word.length > 1))];
+
+  return ITEMS
+    .map(item => ({ item, score: scoreItem(item, variants, words) }))
+    .filter(r => r.score > 0)
+    .sort((a, b) => b.score - a.score || a.item.title.localeCompare(b.item.title))
+    .slice(0, limit)
+    .map(r => r.item);
+}
+
+/** Resalta en negrita el fragmento que coincide con lo tecleado. */
+function highlight(text, query) {
+  const safe = escapeHtml(text);
+  const nQuery = normalize(query);
+
+  if (!nQuery) return safe;
+
+  const nText = normalize(text);
+  const at = nText.indexOf(nQuery);
+
+  // La normalización puede desalinear índices (tildes); sólo resaltamos
+  // cuando el texto crudo contiene la misma secuencia.
+  if (at === -1 || nText.length !== text.length) return safe;
+
+  return (
+    escapeHtml(text.slice(0, at)) +
+    "<mark class='bg-transparent font-bold text-[#003595]'>" +
+    escapeHtml(text.slice(at, at + nQuery.length)) +
+    "</mark>" +
+    escapeHtml(text.slice(at + nQuery.length))
+  );
+}
+
+function renderSuggestions() {
+  if (!POPULAR.length) return "";
+
+  return `
+    <div class="p-3">
+      <div class="px-1 pb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+        Búsquedas frecuentes
+      </div>
+      <div class="flex flex-wrap gap-2">
+        ${POPULAR.map(term => `
+          <button type="button" data-suggestion="${escapeHtml(term)}"
+            class="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-700 transition hover:border-[#003595] hover:text-[#003595]">
+            ${escapeHtml(term)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Atajo destacado al catálogo ya filtrado. Sólo aparece cuando la consulta
+ * aporta 2 o más atributos: con uno solo el resultado normal ya es suficiente
+ * y la fila sería ruido.
+ */
+function renderFilterShortcut(parsed, url) {
+  const labels = parsedLabels(parsed);
+  if (!url || labels.length < 2) return "";
+
+  const summary = labels.join(" · ");
+
+  return `
+    <a href="${escapeHtml(url)}" role="option" data-search-shortcut
+      aria-label="Ir al catálogo filtrado: ${escapeHtml(summary)}"
+      class="block border-b border-[#003595]/20 bg-[#003595]/5 px-4 py-3 transition hover:bg-[#003595]/10 focus:bg-[#003595]/10 focus:outline-none">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="shrink-0 rounded-full bg-[#003595] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+              Catálogo
+            </span>
+            <span class="text-sm font-semibold text-[#003595]">
+              Ver ${labels.length} filtros aplicados
+            </span>
+          </div>
+          <div class="mt-1 text-xs text-gray-600">${escapeHtml(summary)}</div>
+        </div>
+        <span class="shrink-0 text-xs text-[#003595]">→</span>
+      </div>
+    </a>
+  `;
+}
+
+/**
+ * Estado vacío. Si la consulta parece un error de tecleo proponemos la
+ * corrección; el botón reutiliza `data-suggestion` para heredar el clic y la
+ * navegación con flechas que ya existen.
+ */
+function renderEmpty(query) {
+  const suggestion = didYouMean(query);
+
+  if (suggestion) {
+    return `
+      <div class="px-4 py-5 text-center text-sm text-gray-500">
+        Sin resultados para <span class="font-medium text-gray-800">${escapeHtml(query)}</span>.
+        <button type="button" data-suggestion="${escapeHtml(suggestion)}"
+          class="mt-3 block w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 transition hover:border-[#003595] hover:text-[#003595] focus:border-[#003595] focus:outline-none focus:ring-2 focus:ring-[#003595]/30">
+          ¿Quisiste decir <b class="font-semibold text-[#003595]">${escapeHtml(suggestion)}</b>?
+        </button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="px-4 py-5 text-center text-sm text-gray-500">
+      Sin resultados para <span class="font-medium text-gray-800">${escapeHtml(query)}</span>.
+      <a href="/contacto/" class="mt-1 block font-medium text-[#003595] hover:underline">
+        Consúltanos por este producto →
+      </a>
+    </div>
+  `;
+}
+
+/**
+ * Aviso "¿Quisiste decir…?" que acompaña a los resultados.
+ *
+ * Antes la corrección sólo salía cuando NO había ningún resultado, y eso la
+ * dejaba fuera justo en el caso más común: basta con que una palabra de la
+ * consulta acierte ("geog fisher" -> "fisher" es sinónimo válido) para que
+ * haya resultados y la corrección no se ofreciera nunca. Google muestra la
+ * sugerencia por encima de los resultados aunque los haya; hacemos lo mismo.
+ */
+function renderDidYouMean(query) {
+  const suggestion = didYouMean(query);
+  if (!suggestion) return "";
+
+  return `
+    <div class="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-gray-700">
+      ¿Quisiste decir
+      <button type="button" data-suggestion="${escapeHtml(suggestion)}"
+        class="font-semibold text-[#003595] underline decoration-dotted underline-offset-2 hover:decoration-solid focus:outline-none focus:ring-2 focus:ring-[#003595]/30">
+        ${escapeHtml(suggestion)}
+      </button>?
+    </div>
+  `;
+}
+
+function renderResults(items, query, parsed, url) {
+  const shortcut = renderFilterShortcut(parsed, url);
+
+  // Sin resultados: renderEmpty ya ofrece la corrección en grande.
+  if (!items.length) return shortcut + renderEmpty(query);
+
+  // Con resultados: la corrección va como banda discreta encima.
+  return shortcut + renderDidYouMean(query) + items.map(item => `
+    <a href="${escapeHtml(item.href)}" role="option"
+      class="group block border-b border-gray-100 px-4 py-3 last:border-b-0 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="shrink-0 rounded-full bg-[#003595]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#003595]">
+              ${escapeHtml(item.badge || item.category)}
+            </span>
+            <span class="truncate text-sm font-semibold text-gray-900 group-hover:text-[#003595]">
+              ${highlight(item.title, query)}
+            </span>
+          </div>
+          <div class="mt-1 truncate text-xs text-gray-500">
+            ${escapeHtml(item.description || item.meta || item.category)}
+          </div>
+        </div>
+        <span class="shrink-0 text-xs text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-[#003595]">→</span>
+      </div>
+    </a>
+  `).join("");
+}
+
+// Cada instancia (escritorio / móvil) se cablea por separado dentro de su
+// propio contenedor, para que las dos puedan coexistir en la misma página.
+document.querySelectorAll("[data-search-root]").forEach((root) => {
+  const input = root.querySelector("[data-search-input]");
+  const results = root.querySelector("[data-search-results]");
+  const clearBtn = root.querySelector("[data-search-clear]");
+
+  if (!input || !results) return;
+
+  function open() {
+    results.classList.remove("hidden");
+    input.setAttribute("aria-expanded", "true");
+  }
+
+  function close() {
+    results.classList.add("hidden");
+    input.setAttribute("aria-expanded", "false");
+  }
+
+  function render() {
+    const query = input.value.trim();
+
+    clearBtn?.classList.toggle("hidden", !query);
+    clearBtn?.classList.toggle("flex", Boolean(query));
+
+    // Sin texto: se proponen las búsquedas frecuentes.
     if (!query) {
-      results.classList.add("hidden");
-      results.innerHTML = "";
+      results.innerHTML = renderSuggestions();
+      results.innerHTML ? open() : close();
       return;
     }
 
-    // 🔴 FILTRADO MÁS POTENTE
-    const filtered = productLines.filter(item => {
+    // Se entiende la intención (producto, material, marca, SDR, presión) para
+    // poder ofrecer el catálogo ya filtrado además de los resultados sueltos.
+    const parsed = parseQuery(query);
+    const catalogUrl = buildCatalogUrl(parsed);
 
-      const text =
-        normalize(item.name) +
-        " " +
-        normalize(item.category) +
-        " " +
-        normalize(item.material) +
-        " " +
-        item.keywords?.map(k => normalize(k)).join(" ");
+    results.innerHTML = renderResults(searchProducts(query, 6), query, parsed, catalogUrl);
+    open();
+  }
 
-      return text.includes(query);
-    });
+  input.addEventListener("input", render);
+  input.addEventListener("focus", render);
 
-    // 🔴 SIN RESULTADOS
-    if (filtered.length === 0) {
-
-      results.innerHTML =
-        '<div class="px-4 py-3 text-sm text-gray-500">Sin resultados</div>';
-
-    } else {
-
-      results.innerHTML = filtered.slice(0,6).map(item => `
-        <a
-          href="/productos/${item.category}/${item.material}/${item.slug}"
-          class="block px-4 py-3 hover:bg-gray-100 text-sm"
-        >
-          <div class="font-medium">${item.name}</div>
-
-          <div class="text-xs text-gray-500">
-            ${item.category} · ${item.material.toUpperCase()}
-          </div>
-        </a>
-      `).join("");
-
-    }
-
-    results.classList.remove("hidden");
-
+  clearBtn?.addEventListener("click", () => {
+    input.value = "";
+    input.focus();
+    render();
   });
 
-  // 🔴 CERRAR DROPDOWN
-  document.addEventListener("click", (e) => {
-    if (!e.target.closest("#searchInput") && !e.target.closest("#searchResults")) {
-      results.classList.add("hidden");
+  // Clic en una búsqueda sugerida.
+  results.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-suggestion]");
+    if (!chip) return;
+
+    input.value = chip.dataset.suggestion;
+    render();
+    input.focus();
+  });
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      close();
+      input.blur();
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      const first = results.querySelector("a, [data-suggestion]");
+      if (first) {
+        event.preventDefault();
+        first.focus();
+      }
+      return;
+    }
+
+    if (event.key !== "Enter") return;
+
+    const query = input.value.trim();
+    if (!query) return;
+
+    // Prioridad al catálogo filtrado: llega a la página correcta con los
+    // filtros ya marcados. Si no hay nada que filtrar, se mantiene el
+    // comportamiento de siempre (primer resultado del índice).
+    const catalogUrl = buildCatalogUrl(parseQuery(query));
+    if (catalogUrl) {
+      window.location.href = catalogUrl;
+      return;
+    }
+
+    const first = searchProducts(query, 1);
+    if (first.length > 0) window.location.href = first[0].href;
+  });
+
+  // Navegación con flechas dentro de la lista.
+  results.addEventListener("keydown", (event) => {
+    const options = [...results.querySelectorAll("a, [data-suggestion]")];
+    const index = options.indexOf(document.activeElement);
+
+    if (event.key === "ArrowDown" && index < options.length - 1) {
+      event.preventDefault();
+      options[index + 1].focus();
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (index <= 0) input.focus();
+      else options[index - 1].focus();
+    }
+
+    if (event.key === "Escape") {
+      close();
+      input.focus();
     }
   });
 
-}
-
+  document.addEventListener("click", (event) => {
+    if (!root.contains(event.target)) close();
+  });
+});
 </script>

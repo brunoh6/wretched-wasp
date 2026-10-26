@@ -1,102 +1,119 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Hero from "../components/Hero.astro";
 import Section from "../components/Section.astro";
-import { categories } from "../data/categories";
-import ProductFilters from "../components/ProductFilters.astro";
-import ProductGrid from "../components/ProductGrid.astro";
-import BrandCarouselVertical from "../components/BrandCarouselVertical.astro";
-import { products } from "../data/products";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import cardsData from "../data/catalog/cards.json";
+
+/**
+ * Tarjeta de la portada de productos.
+ *
+ * Vive en `src/data/catalog/cards.json` y NO en `src/data/categories.ts` porque
+ * son dos cosas distintas: `categories.ts` decide qué FAMILIAS existen como
+ * ruta (/productos/tuberias, /productos/conexiones) y qué entra al menú, y hoy
+ * cada familia mezcla las dos líneas comerciales. La portada, en cambio,
+ * necesita cuatro entradas —una por familia y línea— para que el cliente entre
+ * directo a lo que busca. Además el panel de administración edita la imagen de
+ * cada tarjeta (decisión D7), y ese archivo tiene que ser un JSON editable sin
+ * tocar código.
+ */
+type CatalogCard = {
+  slug: string;
+  /** Familia publicada: coincide con el slug de la ruta /productos/[category]. */
+  family: string;
+  /** Línea comercial: "fm" = contra incendio, "agua" = agua fría/caliente. */
+  line: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  visible: boolean;
+  order: number;
+};
+
+// `visible` permite apagar una tarjeta desde el CMS sin borrar su fila, y
+// `order` fija el orden mostrado sin depender de cómo quedó ordenado el JSON.
+const cards = (cardsData.cards as CatalogCard[])
+  .filter((card) => card.visible)
+  .sort((a, b) => a.order - b.order);
 ---
-<!-- 
-<BaseLayout
-  title="Productos | DIHYC"
-  description="Catálogo de productos industriales organizados por categorías y marcas."
->
-  <Hero
-    title="Nuestros Productos"
-    subtitle="Explora nuestro catálogo de productos industriales por categoría y marca."
-  />
-
-  <Section>
-  <div class="grid md:grid-cols-[300px_1fr] gap-10"> -->
-
-    <!-- COLUMNA IZQUIERDA -->
-    <!-- <aside id="filtersSidebar" class="space-y-10 self-start"> -->
-
-      <!-- Filtros -->
-      <!-- <ProductFilters /> -->
-
-      <!-- Marcas (vertical, loop) -->
-      <!-- <div>
-        <h4 class="text-sm font-medium mb-4">
-          Marcas que distribuimos
-        </h4>
-
-        <BrandCarouselVertical
-          brands={[
-            { name: "+GF+", logo: "/assets/brands/gf.png" },
-            { name: "Hakan Plastik", logo: "/assets/brands/hakan.png" },
-            { name: "Simona", logo: "/assets/brands/simona.png" },
-            { name: "Cepex", logo: "/assets/brands/cepex.png" },
-            { name: "Leister", logo: "/assets/brands/leister.png" },
-            { name: "Victaulic", logo: "/assets/brands/victaulic.png" },
-            { name: "Arrow", logo: "/assets/brands/arrow.png" },
-            { name: "Cim", logo: "/assets/brands/cim.png" },
-            { name: "Integrity", logo: "/assets/brands/integrity.png" },
-            { name: "Era", logo: "/assets/brands/era.png" }
-          ]}
-        />
-      </div>
-
-    </aside> -->
-
-    <!-- COLUMNA DERECHA -->
-    <!-- <ProductGrid products={products} />
-
-  </div>
-</Section>
-</BaseLayout> -->
 
 <BaseLayout
   title="Productos | DIHYC"
-  description="Catálogo de soluciones industriales organizado por categorías."
+  description="Tuberías y conexiones de dos líneas: contra incendio en HDPE certificado FM Approved, y agua fría y caliente en PVC y CPVC. Filtra por medida, marca y aplicación."
 >
 
-  <Hero
-    title="Nuestros Productos"
-    subtitle="Explora nuestras soluciones industriales organizadas por categorías."
-  />
-
   <Section>
-    <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
+    <Breadcrumbs items={[{ label: "Productos" }]} />
 
-      {categories.map((category) => (
+    <div class="mb-8 max-w-2xl">
+      <h1 class="text-3xl font-semibold sm:text-4xl">
+        Productos
+      </h1>
+
+      <p class="mt-3 text-gray-600">
+        Nuestro catálogo reúne dos líneas: contra incendio, con tuberías y conexiones
+        de HDPE certificadas
+        <span class="font-semibold text-[#003595]">FM Approved</span>,
+        y agua fría y caliente, con tuberías y conexiones de PVC y CPVC. Puedes
+        filtrar por medida, marca y aplicación, y descargar la ficha técnica de los
+        productos que ya la tienen disponible.
+      </p>
+    </div>
+
+    <!-- Cuatro tarjetas: 1 columna en móvil, 2 en tablet y 4 en escritorio.
+         Se descarta el 2x2 en `lg` porque las cuatro entradas forman un único
+         nivel de decisión (familia + línea) y partirlas en dos filas sugiere una
+         jerarquía que no existe; en una sola fila el cliente las compara de un
+         vistazo. `items-stretch` + `h-full` igualan la altura de las tarjetas
+         aunque un subtítulo ocupe dos líneas y otro sólo una. -->
+    <div class="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {cards.map((card) => (
         <a
-          href={`/productos/${category.slug}`}
-          class="group block border rounded-lg overflow-hidden hover:shadow-lg transition"
+          href={`/productos/${card.family}/?linea=${card.line}`}
+          class="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:-translate-y-1 hover:border-[#003595]/30 hover:shadow-lg"
         >
           <div class="aspect-[4/3] overflow-hidden bg-gray-100">
             <img
-              src={category.image}
-              alt={category.name}
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              src={card.image}
+              alt={`${card.title} — ${card.subtitle}`}
+              loading="lazy"
+              class="img-bright h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </div>
 
-          <div class="p-6">
-            <h3 class="text-lg font-semibold">
-              {category.name}
-            </h3>
+          <div class="flex items-start justify-between gap-3 p-5">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900">
+                {card.title}
+              </h2>
 
-            <p class="text-sm text-gray-600 mt-2">
-              Ver productos
-            </p>
+              <p class="mt-1 text-sm text-gray-600">
+                {card.subtitle}
+              </p>
+
+              <p class="mt-2 text-sm text-gray-500">
+                Ver catálogo
+              </p>
+            </div>
+
+            <span
+              class="shrink-0 text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-[#003595]"
+              aria-hidden="true"
+            >
+              →
+            </span>
           </div>
         </a>
       ))}
-
     </div>
+
+    <p class="mt-10 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-5 text-sm text-gray-600">
+      Estamos incorporando progresivamente el resto de líneas (válvulas, planchas,
+      pegamentos, perfiles y máquinas) conforme completamos su información y fichas
+      técnicas.
+      <a href="/contacto/" class="font-medium text-[#003595] hover:underline">
+        Consúltanos por disponibilidad
+      </a>.
+    </p>
   </Section>
 
 </BaseLayout>

@@ -3,6 +3,18 @@
 :root {
   --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --brand: #003595;
+  --brand-dark: #002a75;
+
+  /* Altura del navbar: usada para compensar el scroll hacia anclas. */
+  --header-height: 4.25rem;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Evita que el header sticky tape los títulos al saltar a una ancla. */
+  scroll-padding-top: calc(var(--header-height) + 1rem);
 }
 
 body {
@@ -10,41 +22,140 @@ body {
   @apply bg-white text-gray-900 antialiased;
 }
 
-.product-card {
-  transform:
-    perspective(1000px)
-    rotateX(65deg)
-    translateY(-160px);
+/* Foco visible y consistente para navegación por teclado. */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
-.product-card.in-view {
-  opacity: 1;
-  transform:
-    perspective(1000px)
-    rotateX(0deg)
-    translateY(0);
+/* =========================================================
+   IMÁGENES
+   Realce sutil y uniforme: más luz, algo más de contraste y
+   saturación para que el catálogo se vea vivo sin quemarse.
+   ========================================================= */
+.img-bright {
+  filter: brightness(1.07) contrast(1.05) saturate(1.08);
+  transition: filter 0.4s ease, transform 0.5s ease;
 }
 
+.group:hover .img-bright,
+.img-bright:hover {
+  filter: brightness(1.12) contrast(1.07) saturate(1.14);
+}
+
+/* Variante para fotos de fondo grandes (hero), donde el texto va encima. */
+.img-bright-hero {
+  filter: brightness(1.12) contrast(1.03) saturate(1.06);
+}
+
+/* =========================================================
+   NAVBAR
+   ========================================================= */
 #site-navbar.navbar-scrolled {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
-.value-card {
-  transform: translateY(40px);
+/* =========================================================
+   BOTONES PRIMARIOS (.cta)
+   Llaman la atención con sutileza: un ligero relieve al pasar
+   el cursor y un destello que cruza el botón muy de vez en
+   cuando. Nada de parpadeos ni movimiento constante.
+   ========================================================= */
+.cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: 0 1px 2px rgba(0, 53, 149, 0.2);
+  transition: background-color 0.2s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
-.value-card.in-view {
+.cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -6px rgba(0, 53, 149, 0.5);
+}
+
+.cta:active {
+  transform: translateY(0);
+}
+
+/* Destello diagonal: recorre el botón cada 6 s y descansa el resto. */
+.cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  animation: cta-sheen 6s ease-in-out infinite;
+}
+
+.cta:hover::after {
+  animation-play-state: paused;
+}
+
+@keyframes cta-sheen {
+  0%, 72% {
+    transform: translateX(-120%);
+  }
+  88%, 100% {
+    transform: translateX(120%);
+  }
+}
+
+/* Variante clara, para usar sobre fondos de color. */
+.cta-light::after {
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(0, 53, 149, 0.12) 50%,
+    transparent 65%
+  );
+}
+
+/* =========================================================
+   REVELADO AL HACER SCROLL
+   `[data-animate]` parte oculto y entra al ser observado.
+   ========================================================= */
+[data-animate] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+[data-animate].in-view {
   opacity: 1;
   transform: translateY(0);
 }
 
-@media (max-width: 768px) {
-  .product-card {
-    transform: translateY(40px);
+/* =========================================================
+   ACCESIBILIDAD: sin animación
+   ========================================================= */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 
-  .product-card.in-view {
-    transform: translateY(0);
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  [data-animate] {
+    opacity: 1;
+    transform: none;
   }
 }

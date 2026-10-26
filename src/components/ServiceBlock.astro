@@ -2,33 +2,56 @@
 const { title, description, image, reverse = false } = Astro.props;
 ---
 
-<section class="py-20">
+<section class="py-12 md:py-16">
   <div
-    class={`mx-auto max-w-7xl px-6 grid gap-12 items-center ${
-      reverse ? "md:grid-cols-[1fr_1.2fr]" : "md:grid-cols-[1.2fr_1fr]"
-    }`}
+    class:list={[
+      "mx-auto grid max-w-7xl items-center gap-8 px-4 sm:px-6 md:gap-12",
+      reverse ? "md:grid-cols-[1fr_1.15fr]" : "md:grid-cols-[1.15fr_1fr]"
+    ]}
   >
-    {!reverse && (
+    <div class:list={["relative", reverse && "md:order-2"]}>
       <img
         src={image}
         alt={title}
-        class="w-full h-80 object-cover rounded"
         loading="lazy"
+        data-fallback-image
+        class="img-bright max-h-[400px] w-full rounded-xl object-contain"
       />
-    )}
-
-    <div>
-      <h2 class="text-3xl font-bold mb-4">{title}</h2>
-      <p class="text-gray-700 max-w-xl">{description}</p>
     </div>
 
-    {reverse && (
-      <img
-        src={image}
-        alt={title}
-        class="w-full h-80 object-cover rounded"
-        loading="lazy"
-      />
-    )}
+    <div class:list={[reverse && "md:order-1"]}>
+      <h2 class="text-2xl font-bold sm:text-3xl">{title}</h2>
+
+      <p class="mt-4 max-w-xl leading-relaxed text-gray-700" set:html={description}></p>
+    </div>
   </div>
 </section>
+
+<script>
+  // Si una foto todavía no existe, se sustituye por un marcador neutro
+  // en lugar de dejar el icono de imagen rota.
+  const PLACEHOLDER =
+    "data:image/svg+xml;charset=UTF-8," +
+    encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
+        <rect width="640" height="400" fill="#eef2f8"/>
+        <circle cx="320" cy="176" r="46" fill="none" stroke="#003595" stroke-width="7" opacity="0.45"/>
+        <path d="M298 176h44M320 154v44" stroke="#003595" stroke-width="7" stroke-linecap="round" opacity="0.45"/>
+        <text x="320" y="268" text-anchor="middle" fill="#5b6b85"
+          font-family="Poppins, sans-serif" font-size="21">Imagen próximamente</text>
+      </svg>
+    `);
+
+  document.querySelectorAll<HTMLImageElement>("[data-fallback-image]").forEach((img) => {
+    const applyFallback = () => {
+      img.src = PLACEHOLDER;
+      img.classList.remove("img-bright");
+      img.classList.add("bg-gray-50");
+    };
+
+    img.addEventListener("error", applyFallback, { once: true });
+
+    // Cubre el caso en que la imagen ya falló antes de registrar el listener.
+    if (img.complete && img.naturalWidth === 0) applyFallback();
+  });
+</script>

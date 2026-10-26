@@ -2,50 +2,131 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Hero from "../components/Hero.astro";
 import ServiceBlock from "../components/ServiceBlock.astro";
+import { contactInfo } from "../data/contactInfo";
+
+const phone = contactInfo.whatsapp[0].replace(/\D/g, "");
+
+const waLink = (text: string) =>
+  `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+
+const specialistLink = (service: string) => `
+<span class="mt-4 block">
+  <a
+    href="${waLink(`Hola, quisiera información sobre el servicio de ${service}.`)}"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="font-medium text-[#003595] hover:underline"
+  >
+    Quiero hablar con un especialista →
+  </a>
+</span>`;
+
+const services = [
+  {
+    id: "termofusion",
+    label: "Termofusión",
+    title: "Soldadura por Termofusión",
+    description: `Servicio especializado para la unión de tuberías plásticas mediante calor controlado, garantizando una conexión homogénea, resistente y de larga duración.${specialistLink("termofusión")}`,
+    image: "/assets/services/termofusion.png"
+  },
+  {
+    id: "electrofusion",
+    label: "Electrofusión",
+    title: "Soldadura por Electrofusión",
+    description: `Técnica precisa que utiliza accesorios con resistencias eléctricas integradas, permitiendo una unión segura y eficiente. Recomendada para instalaciones industriales donde se requiere control y precisión en cada conexión.${specialistLink("electrofusión")}`,
+    image: "/assets/services/electrofusion.png"
+  },
+  {
+    id: "carpinteria-plastica",
+    label: "Carpintería Plástica",
+    title: "Carpintería Plástica",
+    description: `Fabricación y desarrollo de elementos industriales a medida en materiales plásticos de ingeniería. Ideal para aplicaciones industriales, químicas y proyectos que requieren resistencia a la corrosión, durabilidad y precisión en la fabricación.${specialistLink("carpintería plástica")}`,
+    image: "/assets/services/carpinteria-plastica.jpeg"
+  },
+  {
+    id: "alquiler-maquinas",
+    label: "Alquiler de Máquinas",
+    title: "Alquiler de Máquinas",
+    description: `Alquiler de equipos especializados para trabajos de termofusión y electrofusión, ideal para proyectos que requieren maquinaria confiable sin necesidad de adquisición permanente.${specialistLink("alquiler de máquinas")}`,
+    image: "/assets/services/alquiler-maquinas.png"
+  }
+];
 ---
 
 <BaseLayout
   title="Servicios | DIHYC"
-  description="Servicios especializados en soldadura por termofusión y electrofusión para proyectos industriales y comerciales."
+  description="Servicios especializados en soldadura por termofusión, electrofusión, carpintería plástica y alquiler de máquinas para proyectos industriales."
 >
-  <!-- HERO -->
   <Hero
     title="Nuestros Servicios"
     subtitle="Servicios técnicos especializados orientados a soluciones industriales seguras y duraderas."
+    ctaLabel="Solicitar asesoría"
+    ctaHref="/contacto/"
+    compact
   />
 
-  <!-- TERMOFUSIÓN -->
-  <ServiceBlock
-    title="Soldadura por Termofusión"
-    description="Servicio especializado para la unión de tuberías plásticas mediante calor controlado, garantizando una conexión homogénea, resistente y de larga duración. Ideal para proyectos que requieren alta confiabilidad estructural."
-    image="/assets/services/termofusion.png"
-  />
+  <!-- NAVEGACIÓN INTERNA: sticky bajo el header para saltar entre servicios -->
+  <nav
+    class="sticky top-[var(--header-height)] z-30 border-b bg-white/95 backdrop-blur-sm"
+    aria-label="Servicios"
+  >
+    <div class="mx-auto max-w-7xl px-4 sm:px-6">
+      <div class="flex gap-2 overflow-x-auto py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {services.map((service) => (
+          <a
+            href={`#${service.id}`}
+            class="shrink-0 rounded-full border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-900 hover:bg-gray-900 hover:text-white"
+          >
+            {service.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  </nav>
 
-  <!-- ELECTROFUSIÓN -->
-  <ServiceBlock
-    title="Soldadura por Electrofusión"
-    description="Técnica precisa que utiliza accesorios con resistencias eléctricas integradas, permitiendo una unión segura y eficiente. Recomendada para instalaciones industriales donde se requiere control y precisión en cada conexión."
-    image="/assets/services/electrofusion.png"
-    reverse
-  />
+  {services.map((service, index) => (
+    <section
+      id={service.id}
+      class:list={["scroll-mt-32", index % 2 === 1 && "bg-gray-50"]}
+    >
+      <ServiceBlock
+        title={service.title}
+        description={service.description}
+        image={service.image}
+        reverse={index % 2 === 1}
+      />
+    </section>
+  ))}
 
   <!-- CTA FINAL -->
-  <section class="py-20 bg-gray-100">
-    <div class="mx-auto max-w-3xl px-6 text-center">
-      <h3 class="text-2xl font-bold mb-4">
+  <section class="bg-[#003595] py-14 md:py-20">
+    <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">
+      <h2 class="text-2xl font-bold text-white sm:text-3xl">
         ¿Necesitas asesoría técnica especializada?
-      </h3>
-      <p class="text-gray-700">
+      </h2>
+
+      <p class="mt-3 text-blue-100">
         Contáctanos y nuestro equipo te brindará la información necesaria para
         tu proyecto.
       </p>
 
-      <a
-        href="/contacto"
-        class="inline-block mt-6 rounded border px-6 py-3 text-sm font-medium hover:bg-gray-900 hover:text-white transition"
-      >
-        Contáctanos
-      </a>
+      <div class="mt-7 flex flex-wrap justify-center gap-3">
+        <a
+          href="/contacto/"
+          class="cta cta-light rounded bg-white px-6 py-3 text-sm font-semibold text-[#003595] hover:bg-gray-100"
+        >
+          Contáctanos
+        </a>
+
+        <a
+          href={waLink("Hola, quisiera información sobre sus servicios.")}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rounded border border-white/70 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-[#003595]"
+        >
+          Escríbenos por WhatsApp
+        </a>
+      </div>
     </div>
   </section>
 </BaseLayout>

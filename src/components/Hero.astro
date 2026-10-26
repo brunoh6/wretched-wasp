@@ -1,46 +1,230 @@
 ---
-
-import SearchBar from "./SearchBar.astro";
-
 const {
   title,
   subtitle,
   ctaLabel,
   ctaHref,
-  image = "/assets/hero-placeholder.jpg"
+  secondaryLabel,
+  secondaryHref,
+  images = ["/assets/hero/home.png"],
+  /** `compact` para páginas interiores, donde el hero es sólo encabezado. */
+  compact = false
 } = Astro.props;
+
+// Tolera `images` como string suelto además de array.
+const slides = (Array.isArray(images) ? images : [images]).filter(Boolean);
+const hasCarousel = slides.length > 1;
+
+const heightClass = compact
+  ? "min-h-[38vh] md:min-h-[42vh]"
+  : "min-h-[62vh] md:min-h-[68vh]";
 ---
 
-<section class="relative overflow-hidden bg-gray-900 text-white min-h-[60vh] md:min-h-[70vh] flex items-center">
-  
-  <!-- Imagen -->
-  <img
-    src={image}
-    alt=""
-    class="absolute inset-0 h-full w-full object-cover opacity-30"
-    loading="eager"
-  />
+<section
+  id="hero-carousel"
+  class={`relative isolate flex ${heightClass} items-center overflow-hidden bg-gray-900 text-white`}
+>
 
-  <!-- Overlay -->
-  <div class="absolute inset-0 bg-black/40"></div>
-
-  <!-- Contenido -->
-  <div class="relative mx-auto max-w-7xl px-6 py-36 text-center">
-    <h1 class="text-4xl md:text-5xl font-bold">{title}</h1>
-
-    {subtitle && (
-      <p class="mt-6 text-lg text-gray-200 max-w-2xl mx-auto">
-        {subtitle}
-      </p>
-    )}
-
-    {ctaLabel && ctaHref && (
-      <a
-        href={ctaHref}
-        class="inline-block mt-8 rounded bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-200 transition"
+  <!-- CAPA DE IMÁGENES -->
+  <div class="absolute inset-0">
+    {slides.map((image, index) => (
+      <div
+        class={`hero-slide absolute inset-0 transition-opacity duration-700 ease-out ${
+          index === 0 ? "opacity-100" : "opacity-0"
+        }`}
+        data-slide={index}
+        aria-hidden="true"
       >
-        {ctaLabel}
-      </a>
-    )}
+        <img
+          src={image}
+          alt=""
+          class="img-bright-hero absolute inset-0 h-full w-full object-cover"
+          loading={index === 0 ? "eager" : "lazy"}
+          decoding="async"
+        />
+      </div>
+    ))}
+
+    <!-- Degradado direccional: aclara la foto y mantiene el texto legible. -->
+    <div
+      class="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/10"
+      aria-hidden="true"
+    ></div>
   </div>
+
+  <!-- CONTENIDO: vive fuera de los slides, así el CTA nunca desaparece -->
+  <div class="relative z-20 mx-auto w-full max-w-7xl px-6 py-14 md:py-20">
+    <div class="max-w-2xl">
+      {title && (
+        <h1 class="text-3xl font-bold leading-tight drop-shadow-sm sm:text-4xl md:text-5xl">
+          {title}
+        </h1>
+      )}
+
+      {subtitle && (
+        <p class="mt-4 max-w-xl text-base text-gray-100 md:mt-5 md:text-lg">
+          {subtitle}
+        </p>
+      )}
+
+      {((ctaLabel && ctaHref) || (secondaryLabel && secondaryHref)) && (
+        <div class="mt-7 flex flex-wrap gap-3">
+          {ctaLabel && ctaHref && (
+            <a
+              href={ctaHref}
+              class="cta inline-flex items-center justify-center rounded bg-[#003595] px-6 py-3 text-sm font-semibold text-white hover:bg-[#002a75]"
+            >
+              {ctaLabel}
+            </a>
+          )}
+
+          {secondaryLabel && secondaryHref && (
+            <a
+              href={secondaryHref}
+              class="inline-flex items-center justify-center rounded border border-white/70 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white hover:text-gray-900"
+            >
+              {secondaryLabel}
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+
+  {hasCarousel && (
+    <>
+      <!-- Flechas: ocultas en móvil, donde mandan el swipe y los puntos -->
+      <button
+        id="hero-prev"
+        type="button"
+        class="absolute left-3 top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-xl text-white backdrop-blur-sm transition hover:bg-black/60 sm:flex"
+        aria-label="Imagen anterior"
+      >
+        ‹
+      </button>
+
+      <button
+        id="hero-next"
+        type="button"
+        class="absolute right-3 top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-xl text-white backdrop-blur-sm transition hover:bg-black/60 sm:flex"
+        aria-label="Imagen siguiente"
+      >
+        ›
+      </button>
+
+      <div class="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 gap-2">
+        {slides.map((_, index) => (
+          <button
+            type="button"
+            class={`hero-dot h-2.5 rounded-full transition-all duration-300 ${
+              index === 0 ? "w-7 bg-white" : "w-2.5 bg-white/50 hover:bg-white/80"
+            }`}
+            data-dot={index}
+            aria-label={`Ir a la imagen ${index + 1}`}
+          ></button>
+        ))}
+      </div>
+    </>
+  )}
 </section>
+
+<script>
+  const hero = document.getElementById("hero-carousel");
+  const slides = hero ? [...hero.querySelectorAll(".hero-slide")] : [];
+  const dots = hero ? [...hero.querySelectorAll(".hero-dot")] : [];
+  const prevBtn = document.getElementById("hero-prev");
+  const nextBtn = document.getElementById("hero-next");
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  let current = 0;
+  let timer: ReturnType<typeof setInterval> | undefined;
+
+  function showSlide(index: number) {
+    slides.forEach((slide, i) => {
+      slide.classList.toggle("opacity-100", i === index);
+      slide.classList.toggle("opacity-0", i !== index);
+    });
+
+    dots.forEach((dot, i) => {
+      dot.classList.toggle("w-7", i === index);
+      dot.classList.toggle("bg-white", i === index);
+      dot.classList.toggle("w-2.5", i !== index);
+      dot.classList.toggle("bg-white/50", i !== index);
+    });
+
+    current = index;
+  }
+
+  const next = () => showSlide((current + 1) % slides.length);
+  const prev = () => showSlide((current - 1 + slides.length) % slides.length);
+
+  function startAutoplay() {
+    stopAutoplay();
+
+    if (slides.length > 1 && !reduceMotion.matches) {
+      timer = setInterval(next, 6000);
+    }
+  }
+
+  function stopAutoplay() {
+    if (timer) clearInterval(timer);
+    timer = undefined;
+  }
+
+  // Cualquier interacción reinicia el temporizador para no cortar la lectura.
+  function withRestart(action: () => void) {
+    return () => {
+      action();
+      startAutoplay();
+    };
+  }
+
+  prevBtn?.addEventListener("click", withRestart(prev));
+  nextBtn?.addEventListener("click", withRestart(next));
+
+  dots.forEach((dot, index) => {
+    dot.addEventListener("click", withRestart(() => showSlide(index)));
+  });
+
+  // Pausa al pasar el cursor o al enfocar con teclado.
+  hero?.addEventListener("mouseenter", stopAutoplay);
+  hero?.addEventListener("mouseleave", startAutoplay);
+  hero?.addEventListener("focusin", stopAutoplay);
+  hero?.addEventListener("focusout", startAutoplay);
+
+  // Deslizar con el dedo en móvil.
+  let touchStartX = 0;
+
+  hero?.addEventListener(
+    "touchstart",
+    (event) => {
+      touchStartX = event.changedTouches[0].screenX;
+    },
+    { passive: true }
+  );
+
+  hero?.addEventListener(
+    "touchend",
+    (event) => {
+      const delta = event.changedTouches[0].screenX - touchStartX;
+
+      if (Math.abs(delta) > 45) {
+        if (delta < 0) next();
+        else prev();
+        startAutoplay();
+      }
+    },
+    { passive: true }
+  );
+
+  // No animar mientras la pestaña está en segundo plano.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopAutoplay();
+    else startAutoplay();
+  });
+
+  reduceMotion.addEventListener("change", startAutoplay);
+
+  startAutoplay();
+</script>

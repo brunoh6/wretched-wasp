@@ -1,145 +1,567 @@
 ---
 const formAction = "https://formspree.io/f/xpqlyqok";
+
+/* =========================================================
+   MODELO DE AMENAZAS (honesto)
+
+   Este sitio es ESTÁTICO: no hay backend propio ni base de datos.
+   El formulario hace POST directo a Formspree, que es quien recibe,
+   persiste y notifica. Por lo tanto:
+
+   QUÉ CUBRE esta validación de cliente:
+     - UX: el usuario ve el error antes de perder el envío.
+     - Ruido: reduce datos basura (teléfonos con letras, correos
+       sin @, mensajes de dos caracteres) y envíos duplicados.
+     - Bots simples: honeypot `_gotcha` (Formspree lo respeta de
+       forma nativa) y un freno de frecuencia en sessionStorage.
+
+   SOBRE EL CAMPO OCULTO `_gotcha` (el <div class="hidden"> justo antes
+   del botón, etiquetado "Sitio web"): es una trampa. Nadie lo ve, así que
+   si llega con contenido es un bot y el envío se cancela en silencio.
+   Su explicación vive AQUÍ y no en el HTML a propósito: los comentarios
+   del template SÍ se publican y un comentario que diga "honeypot" le
+   regala la respuesta al scraper.
+
+   QUÉ NO CUBRE (y no puede cubrir):
+     - Nada de esto es una defensa de seguridad real. Cualquiera puede
+       hacer POST a la URL de Formspree con curl y saltarse todo este
+       archivo. La validación que cuenta es la del servidor (Formspree:
+       reCAPTCHA, filtro de spam, límites de cuota).
+     - Inyección SQL: NO es un vector aquí porque este componente no
+       arma ni ejecuta consultas. Por eso NO hay "sanitización SQL"
+       simulada: escapar comillas en el cliente daría falsa sensación
+       de seguridad y además rompería razones sociales legítimas
+       (p. ej. "D'Onofrio").
+     - XSS: se mitiga por construcción, no por filtrado — ningún valor
+       del usuario se inserta jamás con innerHTML en este componente;
+       los mensajes de error se escriben siempre con textContent.
+
+   No hay secretos ni claves en este archivo: la URL de Formspree es
+   pública por diseño. Tampoco hay enlaces externos; si algún día se
+   añade uno, debe llevar rel="noopener noreferrer".
+   ========================================================= */
+
+// `grid-cols-1` explícito + `min-w-0`: sin ellos, el ancho mínimo del
+// contenido de los <select> estira la columna y desborda la pantalla en móvil.
+const field = "w-full min-w-0 rounded border border-gray-300 px-4 py-3 transition focus:border-[#003595] focus:outline-none focus:ring-2 focus:ring-[#003595]/30";
+
+// Estilo único para los mensajes por campo: pequeños, rojos y debajo del campo.
+const fieldError = "mt-1 hidden text-xs leading-snug text-red-600";
 ---
 
 <form
   action={formAction}
   method="POST"
-  class="space-y-6"
+  class="space-y-5"
   id="contactForm"
   novalidate
 >
-  <div class="grid md:grid-cols-2 gap-4">
-    <input
-      type="text"
-      name="name"
-      required
-      placeholder="Nombres y Apellidos"
-      class="border rounded px-4 py-3 w-full"
-      data-validate="name"
-    />
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 
-    <input
-      type="text"
-      name="document"
-      placeholder="DNI / CE / RUC"
-      class="border rounded px-4 py-3 w-full"
-    />
-
-    <input
-      type="text"
-      name="company"
-      placeholder="Razón social"
-      class="border rounded px-4 py-3 w-full"
-      data-validate="company"
-    />
-
-    <div>
-        <select
-            name="contact_preference"
-            required
-            class="border rounded px-4 py-3 w-full"
-            data-validate="contact"
-        >
-            <option value="">Preferencia de contacto</option>
-            <option value="WhatsApp">WhatsApp</option>
-            <option value="Llamada">Llamada telefónica</option>
-            <option value="Correo">Correo electrónico</option>
-        </select>
+    <div class="min-w-0">
+      <label class="sr-only" for="cf-name">Nombres y apellidos</label>
+      <input
+        id="cf-name"
+        type="text"
+        name="name"
+        required
+        maxlength="80"
+        autocomplete="name"
+        placeholder="Nombres y Apellidos"
+        class={field}
+        data-validate="name"
+      />
+      <p id="cf-name-error" class={fieldError}></p>
     </div>
 
-    <div class="flex gap-2 items-start md:col-span-2">
-        <!-- Prefijo -->
-        <select
-            id="country"
-            name="country"
-            required
-            class="border rounded px-4 py-3.5 flex-1 w-auto"
-        >
+    <div class="min-w-0">
+      <label class="sr-only" for="cf-document">DNI / CE / RUC</label>
+      <input
+        id="cf-document"
+        type="text"
+        name="document"
+        {/* 16 y no 11: el navegador aplica maxlength ANTES de que el filtro
+            quite los separadores, así que un RUC pegado como 20.123.456.789
+            se recortaba a "20.123.456." y quedaba en 20123456 — un documento
+            distinto y encima válido. Con holgura, el filtro limpia primero y
+            el validador (8-11 alfanuméricos) avisa si de verdad sobra. */}
+        maxlength="16"
+        {/* El CE puede llevar letras: un teclado sólo-numérico las bloquearía en iOS. */}
+        inputmode="text"
+        autocomplete="off"
+        placeholder="DNI / CE / RUC (opcional)"
+        class={field}
+        data-validate="document"
+      />
+      <p id="cf-document-error" class={fieldError}></p>
+    </div>
+
+    <div class="min-w-0">
+      <label class="sr-only" for="cf-company">Razón social</label>
+      <input
+        id="cf-company"
+        type="text"
+        name="company"
+        maxlength="120"
+        autocomplete="organization"
+        placeholder="Razón social (opcional)"
+        class={field}
+        data-validate="company"
+      />
+      <p id="cf-company-error" class={fieldError}></p>
+    </div>
+
+    <div class="min-w-0">
+      <label class="sr-only" for="cf-preference">Preferencia de contacto</label>
+      <select
+        id="cf-preference"
+        name="contact_preference"
+        required
+        class={field}
+        data-validate="contact"
+      >
+        <option value="">Preferencia de contacto</option>
+        <option value="WhatsApp">WhatsApp</option>
+        <option value="Llamada">Llamada telefónica</option>
+        <option value="Correo">Correo electrónico</option>
+      </select>
+      <p id="cf-preference-error" class={fieldError}></p>
+    </div>
+
+    <div class="min-w-0 md:col-span-2">
+      <div class="flex min-w-0 items-center gap-2">
+        <div class="min-w-0 basis-2/5 sm:basis-1/3">
+          <label class="sr-only" for="country">País</label>
+          <select id="country" name="country" required class={field} data-validate="country">
             <option value="">País</option>
             <option value="PE" data-prefix="+51" data-length="9">🇵🇪 Perú (+51)</option>
             <option value="CL" data-prefix="+56" data-length="9">🇨🇱 Chile (+56)</option>
             <option value="CO" data-prefix="+57" data-length="10">🇨🇴 Colombia (+57)</option>
             <option value="MX" data-prefix="+52" data-length="10">🇲🇽 México (+52)</option>
-        </select>
+          </select>
+        </div>
 
-        <!-- Número -->
-        <input
-            type="tel"
-            id="phone"
-            name="phone"
-            required
-            placeholder="Número"
-            class="border rounded px-4 py-3 flex-1"
-            data-validate="phone"
-        />
+        <div class="min-w-0 flex-1">
+          <label class="sr-only" id="phone-label" for="phone">Número de teléfono</label>
+          <!-- El prefijo se muestra al lado del campo cuando ya hay país elegido:
+               deja claro que el número va SIN el código internacional.
+               En móvil va como texto suelto (cada píxel cuenta a 375 px) y
+               desde sm se convierte en la clásica pastilla de grupo de input. -->
+          <div class="flex min-w-0 items-center gap-1.5 sm:gap-2">
+            <span
+              id="phonePrefix"
+              style="display:none"
+              aria-hidden="true"
+              class="shrink-0 items-center px-0.5 text-sm text-gray-600 sm:self-stretch sm:rounded sm:border sm:border-gray-300 sm:bg-gray-50 sm:px-2"
+            ></span>
+            <input
+              id="phone"
+              type="tel"
+              name="phone"
+              required
+              maxlength="20"
+              inputmode="tel"
+              autocomplete="tel"
+              placeholder="Número"
+              class={field}
+              data-validate="phone"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Los mensajes de país y teléfono van a todo el ancho de la fila:
+           en la columna estrecha del teléfono quedaban en 4 líneas a 375 px. -->
+      <p id="country-error" class={fieldError}></p>
+      <p id="phone-error" class={fieldError}></p>
     </div>
 
-    <input
-      type="email"
-      name="email"
+    <div class="min-w-0 md:col-span-2">
+      <label class="sr-only" for="cf-email">Correo electrónico</label>
+      <input
+        id="cf-email"
+        type="email"
+        name="email"
+        required
+        maxlength="120"
+        autocomplete="email"
+        placeholder="Correo electrónico"
+        class={field}
+        data-validate="email"
+      />
+      <p id="cf-email-error" class={fieldError}></p>
+    </div>
+  </div>
+
+  <div class="min-w-0">
+    <label class="sr-only" for="cf-message">Mensaje</label>
+    <textarea
+      id="cf-message"
+      name="message"
       required
-      placeholder="Correo electrónico"
-      class="border rounded px-4 py-3 w-full"
+      rows="5"
+      maxlength="2000"
+      placeholder="Mensaje"
+      class={`${field} resize-y`}
+      data-validate="message"
+    ></textarea>
+    <p id="cf-message-error" class={fieldError}></p>
+  </div>
+
+  <div class="hidden" aria-hidden="true">
+    <label for="cf-gotcha">Sitio web</label>
+    <input
+      id="cf-gotcha"
+      type="text"
+      name="_gotcha"
+      tabindex="-1"
+      autocomplete="off"
     />
   </div>
 
-  <textarea
-    name="message"
-    required
-    rows="5"
-    placeholder="Mensaje"
-    class="border rounded px-4 py-3 w-full"
-    data-validate="message"
-  ></textarea>
-
-  <p
-    id="formError"
-    class="hidden text-sm text-red-600"
-  >
+  <p id="formError" class="hidden text-sm text-red-600" role="alert">
     Por favor revisa los campos marcados.
   </p>
 
   <button
+    id="cf-submit"
     type="submit"
-    class="rounded border px-6 py-3 text-sm font-medium hover:bg-gray-900 hover:text-white transition"
+    class="cta w-full rounded bg-[#003595] px-6 py-3 text-sm font-semibold text-white hover:bg-[#002a75] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
   >
     Enviar mensaje
   </button>
+</form>
 
-  <script>
-    const form = document.getElementById("contactForm");
-    const error = document.getElementById("formError");
+<script>
+  const form = document.getElementById("contactForm") as HTMLFormElement | null;
+  const summary = document.getElementById("formError");
+  const submitBtn = document.getElementById("cf-submit") as HTMLButtonElement | null;
+  const honeypot = document.getElementById("cf-gotcha") as HTMLInputElement | null;
+  const countrySelect = document.getElementById("country") as HTMLSelectElement | null;
+  const phonePrefix = document.getElementById("phonePrefix");
 
-    const validators = {
-      name: (v) => /^[A-Za-zÁÉÍÓÚÑáéíóúñ ]{3,}$/.test(v),
-      company: (v) => /^[A-Za-z0-9ÁÉÍÓÚÑáéíóúñ .-]{3,}$/.test(v),
-      text: (v) => /^[A-Za-zÁÉÍÓÚÑáéíóúñ ]{3,}$/.test(v),
-      phone: (v) => /^[0-9]{7,}$/.test(v),
-      message: (v) => v.length >= 10 && !/^[0-9]+$/.test(v),
-      contact: (v) => v !== ""
+  type Campo = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
+  const SUMMARY_DEFAULT = "Por favor revisa los campos marcados.";
+  const SUBMIT_LABEL = submitBtn?.textContent?.trim() || "Enviar mensaje";
+
+  // Letras aceptadas en nombres y razones sociales: castellano + apóstrofes
+  // (D'Onofrio) y guiones (García-Pérez). Los dígitos quedan fuera a propósito.
+  const LETRAS = "A-Za-zÁÉÍÓÚÜÑáéíóúüñÀÈÌÒÙàèìòùÇç";
+  // El punto entra porque las iniciales son parte del nombre legal
+  // ("Ana M. Pérez", "Ma. José"); la longitud NO se controla aquí sino con
+  // cuentaLetras(), para poder dar un mensaje distinto según la causa.
+  const RE_NOMBRE = new RegExp(`^[${LETRAS} .'’-]+$`);
+  // Las razones sociales peruanas llevan comillas, &, +, N°, % y dos puntos
+  // ("Constructora \"Andina\" S.A.C.", "Grupo N° 1"): filtrarlos rechazaba
+  // clientes legítimos. La longitud mínima también se comprueba aparte.
+  const RE_EMPRESA = new RegExp(`^[${LETRAS}0-9 '’"“”.,&()/+#%:º°_-]+$`);
+  const RE_NO_LETRA = new RegExp(`[^${LETRAS}]`, "g");
+  // Cuenta letras reales: evita que "---" o "'''" pasen como nombre.
+  const cuentaLetras = (v: string) => v.replace(RE_NO_LETRA, "").length;
+  // Regex de correo deliberadamente sencilla: algo@algo.tld. Las regex
+  // "perfectas" de RFC 5322 rechazan correos válidos y no aportan seguridad.
+  const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
+  const RE_DOCUMENTO = /^[A-Za-z0-9]{8,11}$/;
+
+  const paisElegido = () =>
+    countrySelect?.selectedOptions?.[0]?.value ? countrySelect.selectedOptions[0] : null;
+
+  // Sólo dígitos: quita espacios, guiones, paréntesis y el signo +.
+  const soloDigitos = (v: string) => v.replace(/\D/g, "");
+
+  /**
+   * Devuelve el mensaje de error del campo, o null si es válido.
+   * Todos los textos son concretos: dicen qué se espera, no sólo "campo inválido".
+   */
+  const errorDe = (regla: string, valor: string): string | null => {
+    switch (regla) {
+      // Cada causa de rechazo tiene su propio mensaje: mezclarlas hacía que
+      // un valor largo con un carácter raro recibiera un aviso de longitud
+      // que no explicaba nada y dejaba al usuario sin saber qué corregir.
+      case "name":
+        if (!valor) return "Ingresa tus nombres y apellidos.";
+        if (!RE_NOMBRE.test(valor)) {
+          return "El nombre no admite números ni símbolos: sólo letras, puntos, apóstrofes y guiones.";
+        }
+        return cuentaLetras(valor) >= 3
+          ? null
+          : "Ingresa tu nombre completo: al menos 3 letras.";
+
+      case "document":
+        if (!valor) return null; // opcional
+        return RE_DOCUMENTO.test(valor)
+          ? null
+          : "El documento debe tener entre 8 y 11 caracteres alfanuméricos, por ejemplo 12345678.";
+
+      case "company":
+        if (!valor) return null; // opcional
+        if (valor.length < 3) {
+          return "La razón social debe tener al menos 3 caracteres, por ejemplo Constructora Andina S.A.C.";
+        }
+        return RE_EMPRESA.test(valor)
+          ? null
+          : "La razón social tiene un carácter no permitido: usa letras, números y . , & ( ) / - “ ”";
+
+      case "contact":
+        return valor ? null : "Elige cómo prefieres que te contactemos.";
+
+      case "country":
+        return valor ? null : "Selecciona tu país para poder validar el teléfono.";
+
+      case "phone": {
+        const digitos = soloDigitos(valor);
+        const opcion = paisElegido();
+
+        if (!opcion) {
+          return digitos
+            ? "Selecciona primero el país para validar el número."
+            : "Ingresa tu número de teléfono.";
+        }
+
+        const largo = Number(opcion.dataset.length) || 9;
+        const prefijo = opcion.dataset.prefix ?? "";
+        const pais = (opcion.textContent ?? "").replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ ]/g, "").trim();
+
+        if (!digitos) return `Ingresa tu número: ${largo} dígitos, sin el prefijo ${prefijo}.`;
+        if (digitos.length !== largo) {
+          return `El número de ${pais} debe tener exactamente ${largo} dígitos (llevas ${digitos.length}), sin el prefijo ${prefijo}.`;
+        }
+        return null;
+      }
+
+      case "email":
+        if (!valor) return "Ingresa tu correo electrónico.";
+        return RE_EMAIL.test(valor)
+          ? null
+          : "Ingresa un correo válido, por ejemplo nombre@empresa.com";
+
+      case "message": {
+        if (valor.length < 10) return "Cuéntanos qué necesitas: escribe al menos 10 caracteres.";
+        if (/^\d+$/.test(valor)) return "El mensaje no puede ser sólo números: describe tu requerimiento.";
+        return null;
+      }
+
+      default:
+        // Una regla desconocida nunca debe bloquear el envío.
+        return null;
+    }
+  };
+
+  const cajaDeError = (el: Campo) => document.getElementById(`${el.id}-error`);
+
+  /**
+   * Pinta (o limpia) el error de un campo.
+   * SIEMPRE con textContent: así ningún texto puede convertirse en HTML.
+   */
+  const mostrarError = (el: Campo, mensaje: string | null) => {
+    const caja = cajaDeError(el);
+    const invalido = Boolean(mensaje);
+
+    el.classList.toggle("border-red-500", invalido);
+    el.classList.toggle("border-gray-300", !invalido);
+    el.setAttribute("aria-invalid", String(invalido));
+
+    if (!caja) return;
+
+    caja.textContent = mensaje ?? "";
+    caja.classList.toggle("hidden", !invalido);
+
+    if (invalido) {
+      caja.setAttribute("role", "alert");
+      el.setAttribute("aria-describedby", caja.id);
+    } else {
+      caja.removeAttribute("role");
+      el.removeAttribute("aria-describedby");
+    }
+  };
+
+  const validarCampo = (el: Campo) => {
+    const mensaje = errorDe(el.dataset.validate ?? "", el.value.trim());
+    mostrarError(el, mensaje);
+    return mensaje === null;
+  };
+
+  /**
+   * Filtra caracteres mientras se escribe conservando la posición del cursor
+   * (si se reasigna el value sin más, el cursor salta al final).
+   */
+  const filtrar = (input: HTMLInputElement, prohibidos: RegExp) => {
+    const limpio = input.value.replace(prohibidos, "");
+    if (limpio === input.value) return;
+
+    const cursor = input.selectionStart ?? input.value.length;
+    const antes = input.value.slice(0, cursor).replace(prohibidos, "").length;
+    input.value = limpio;
+    try {
+      input.setSelectionRange(antes, antes);
+    } catch {
+      /* algunos tipos de input no admiten selección; no es crítico */
+    }
+  };
+
+  const actualizarPrefijo = () => {
+    const opcion = paisElegido();
+    const prefijo = opcion?.dataset.prefix ?? "";
+
+    if (phonePrefix) {
+      phonePrefix.textContent = prefijo; // textContent, nunca innerHTML
+      phonePrefix.style.display = prefijo ? "inline-flex" : "none";
+    }
+
+    // La pastilla del prefijo es decorativa (aria-hidden), así que el dato
+    // se le da al lector de pantalla por la etiqueta sr-only del campo.
+    const etiqueta = document.getElementById("phone-label");
+    if (etiqueta) {
+      const largo = Number(opcion?.dataset.length) || 0;
+      etiqueta.textContent = prefijo
+        ? `Número de teléfono (${largo} dígitos, sin el prefijo ${prefijo})`
+        : "Número de teléfono";
+    }
+  };
+
+  /* Freno de frecuencia: 3 envíos por minuto.
+     OJO: esto es SÓLO disuasión de UX (evita reenvíos nerviosos y bots
+     triviales). Vive en sessionStorage del navegador, así que se salta
+     borrando la pestaña o haciendo POST directo. La limitación real la
+     aplica Formspree en el servidor. */
+  const RATE_KEY = "dihyc_contact_attempts";
+  const RATE_MAX = 3;
+  const RATE_WINDOW = 60_000;
+
+  const intentosRecientes = (): number[] => {
+    try {
+      const crudo = sessionStorage.getItem(RATE_KEY);
+      const lista: unknown = crudo ? JSON.parse(crudo) : [];
+      if (!Array.isArray(lista)) return [];
+      const ahora = Date.now();
+      return lista.filter((t): t is number => typeof t === "number" && ahora - t < RATE_WINDOW);
+    } catch {
+      // Modo privado o storage bloqueado: no rompemos el formulario.
+      return [];
+    }
+  };
+
+  const registrarIntento = (previos: number[]) => {
+    try {
+      sessionStorage.setItem(RATE_KEY, JSON.stringify([...previos, Date.now()]));
+    } catch {
+      /* sin storage no hay freno; el envío sigue siendo válido */
+    }
+  };
+
+  const mostrarResumen = (texto: string) => {
+    if (!summary) return;
+    summary.textContent = texto; // textContent, nunca innerHTML
+    summary.classList.remove("hidden");
+  };
+
+  if (form) {
+    const campos = Array.from(form.querySelectorAll<Campo>("[data-validate]"));
+
+    actualizarPrefijo();
+
+    campos.forEach((el) => {
+      // El teléfono admite espacios, guiones y paréntesis al escribir,
+      // pero nunca letras; se valida contra la versión sólo-dígitos.
+      if (el.id === "phone") {
+        el.addEventListener("input", () => filtrar(el as HTMLInputElement, /[^\d\s()-]/g));
+      }
+      if (el.id === "cf-document") {
+        el.addEventListener("input", () => filtrar(el as HTMLInputElement, /[^A-Za-z0-9]/g));
+      }
+
+      // Al escribir se limpia el error (no se regaña a media palabra);
+      // al salir del campo se vuelve a validar si el usuario escribió algo.
+      const limpiar = () => {
+        mostrarError(el, null);
+        // Si ya no queda ningún error a la vista, el resumen global sobra.
+        const quedan = campos.some((c) => c.getAttribute("aria-invalid") === "true");
+        if (!quedan) summary?.classList.add("hidden");
+      };
+      el.addEventListener("input", limpiar);
+      el.addEventListener("change", limpiar);
+      el.addEventListener("blur", () => {
+        if (el.value.trim() !== "") validarCampo(el);
+      });
+    });
+
+    countrySelect?.addEventListener("change", () => {
+      actualizarPrefijo();
+      const phone = document.getElementById("phone") as HTMLInputElement | null;
+      // Al cambiar de país cambia el largo exigido: se revalida si ya había número.
+      if (phone && phone.value.trim() !== "") validarCampo(phone);
+    });
+
+    // Válvula de seguridad del honeypot: si un gestor de contraseñas o un
+    // autorrelleno agresivo escribe en el campo trampa, una persona real se
+    // quedaría sin poder enviar y SIN ver ningún mensaje (el envío se cancela
+    // en silencio a propósito, para no darle pistas al bot). Por eso, en cuanto
+    // detectamos una interacción humana de verdad —`isTrusted` sólo lo pone el
+    // navegador, no un script— vaciamos la trampa. Un bot que rellena campos y
+    // envía por código nunca dispara estos eventos, así que sigue cayendo.
+    // Sin `{ once: true }` a propósito: el autorrelleno puede escribir en la
+    // trampa DESPUÉS del primer clic, y un listener de un solo uso ya se habría
+    // gastado con la trampa vacía, dejando al usuario bloqueado igualmente.
+    // Escuchar siempre cuesta nada (una comparación por evento) y cubre ese caso.
+    const desarmarTrampa = (event: Event) => {
+      if (event.isTrusted && honeypot && honeypot.value !== "") honeypot.value = "";
     };
 
-    form.addEventListener("submit", (e) => {
-      let valid = true;
-      error.classList.add("hidden");
+    form.addEventListener("pointerdown", desarmarTrampa);
+    form.addEventListener("keydown", desarmarTrampa);
 
-      form.querySelectorAll("[data-validate]").forEach((input) => {
-        const rule = input.dataset.validate;
-        const value = input.value.trim();
+    form.addEventListener("submit", (event) => {
+      // 1) Honeypot relleno => bot. Se cancela en silencio, sin pistas.
+      if (honeypot && honeypot.value !== "") {
+        event.preventDefault();
+        return;
+      }
 
-        if (!validators[rule](value)) {
-          input.classList.add("border-red-500");
-          valid = false;
-        } else {
-          input.classList.remove("border-red-500");
-        }
-      });
+      summary?.classList.add("hidden");
 
-      if (!valid) {
-        e.preventDefault();
-        error.classList.remove("hidden");
+      // 2) Freno de frecuencia antes de gastar un envío.
+      const previos = intentosRecientes();
+      if (previos.length >= RATE_MAX) {
+        event.preventDefault();
+        mostrarResumen(
+          "Has enviado el formulario varias veces seguidas. Espera un minuto o escríbenos por WhatsApp."
+        );
+        return;
+      }
+
+      // 3) Validación campo por campo (se validan TODOS para pintar
+      //    todos los mensajes, no sólo el primero).
+      let primerInvalido: Campo | null = null;
+      for (const el of campos) {
+        if (!validarCampo(el) && primerInvalido === null) primerInvalido = el;
+      }
+
+      if (primerInvalido !== null) {
+        event.preventDefault();
+        mostrarResumen(SUMMARY_DEFAULT);
+        primerInvalido.focus({ preventScroll: true });
+        const suave = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        primerInvalido.scrollIntoView({ behavior: suave ? "smooth" : "auto", block: "center" });
+        return;
+      }
+
+      // 4) Envío real: se anota el intento y se bloquea el botón para
+      //    que un doble clic no genere dos correos idénticos.
+      registrarIntento(previos);
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Enviando...";
       }
     });
-  </script>
-</form>
+
+    // Si el usuario vuelve con el botón "atrás" (bfcache), el botón debe
+    // quedar utilizable otra vez.
+    window.addEventListener("pageshow", () => {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = SUBMIT_LABEL;
+      }
+    });
+  }
+</script>
