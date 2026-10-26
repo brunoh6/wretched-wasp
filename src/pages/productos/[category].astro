@@ -264,9 +264,14 @@ const materialDescriptions: Record<string, string> = {
 //    tarjeta se pinta en gris con "Próximamente" y no filtra.
 //  - "Hierro dúctil FM" también existe como material de conexiones, pero el
 //    cliente no entregó foto: la franja muestra sólo los 4 materiales con foto.
+//  - Las fotos son WebP de 480 px de ancho (la tarjeta mide 144–176 px; 480
+//    cubre pantallas de densidad 3). width/height son los de cada archivo:
+//    reservan el hueco antes de que la foto llegue.
 type MaterialStripCard = {
   label: string;
   image: string;
+  width: number;
+  height: number;
   alt: string;
   filterValue: string | null;
 };
@@ -275,25 +280,33 @@ const MATERIAL_STRIPS: Record<string, MaterialStripCard[]> = {
   conexiones: [
     {
       label: "HDPE (FM)",
-      image: "/assets/materiales/conexiones-hdpe.jpeg",
+      image: "/assets/materiales/conexiones-hdpe.webp",
+      width: 480,
+      height: 320,
       alt: "Conexiones de HDPE para red contra incendio FM",
       filterValue: "HDPE FM"
     },
     {
       label: "PVC",
-      image: "/assets/materiales/conexiones-pvc.jpeg",
+      image: "/assets/materiales/conexiones-pvc.webp",
+      width: 480,
+      height: 360,
       alt: "Conexiones de PVC para agua fría",
       filterValue: "PVC"
     },
     {
       label: "CPVC",
-      image: "/assets/materiales/conexiones-cpvc.jpeg",
+      image: "/assets/materiales/conexiones-cpvc.webp",
+      width: 480,
+      height: 320,
       alt: "Conexiones de CPVC Corzan para agua caliente",
       filterValue: "CPVC Corzan"
     },
     {
       label: "PP",
-      image: "/assets/materiales/conexiones-pp.jpeg",
+      image: "/assets/materiales/conexiones-pp.webp",
+      width: 480,
+      height: 320,
       alt: "Conexiones de polipropileno, disponibles próximamente",
       filterValue: null
     }
@@ -301,9 +314,11 @@ const MATERIAL_STRIPS: Record<string, MaterialStripCard[]> = {
 };
 
 const materialStrip = MATERIAL_STRIPS[category ?? ""] ?? [];
+
+const pageTitle = currentCategory?.seoTitle ?? `${currentCategory?.name ?? "Productos"} | DIHYC`;
 ---
 
-<BaseLayout title={`${currentCategory?.name ?? "Productos"} | DIHYC`}>
+<BaseLayout title={pageTitle} description={currentCategory?.seoDescription}>
   <Section>
     <Breadcrumbs
       items={[
@@ -318,9 +333,15 @@ const materialStrip = MATERIAL_STRIPS[category ?? ""] ?? [];
           {currentCategory?.name}
         </h1>
 
-        <p class="mt-2 text-gray-600">
-          Filtra por material, marca, línea, aplicación, tipo/clase, presión y producto.
-        </p>
+        {currentCategory?.intro ? (
+          <p class="mt-2 max-w-3xl text-gray-700">
+            {currentCategory.intro}
+          </p>
+        ) : (
+          <p class="mt-2 text-gray-600">
+            Filtra por material, marca, línea, aplicación, tipo/clase, presión y producto.
+          </p>
+        )}
       </div>
 
       {items.length > 0 && (
@@ -357,7 +378,10 @@ const materialStrip = MATERIAL_STRIPS[category ?? ""] ?? [];
               <img
                 src={card.image}
                 alt={card.alt}
+                width={card.width}
+                height={card.height}
                 loading="lazy"
+                decoding="async"
                 class="h-24 w-full object-cover"
               />
               <div class="px-3 py-2 text-sm font-semibold text-gray-900">
@@ -372,7 +396,10 @@ const materialStrip = MATERIAL_STRIPS[category ?? ""] ?? [];
               <img
                 src={card.image}
                 alt={card.alt}
+                width={card.width}
+                height={card.height}
                 loading="lazy"
+                decoding="async"
                 class="h-24 w-full object-cover opacity-60 grayscale"
               />
               <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 px-3 py-2 text-sm font-semibold text-gray-500">
@@ -387,12 +414,16 @@ const materialStrip = MATERIAL_STRIPS[category ?? ""] ?? [];
       </div>
     )}
 
+    <!-- minmax(0,1fr) y min-w-0 en la columna de resultados: una pista `1fr`
+         no baja del ancho mínimo de su contenido, así que la tabla ensanchaba
+         la columna y la página entera se desbordaba en horizontal entre 768 y
+         ~1040 px (la columna "Cotizar" quedaba fuera de pantalla). -->
     {items.length === 0 ? (
       <div class="rounded-xl border bg-gray-50 p-8 text-center text-gray-600">
         Aún no hay productos visibles para esta categoría.
       </div>
     ) : (
-      <div class="grid grid-cols-1 gap-6 md:grid-cols-[240px_1fr] lg:gap-8">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
         <aside
           class="sticky hidden max-h-[calc(100dvh-8rem)] space-y-6 self-start overflow-y-auto pr-1 md:block"
           style="top: calc(var(--header-height) + 1.5rem)"
@@ -506,7 +537,7 @@ const materialStrip = MATERIAL_STRIPS[category ?? ""] ?? [];
           )}
         </aside>
 
-        <div>
+        <div class="min-w-0">
           <!-- Filtro rápido por material en móvil (chips) -->
           <div class="mb-4 md:hidden">
             <div class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -530,6 +561,8 @@ const materialStrip = MATERIAL_STRIPS[category ?? ""] ?? [];
               <button
                 id="openFilters"
                 type="button"
+                aria-expanded="false"
+                aria-controls="mobileFilters"
                 class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-900"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -555,7 +588,7 @@ const materialStrip = MATERIAL_STRIPS[category ?? ""] ?? [];
   >
     <div class="flex items-start justify-between gap-4">
       <div>
-        <div id="quoteCount" class="font-semibold text-gray-900">
+        <div id="quoteCount" class="font-semibold text-gray-900" aria-live="polite">
           0 productos seleccionados
         </div>
         <div class="text-xs text-gray-500">
@@ -563,28 +596,47 @@ const materialStrip = MATERIAL_STRIPS[category ?? ""] ?? [];
         </div>
       </div>
 
-      <button id="quoteClear" type="button" class="text-xs text-gray-500 hover:text-gray-900">
+      <!-- Márgenes negativos: el área táctil crece (44 px) sin mover el texto. -->
+      <button
+        id="quoteClear"
+        type="button"
+        class="-mr-3 -mt-2 inline-flex min-h-11 shrink-0 items-center rounded-md px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+      >
         Limpiar
       </button>
     </div>
 
     <div id="quoteItems" class="mt-3 max-h-40 space-y-2 overflow-auto text-xs text-gray-600"></div>
 
+    <!-- Texto oscuro sobre el verde de WhatsApp: el blanco daba 1,98:1 y era
+         ilegible al sol. gray-900 sobre #25D366 da 8,95:1 y sobre el verde del
+         hover (#1EBE5B) 7,24:1; por eso el hover oscurece el fondo en vez de
+         usar opacidad, que lo aclaraba. -->
     <a
       id="quoteWhatsapp"
       href="#"
       target="_blank"
       rel="noopener noreferrer"
-      class="cta mt-4 block rounded-lg bg-[#25D366] px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-90"
+      class="cta mt-4 flex items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-3 text-center text-base font-semibold text-gray-900 hover:bg-[#1EBE5B]"
     >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="h-5 w-5 shrink-0 fill-current" aria-hidden="true">
+        <path d="M19.11 17.23c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.61.14-.18.27-.7.88-.86 1.06-.16.18-.31.2-.58.07-.27-.14-1.13-.41-2.15-1.31-.79-.7-1.33-1.56-1.48-1.82-.16-.27-.02-.41.12-.55.12-.12.27-.31.41-.47.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.47-.07-.14-.61-1.47-.84-2.02-.22-.53-.44-.46-.61-.47h-.52c-.18 0-.47.07-.72.34s-.95.93-.95 2.27.97 2.63 1.11 2.81c.14.18 1.9 2.9 4.6 4.06.64.27 1.13.43 1.52.55.64.2 1.22.17 1.68.1.51-.08 1.6-.65 1.83-1.28.23-.63.23-1.17.16-1.28-.07-.11-.25-.18-.52-.32z" />
+        <path d="M16.03 3.2c-7.07 0-12.8 5.73-12.8 12.8 0 2.26.59 4.46 1.7 6.39L3.2 28.8l6.58-1.69a12.76 12.76 0 0 0 6.25 1.61h.01c7.07 0 12.8-5.73 12.8-12.8S23.1 3.2 16.03 3.2zm0 23.4h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-3.9 1 1.04-3.8-.25-.39a10.58 10.58 0 1 1 8.91 4.9z" />
+      </svg>
       Solicitar cotización
     </a>
   </div>
 
   <!-- FILTROS EN MÓVIL: hoja completa -->
-  <div id="mobileFilters" class="fixed inset-0 z-[70] hidden flex-col bg-white md:hidden">
+  <div
+    id="mobileFilters"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="mobileFiltersTitle"
+    class="fixed inset-0 z-[70] hidden flex-col bg-white md:hidden"
+  >
     <div class="flex items-center justify-between border-b px-4 py-3">
-      <h2 class="font-semibold">Filtros</h2>
+      <h2 id="mobileFiltersTitle" class="font-semibold">Filtros</h2>
 
       <button
         id="closeFilters"
@@ -1011,7 +1063,7 @@ function renderMaterialLegend(rows) {
           <span class="font-semibold uppercase">${safeText(material)}</span>
           ${
             materialDescriptions[material]
-              ? `<span class="text-gray-500"> — ${safeText(materialDescriptions[material])}</span>`
+              ? `<span class="text-gray-600"> — ${safeText(materialDescriptions[material])}</span>`
               : ""
           }
         </div>
@@ -1251,6 +1303,29 @@ function renderProductName(row) {
   `;
 }
 
+// Foto por fila: sólo en la línea de agua, que es la que recibe una foto por
+// grupo desde el panel (overrides.json). Antes esa foto sólo salía en la
+// cabecera de marca si el grupo quedaba primero, así que casi nunca se veía.
+// Sin foto no se pinta nada (ni hueco ni imagen genérica) y, si el archivo no
+// carga, la miniatura se retira en vez de dejar un icono roto. alt vacío: el
+// nombre del producto va justo al lado.
+function renderRowThumb(row) {
+  if (row.line !== "agua" || !row.productImage) return "";
+
+  return `
+    <img
+      src="${safeText(row.productImage)}"
+      alt=""
+      width="40"
+      height="40"
+      loading="lazy"
+      decoding="async"
+      class="h-10 w-10 shrink-0 rounded border object-cover"
+      onerror="this.remove()"
+    />
+  `;
+}
+
 function applyFilters() {
   if (!data.length) return;
 
@@ -1458,15 +1533,19 @@ function renderQuoteCheckbox(row) {
   const quoteId = getQuoteId(row);
   const checked = selectedQuoteItems.has(quoteId) ? "checked" : "";
 
+  // La etiqueta entera es el área táctil (44 px de alto): es la acción
+  // principal del catálogo y la usa gente mayor con el dedo. El margen
+  // negativo compensa el relleno para que la casilla siga alineada con el
+  // texto de la tarjeta y la columna de la tabla no se ensanche.
   return `
-    <label class="inline-flex items-center gap-2 cursor-pointer">
+    <label class="-mx-3 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 py-2 hover:bg-gray-50">
       <input
         type="checkbox"
-        class="quote-checkbox h-4 w-4 rounded border-gray-300"
+        class="quote-checkbox h-5 w-5 shrink-0 rounded border-gray-300"
         data-quote-id="${safeText(quoteId)}"
         ${checked}
       />
-      <span class="text-xs text-gray-600">Cotizar</span>
+      <span class="text-sm text-gray-700">Cotizar</span>
     </label>
   `;
 }
@@ -1514,17 +1593,22 @@ function updateQuotePanel() {
       ? "1 producto seleccionado"
       : `${selected.length} productos seleccionados`;
 
+  // El nombre accesible del ✕ lleva la descripción completa de la fila: con
+  // sólo "Quitar Codo 90°" no se distinguen dos codos de distinto material.
   itemsContainer.innerHTML = selected.map(item => {
     const id = getQuoteId(item);
+    const label = getQuoteLabel(item);
 
     return `
-      <div class="flex items-start justify-between gap-3 rounded bg-gray-50 px-3 py-2">
-        <span>${safeText(getQuoteLabel(item))}</span>
+      <div class="flex items-center justify-between gap-2 rounded bg-gray-50 py-1 pl-3 pr-1">
+        <span>${safeText(label)}</span>
         <button
-          class="remove-quote-item text-gray-400 hover:text-gray-900"
+          type="button"
+          class="remove-quote-item flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-base text-gray-600 hover:bg-gray-200 hover:text-gray-900"
           data-quote-id="${safeText(id)}"
+          aria-label="Quitar ${safeText(label)}"
         >
-          ✕
+          <span aria-hidden="true">✕</span>
         </button>
       </div>
     `;
@@ -1564,6 +1648,16 @@ function attachQuoteListeners() {
     });
   });
 }
+
+// Tabla (desde lg) frente a tarjetas (por debajo). Entre 768 y 1023 px la
+// columna de resultados mide 400–650 px y la tabla necesita ~700: o se salía de
+// la página o escondía "Cotizar" tras un scroll horizontal que casi nadie
+// descubre, así que ahí se usan las tarjetas, como en el móvil.
+// El relleno es más estrecho hasta xl para que las 7 columnas quepan a 1024 px,
+// y "Cotizar" va fija a la derecha por si aun así la tabla tiene que
+// desplazarse (fotos por fila, zoom del navegador): la casilla nunca se pierde.
+const TABLE_CELL = "px-3 py-3 xl:px-4";
+const QUOTE_COLUMN = "sticky right-0 shadow-[inset_1px_0_0_#e5e7eb]";
 
 function renderTables(items) {
   if (!items.length) {
@@ -1610,12 +1704,14 @@ function renderTables(items) {
     const imageKey = getImageKey(firstRow);
     const tableImage = firstRow.productImage || `/assets/products/${imageKey}.png`;
 
+    // La miniatura de la cabecera lleva alt vacío: el nombre de la marca ya
+    // está en el h2 contiguo y el lector de pantalla lo leía dos veces.
     return `
       <div class="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:p-6">
         <div class="mb-4 flex items-center gap-4">
           <img
             src="${safeText(tableImage)}"
-            alt="${safeText(brand)}"
+            alt=""
             loading="lazy"
             class="img-bright h-16 w-16 rounded border object-cover"
             onerror="this.style.display='none'"
@@ -1629,51 +1725,56 @@ function renderTables(items) {
 
         ${renderMaterialLegend(sortedRows)}
 
-        <div class="hidden md:block overflow-x-auto border rounded-lg">
+        <div class="hidden lg:block overflow-x-auto border rounded-lg">
           <table class="w-full text-sm">
             <thead class="bg-gray-100 text-xs uppercase text-gray-700">
               <tr>
-                <th class="px-4 py-3 text-left">Producto / Material</th>
-                <th class="px-4 py-3 text-left">Tipo / Clase</th>
-                <th class="px-4 py-3 text-left">Presión</th>
-                <th class="px-4 py-3 text-left">Medidas disponibles</th>
-                <th class="px-4 py-3 text-left">Norma</th>
-                <th class="px-4 py-3 text-left">Ficha técnica</th>
-                <th class="px-4 py-3 text-left">Cotizar</th>
+                <th class="${TABLE_CELL} text-left">Producto / Material</th>
+                <th class="${TABLE_CELL} text-left">Tipo / Clase</th>
+                <th class="${TABLE_CELL} text-left">Presión</th>
+                <th class="${TABLE_CELL} text-left">Medidas disponibles</th>
+                <th class="${TABLE_CELL} text-left">Norma</th>
+                <th class="${TABLE_CELL} text-left">Ficha técnica</th>
+                <th class="${TABLE_CELL} ${QUOTE_COLUMN} bg-gray-100 text-left">Cotizar</th>
               </tr>
             </thead>
 
             <tbody>
               ${sortedRows.map(row => `
                 <tr class="border-t">
-                  <td class="px-4 py-3">
-                    <div class="font-medium capitalize">
-                      ${renderProductName(row)}
+                  <td class="${TABLE_CELL}">
+                    <div class="flex items-start gap-3">
+                      ${renderRowThumb(row)}
+                      <div class="min-w-0">
+                        <div class="font-medium capitalize">
+                          ${renderProductName(row)}
+                        </div>
+                        ${renderMaterialLine(row)}
+                      </div>
                     </div>
-                    ${renderMaterialLine(row)}
                   </td>
 
-                  <td class="px-4 py-3">
+                  <td class="${TABLE_CELL}">
                     ${safeText(row.typeClass) || "—"}
                     ${renderJointType(row)}
                   </td>
 
-                  <td class="px-4 py-3">
+                  <td class="${TABLE_CELL}">
                     ${safeText(row.pressureClass) || "—"}
                   </td>
 
-                  <td class="px-4 py-3 text-gray-700">
+                  <td class="${TABLE_CELL} text-gray-700">
                     ${renderSizesCell(row)}
                   </td>
 
-                  <td class="px-4 py-3">
+                  <td class="${TABLE_CELL}">
                     ${safeText(row.standard) || "—"}
                   </td>
 
-                  <td class="px-4 py-3">
+                  <td class="${TABLE_CELL}">
                     ${renderTechnicalSheetLink(row)}
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="${TABLE_CELL} ${QUOTE_COLUMN} bg-white">
   ${renderQuoteCheckbox(row)}
 </td>
                 </tr>
@@ -1682,14 +1783,19 @@ function renderTables(items) {
           </table>
         </div>
 
-        <div class="md:hidden space-y-4">
+        <div class="lg:hidden space-y-4">
           ${sortedRows.map(row => `
             <div class="border rounded-lg p-4">
-              <div class="font-medium capitalize">
-                ${renderProductName(row)}
-              </div>
+              <div class="flex items-start gap-3">
+                ${renderRowThumb(row)}
+                <div class="min-w-0">
+                  <div class="font-medium capitalize">
+                    ${renderProductName(row)}
+                  </div>
 
-              ${renderMaterialLine(row)}
+                  ${renderMaterialLine(row)}
+                </div>
+              </div>
 
               <div class="text-sm text-gray-700 mt-2">
                 <span class="font-medium">Tipo / Clase:</span> ${safeText(row.typeClass) || "—"}
@@ -1912,13 +2018,26 @@ const openBtn = document.getElementById("openFilters");
 const closeBtn = document.getElementById("closeFilters");
 const modal = document.getElementById("mobileFilters");
 
-function setFilterSheet(open) {
-  if (!modal) return;
+// La hoja es un diálogo modal (role="dialog" en el markup): al abrir, el foco
+// entra en ella; al cerrar, vuelve al botón que la abrió. Sin esto el foco se
+// quedaba detrás de la hoja y el lector de pantalla seguía leyendo el fondo.
+let filterSheetOpen = false;
 
+function setFilterSheet(open, { restoreFocus = true } = {}) {
+  if (!modal || open === filterSheetOpen) return;
+
+  filterSheetOpen = open;
   modal.classList.toggle("hidden", !open);
   modal.classList.toggle("flex", open);
+  openBtn?.setAttribute("aria-expanded", open ? "true" : "false");
   // Bloquea el scroll del fondo mientras la hoja está abierta.
   document.body.style.overflow = open ? "hidden" : "";
+
+  if (open) {
+    closeBtn?.focus();
+  } else if (restoreFocus) {
+    openBtn?.focus();
+  }
 }
 
 openBtn?.addEventListener("click", () => setFilterSheet(true));
@@ -1926,12 +2045,37 @@ closeBtn?.addEventListener("click", () => setFilterSheet(false));
 document.getElementById("applyFiltersMobile")?.addEventListener("click", () => setFilterSheet(false));
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") setFilterSheet(false);
+  if (!filterSheetOpen) return;
+
+  if (event.key === "Escape") {
+    setFilterSheet(false);
+    return;
+  }
+
+  // Tab no debe salir de la hoja hacia el contenido que queda tapado detrás.
+  if (event.key !== "Tab") return;
+
+  const focusable = [...modal.querySelectorAll("button, input, a[href]")]
+    .filter(element => !element.disabled && element.getClientRects().length > 0);
+
+  if (!focusable.length) return;
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+
+  if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
+    event.preventDefault();
+    first.focus();
+  }
 });
 
-// Al pasar a escritorio la hoja móvil no debe quedar abierta.
+// Al pasar a escritorio la hoja móvil no debe quedar abierta. El foco no se
+// devuelve a #openFilters porque en escritorio ese botón está oculto.
 window.matchMedia("(min-width: 768px)").addEventListener("change", (event) => {
-  if (event.matches) setFilterSheet(false);
+  if (event.matches) setFilterSheet(false, { restoreFocus: false });
 });
 
 function clearAllFilters() {

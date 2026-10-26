@@ -19,6 +19,17 @@ export type Category = {
    * las va cargando el CMS por grupo (src/data/catalog/overrides.json).
    */
   visible: boolean;
+  /**
+   * Textos de la página /productos/<slug>/ (destino de los anuncios de Google
+   * Ads): `<title>`, meta description y el párrafo que va bajo el H1, que se
+   * renderiza en el servidor para que Google lo lea sin ejecutar el script.
+   * Deben nombrar sólo lo que el catálogo publica de verdad (materiales,
+   * clases y productos). Sin ellos la página usa "Nombre | DIHYC" y la
+   * description por defecto de BaseLayout.
+   */
+  seoTitle?: string;
+  seoDescription?: string;
+  intro?: string;
 };
 
 export const categories: Category[] = [
@@ -27,14 +38,24 @@ export const categories: Category[] = [
     name: "Tuberías",
     navLabel: "Tubos",
     image: "/assets/categories/tuberias.png",
-    visible: true
+    visible: true,
+    seoTitle: "Tuberías HDPE FM Approved, PVC y CPVC en Lima | DIHYC",
+    seoDescription:
+      "Tuberías HDPE certificadas FM Approved para redes contra incendio y tuberías PVC y CPVC para agua fría y caliente. Fichas técnicas y cotización por WhatsApp.",
+    intro:
+      "Distribuimos en Lima tuberías de HDPE certificadas FM Approved para redes contra incendio y de PVC y CPVC SCH-80 para agua fría y caliente. Marca «Cotizar» en los productos que necesites y envía la lista por WhatsApp."
   },
   {
     slug: "conexiones",
     name: "Conexiones",
     navLabel: "Accesorios",
     image: "/assets/categories/conexiones.png",
-    visible: true
+    visible: true,
+    seoTitle: "Conexiones HDPE FM Approved, PVC y CPVC SCH-80 | DIHYC",
+    seoDescription:
+      "Conexiones HDPE certificadas FM Approved para redes contra incendio y conexiones PVC y CPVC SCH-80 para agua fría y caliente: codos, tees, reducciones, bridas y adaptadores. Fichas técnicas y cotización por WhatsApp.",
+    intro:
+      "Distribuimos en Lima conexiones de HDPE certificadas FM Approved para redes contra incendio y de PVC y CPVC SCH-80 para agua fría y caliente: codos, tees, reducciones, bridas y adaptadores. Marca «Cotizar» en los productos que necesites y envía la lista por WhatsApp."
   },
   {
     slug: "valvulas",
