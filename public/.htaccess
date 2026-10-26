@@ -3,7 +3,8 @@
 #
 # Qué hace, en orden:
 #   1. Deja pasar /.well-known/ tal cual (validación del SSL automático).
-#   2. Lleva a la dirección canónica https://www.dihyc.com.pe en UN solo salto.
+#   2. Lleva a la dirección canónica https://www.dihyc.com.pe en UN solo salto,
+#      y las direcciones del sitio viejo (/productos.php…) a sus páginas nuevas.
 #   3. Bloquea archivos ocultos.
 #   4. Cabeceras de seguridad y Content-Security-Policy.
 #   5. Caché: assets con hash un año, HTML siempre fresco, PDFs/imágenes 1 día.
@@ -29,7 +30,13 @@
 # ── Básicos ──────────────────────────────────────────────────────────────────
 # Sin listado de carpetas: /assets/fichas-tecnicas/ no debe mostrar un índice.
 Options -Indexes
-DirectoryIndex index.html
+# index.html primero: en public_html sigue el index.php del sitio viejo (la
+# publicación por FTP no borra lo que no subió). index.php en segundo lugar
+# porque esta directiva la heredan TODAS las subcarpetas: sin él, cualquier
+# carpeta PHP (la del sitio viejo, o la de otro dominio alojado dentro de
+# public_html) daría 403. Además, durante la primera subida la portada vieja
+# sigue respondiendo hasta que llega el index.html nuevo.
+DirectoryIndex index.html index.php
 # Astro genera /404.html; sin esta línea el visitante ve el error genérico.
 ErrorDocument 404 /404.html
 AddDefaultCharset UTF-8
@@ -60,6 +67,21 @@ AddDefaultCharset UTF-8
 
   RewriteCond %{HTTP_HOST} ^dihyc\.com\.pe(:[0-9]+)?$ [NC]
   RewriteRule ^ https://www.dihyc.com.pe%{REQUEST_URI} [R=301,L]
+
+  # 2b) Direcciones del sitio viejo (PHP) → sus páginas nuevas. Sus archivos
+  #     siguen en el servidor: sin esto /productos.php mostraría el catálogo
+  #     viejo, y Google conserva esas direcciones. Se mira THE_REQUEST (lo que
+  #     pidió el navegador), no la ruta interna: así "/" servido por el
+  #     index.php viejo (ver DirectoryIndex) no entra en un bucle. El "?" final
+  #     descarta la query vieja, que el sitio nuevo no entiende. Las direcciones
+  #     viejas sin extensión (/productos) ya son carpetas del sitio nuevo.
+  RewriteCond %{HTTP_HOST} ^www\.dihyc\.com\.pe(:[0-9]+)?$ [NC]
+  RewriteCond %{THE_REQUEST} \s/+(index\.php|indexw\.html)[\s?]
+  RewriteRule ^ https://www.dihyc.com.pe/? [R=301,L]
+
+  RewriteCond %{HTTP_HOST} ^www\.dihyc\.com\.pe(:[0-9]+)?$ [NC]
+  RewriteCond %{THE_REQUEST} \s/+(productos|empresa|servicios|contacto)\.php[\s?]
+  RewriteRule ^ https://www.dihyc.com.pe/%1/? [R=301,L]
 
   # 3) Archivos ocultos (nombre que empieza por punto) prohibidos. Ejemplo real:
   #    la publicación por FTP deja .ftp-deploy-sync-state.json con la lista de

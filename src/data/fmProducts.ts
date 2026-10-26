@@ -33,7 +33,7 @@ const TECH_SHEETS = {
     "/assets/fichas-tecnicas/Ficha tecnica de tuberia HDPE PAVCO FM-sistema ACI.pdf#page=5",
 
   tuberiaWlPlastics:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES TUBO HDPE WL130-1018 FM Pipe WL PLASTICS EN ESPAÑOL.pdf",
+    "/assets/fichas-tecnicas/ESPECIFICACIONES TUBO HDPE WL130-1018 FM Pipe WL PLASTICS EN ESPAÑOL.pdf",
 
   tuberiaExtrucol:
     "/assets/fichas-tecnicas/tuberia-hdpe-fm-extrucol.pdf",

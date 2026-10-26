@@ -25,7 +25,8 @@ Hoy en dihyc.com.pe hay una versión vieja del sitio. Antes de reemplazarla:
    **Comprimir archivos**.
 3. Marcar el `.zip` que aparece → **Descargar**. Guardarlo en un lugar seguro.
 
-Con ese archivo se puede volver atrás en un minuto (ver sección 4).
+Con ese archivo se puede volver atrás (ver sección 4). Ojo: el `.zip` trae
+**la carpeta `public_html` entera** dentro, no sólo su contenido.
 
 > El `.htaccess` que hay hoy en el servidor será **reemplazado** por el nuevo.
 > Queda guardado dentro de ese respaldo.
@@ -37,16 +38,21 @@ datos** que no son de este sitio. Hay que saber dónde está la carpeta de ese
 otro dominio:
 
 1. cPanel → **Dominios**.
-2. Mirar la columna **Raíz del documento** del otro dominio.
+2. Mirar la columna **Raíz del documento** de cada dominio y subdominio.
    - Si es algo como `/home/dihyccom/otrodominio.com` → está **fuera** de
      public_html. Perfecto, nada que hacer.
    - Si es algo como `/home/dihyccom/public_html/otrodominio.com` → está
      **dentro**. Anotar el nombre de la carpeta (`otrodominio.com/`): hará falta
-     sólo si algún día se publica por SSH con borrado (sección 3).
+     si algún día se publica por SSH con borrado (sección 3), y **después de la
+     primera publicación hay que abrir ese otro dominio y comprobar que carga**
+     (el `.htaccess` de public_html también rige en sus carpetas).
+3. En la misma tabla, dejar **apagado** "Forzar redireccionamiento HTTPS" de
+   dihyc.com.pe: el `.htaccess` ya lleva todo a `https://www.` en un solo salto;
+   con los dos activos serían dos saltos y la prueba en vivo lo marcaría.
 
-Publicando por FTPS no hace falta nada más: el sistema **sólo borra archivos
-que él mismo subió**, así que nunca toca la carpeta de otro dominio, ni
-`cgi-bin`, ni `.well-known` (donde cPanel renueva el certificado SSL).
+Publicando por FTPS, el sistema **sólo borra archivos que él mismo subió**, así
+que nunca toca la carpeta de otro dominio, ni `cgi-bin`, ni `.well-known`
+(donde cPanel renueva el certificado SSL).
 
 ### 1.3 Crear una cuenta FTP sólo para publicar
 
@@ -57,9 +63,14 @@ que él mismo subió**, así que nunca toca la carpeta de otro dominio, ni
    `public_html`
    *(así la cuenta sólo puede tocar el sitio, nada más del hosting).*
 5. **Crear cuenta FTP**.
-6. En la lista de cuentas, junto a la nueva, pulsar **Configurar cliente FTP**
-   y anotar el **Servidor FTP** que aparece (suele ser un nombre como
-   `servidor123.proveedor.com`, no `dihyc.com.pe`) y el **puerto** (normalmente 21).
+6. En la lista, la columna **Ruta** de la cuenta nueva debe terminar en
+   `/public_html`. Si termina en otra cosa (por ejemplo `public_html/publicar`),
+   **eliminar la cuenta y crearla de nuevo**: no se arregla con variables.
+7. **Configurar cliente FTP** muestra *Servidor FTP: `ftp.dihyc.com.pe`* y el
+   puerto (21). **Ese nombre NO sirve** para publicar cifrado: el FTP de cPanel
+   presenta el certificado del **nombre del servidor**, que en este hosting es
+   `host101.latinoamericahosting.com` (misma IP, certificado válido; comprobado
+   en octubre 2026). Ése es el que va en `FTP_SERVER`.
 
 ### 1.4 Cargar esos datos en GitHub
 
@@ -69,7 +80,7 @@ En GitHub: repositorio → **Settings** → **Secrets and variables** → **Acti
 
 | Nombre          | Valor                                              |
 |-----------------|----------------------------------------------------|
-| `FTP_SERVER`    | el *Servidor FTP* anotado en 1.3                   |
+| `FTP_SERVER`    | `host101.latinoamericahosting.com` (ver 1.3, paso 7) |
 | `FTP_USERNAME`  | el usuario completo, p. ej. `publicar@dihyc.com.pe`|
 | `FTP_PASSWORD`  | la contraseña generada en 1.3                      |
 
@@ -80,7 +91,7 @@ En GitHub: repositorio → **Settings** → **Secrets and variables** → **Acti
 | `DEPLOY_METHOD` | `ftps`  | Sí. Es el interruptor que activa la publicación. |
 | `FTP_PORT`      | `21`    | Sólo si cPanel indicó otro puerto.              |
 | `FTP_SECURITY`  | `loose` | Sólo si falla el certificado (ver sección 5).   |
-| `FTP_SERVER_DIR`| `public_html/` | Sólo si la cuenta FTP NO se creó con directorio `public_html`. |
+| `FTP_SERVER_DIR`| `public_html/` | Sólo si se publica con la cuenta **principal** de cPanel (`dihyccom`). Con la cuenta `publicar@` NO usarla (ver 1.3, paso 6). |
 
 Los *secrets* nadie los puede volver a leer, ni siquiera en GitHub: si se
 pierde la contraseña, se genera otra en cPanel y se reemplaza el secret.
@@ -102,7 +113,15 @@ scope"*:
 
 ## 2. Primer despliegue
 
-1. Subir todo el trabajo a la rama `main` (commit + push).
+1. Subir todo el trabajo a la rama `main`, desde la carpeta del proyecto:
+   ```bash
+   git add -A
+   git status
+   ```
+   En `git status` no debe quedar nada en "Changes not staged" ni en
+   "Untracked files". Luego `git commit -m "…"` y `git push origin main`.
+   *(Si las variables de 1.4 se cargan DESPUÉS del push, lanzar la publicación
+   a mano: Actions → **Construir y publicar** → **Run workflow**.)*
 2. En GitHub → pestaña **Actions** → la ejecución **Construir y publicar**.
 3. Deben ponerse en verde, en orden:
    - **Compilar y validar** — el sitio compiló y no falta ningún archivo clave.
@@ -114,9 +133,12 @@ scope"*:
 4. Si algo falla, la línea en rojo dice exactamente qué (ver sección 5).
 
 > El primer despliegue sube todo y **no borra nada** (todavía no hay registro de
-> qué subió). Los archivos de la versión vieja quedan en el servidor sin
-> estorbar: el sitio nuevo no los enlaza. Si se quieren limpiar, que lo haga
-> alguien técnico después del respaldo, **sin tocar nunca** `.well-known`,
+> qué subió). Mientras sube (unos minutos), la portada vieja sigue
+> respondiendo. Los archivos del sitio viejo quedan en el servidor: sus
+> direcciones (`/index.php`, `/productos.php`, `/empresa.php`, `/servicios.php`,
+> `/contacto.php`) llevan a las páginas nuevas, pero sus carpetas (por ejemplo el
+> panel viejo `adminxL242/` o `test/`) siguen accesibles hasta que alguien
+> técnico las borre, después del respaldo, **sin tocar nunca** `.well-known`,
 > `cgi-bin` ni la carpeta de otro dominio.
 
 Desde entonces, cada guardado en el panel `/admin` publica solo en 1–2 minutos.
@@ -182,12 +204,27 @@ concreta como `public_html/`.
 
 ## 4. Volver atrás
 
-- **A una versión anterior del sitio:** GitHub → Actions → abrir la última
-  ejecución que estaba bien → **Re-run all jobs**. Se vuelve a publicar
-  exactamente esa versión. (El siguiente cambio que se guarde publicará el
-  último código otra vez.)
-- **Al sitio viejo de antes de todo esto:** cPanel → Administrador de archivos
-  → subir el `.zip` del paso 1.1 a `public_html` → **Extraer**.
+- **A una versión anterior del sitio (últimos 30 días):** GitHub → Actions →
+  abrir la última ejecución que estaba bien → **Re-run all jobs**. Se vuelve a
+  publicar exactamente esa versión. (El siguiente cambio que se guarde publicará
+  el último código otra vez.) GitHub sólo permite re-ejecutar durante 30 días.
+- **Más antigua que 30 días:** deshacer el cambio malo (desde el panel `/admin`,
+  o que alguien técnico haga `git revert <commit>` y `git push`). Se publica solo.
+- **Al sitio viejo de antes de todo esto:**
+  1. cPanel → Administrador de archivos → ir a `/home/dihyccom` (la carpeta que
+     **contiene** a public_html, no public_html).
+  2. **Cargar** ahí el `.zip` del paso 1.1 → marcarlo → **Extraer** en
+     `/home/dihyccom`. Como el `.zip` trae la carpeta `public_html`, sus archivos
+     vuelven a su sitio (extraerlo DENTRO de public_html crearía
+     `public_html/public_html` y no restauraría nada).
+  3. **Configuración** (arriba a la derecha) → marcar **Mostrar archivos
+     ocultos** → borrar `public_html/.ftp-deploy-sync-state.json`. Sin esto, la
+     siguiente publicación creería que el `.htaccess` nuevo sigue en el servidor
+     y no lo volvería a subir.
+
+  La extracción sobrescribe los archivos viejos pero deja los del sitio nuevo:
+  si `index.html` sigue ahí, la portada seguirá siendo la nueva. Para volver del
+  todo al sitio viejo, borrar también `index.html` (sólo el de public_html).
 
 ---
 
@@ -196,9 +233,11 @@ concreta como `public_html/`.
 | Síntoma | Qué hacer |
 |---|---|
 | Tras publicar, **todo el sitio da error 500** | Algunos proveedores no permiten `Options` en el `.htaccess`. Comentar la línea `Options -Indexes` de `public/.htaccess` (anteponer `#`) y volver a publicar. |
-| *Publicar por FTPS* falla con un error de **certificado** | `FTP_SERVER` debe ser el nombre del servidor que muestra cPanel en *Configurar cliente FTP*, no `dihyc.com.pe`. Si aun así falla, crear la variable `FTP_SECURITY = loose`: la conexión sigue cifrada, pero ya no se verifica la identidad del servidor (riesgo bajo, pero real). |
+| *Publicar por FTPS* falla con un error de **certificado** (*is not in the cert's altnames*) | `FTP_SERVER` debe ser el nombre del servidor (`host101.latinoamericahosting.com`), no `ftp.dihyc.com.pe`. Si el proveedor cambió de servidor, el nombre correcto aparece en el propio error, después de `DNS:`: copiarlo en `FTP_SERVER`. Sólo si el certificado del servidor está vencido o es autofirmado, crear la variable `FTP_SECURITY = loose` (sigue cifrado, pero ya no verifica con quién habla). |
 | *Publicar por FTPS* falla con **530 Login incorrect** | `FTP_USERNAME` debe ser el usuario completo (`publicar@dihyc.com.pe`). Revisar también la contraseña. |
-| *Probar el sitio en vivo* dice que **no se ve la versión nueva** | El hosting puede tener una caché propia. Esperar unos minutos y usar *Re-run failed jobs*. |
+| *Publicar por FTPS* falla **a mitad** (timeout, conexión cortada) | No se borró nada. Actions → la ejecución → **Re-run failed jobs**: vuelve a subir lo que falta. |
+| Se cambió un secret o una variable y hay que reintentar | Mejor Actions → **Construir y publicar** → **Run workflow** (ejecución nueva) que *Re-run*. |
+| *Probar el sitio en vivo* dice que **no se ve la versión nueva** | Si se restauró el `.zip` (sección 4), falta borrar `.ftp-deploy-sync-state.json`. Si no, el hosting puede tener una caché propia: esperar unos minutos y **Re-run failed jobs**. |
 | *Probar el sitio en vivo* avisa (en amarillo) que **faltan cabeceras de seguridad** | El sitio funciona; el hosting no tiene activo `mod_headers`. Consultar al proveedor si lo puede activar. |
 | El push falla por **workflow scope** | Ver 1.5. |
 
@@ -217,16 +256,21 @@ bash scripts/probar-htaccess.sh
 ```
 
 Levanta un Apache 2.4 temporal (sin sudo; en macOS ya viene instalado) y corre
-51 comprobaciones: las tres redirecciones a `https://www.dihyc.com.pe` en un
+63 comprobaciones: las tres redirecciones a `https://www.dihyc.com.pe` en un
 salto, la query conservada, PDFs con espacios y `°`, la 404 propia, `/admin` con
 su política, `.well-known` sin redirección, otro dominio intacto, caché,
-compresión, sin listado de carpetas, archivos ocultos bloqueados, y que el
-sitio **no** da 500 si al hosting le faltan `mod_headers`, `mod_deflate` o
-`mod_filter`.
+compresión, sin listado de carpetas, archivos ocultos bloqueados, los restos
+del sitio viejo (sus `.php` redirigen, la portada nueva gana al `index.php`
+viejo, y mientras sube la primera publicación la portada vieja sigue viva), y
+que el sitio **no** da 500 si al hosting le faltan `mod_headers`, `mod_deflate`
+o `mod_filter`. El servidor real es **LiteSpeed**, que lee el mismo `.htaccess`;
+la prueba en vivo del workflow confirma en el servidor lo esencial.
 
 ### Qué hace el `.htaccess`, en una línea por regla
 
 - `https://www.dihyc.com.pe` como única dirección (301 en un salto).
+- Direcciones del sitio viejo (`/index.php`, `/productos.php`…) → sus páginas
+  nuevas (301), sin bucles aunque el `index.php` viejo siga en el servidor.
 - `/.well-known/` sin tocar (renovación automática del SSL de cPanel).
 - Cabeceras de seguridad y **Content-Security-Policy** aplicada (verificada en
   navegador sin violaciones en todas las páginas). Si se añade Google Analytics,
@@ -234,5 +278,7 @@ sitio **no** da 500 si al hosting le faltan `mod_headers`, `mod_deflate` o
 - HSTS de 1 día, sin `includeSubDomains`: subirlo a un año tras un mes estable.
 - Caché: `/_astro/` un año; HTML, sitemap y config del CMS siempre frescos;
   PDFs e imágenes 1 día (las fichas se reemplazan con el mismo nombre).
-- Todo acotado a `dihyc.com.pe` / `www.dihyc.com.pe`: otro dominio del hosting
-  no recibe nada.
+- Redirecciones, cabeceras y bloqueos acotados a `dihyc.com.pe` /
+  `www.dihyc.com.pe`: otro dominio del hosting no los recibe. `Options`,
+  `DirectoryIndex` y `ErrorDocument` sí rigen en toda carpeta bajo public_html
+  (por eso `DirectoryIndex` incluye `index.php`).

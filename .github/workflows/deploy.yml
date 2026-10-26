@@ -97,6 +97,31 @@ jobs:
             grep -rl "localhost" dist --include='*.html'
             exit 1
           fi
+          # Archivos que el HTML cita y no existen. En el servidor (Linux) el
+          # nombre debe coincidir byte a byte: mayúsculas, tildes y "ñ" incluidas
+          # (en un Mac "Ñ" y "N+~" son el mismo archivo; aquí no). Aviso y no
+          # error: una foto o ficha pendiente no debe impedir publicar.
+          python3 - <<'PY'
+          import os, re, html, pathlib, urllib.parse
+          dist = pathlib.Path("dist")
+          def existe(ruta):
+              p = dist
+              for parte in ruta.strip("/").split("/"):
+                  if not p.is_dir() or parte not in os.listdir(p):
+                      return False
+                  p = p / parte
+              return p.is_file()
+          faltan = {}
+          for f in dist.rglob("*.html"):
+              for m in re.finditer(r"""["'](/(?:assets|_astro)/[^"'#?<>\\]+)""", f.read_text(encoding="utf-8")):
+                  ruta = urllib.parse.unquote(html.unescape(m.group(1)))
+                  if "${" not in ruta and not existe(ruta):
+                      faltan.setdefault(ruta, set()).add(str(f.relative_to(dist)))
+          for ruta, pags in sorted(faltan.items()):
+              print(f"::warning::{ruta} no existe en el sitio (citado en {', '.join(sorted(pags))})")
+          print(f"Archivos citados que faltan: {len(faltan)}")
+          PY
+
           echo "Sitio compilado OK: $(find dist -type f | wc -l) archivos, $(du -sh dist | cut -f1)."
 
       - name: Guardar el sitio compilado
@@ -110,6 +135,8 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
+          # "Re-run all jobs" vuelve a subir este artifact con el mismo nombre.
+          overwrite: true
 
   # ═══════════════════════════════════════════════════════════════════════════
   publicar-ftps:
@@ -148,11 +175,12 @@ jobs:
           # contraseña viajaría en texto plano) y security "loose" (acepta
           # cualquier certificado). Por eso ambos van explícitos.
           protocol: ftps
-          # strict = sólo acepta un certificado válido para FTP_SERVER. En un
-          # hosting compartido ese certificado suele ser del NOMBRE DEL SERVIDOR
-          # (el que muestra cPanel en "Configurar cliente FTP"), no de
-          # dihyc.com.pe: usar ese nombre como FTP_SERVER. "loose" sólo como último
-          # recurso (ver README-deploy.md: cifra igual, pero no verifica con quién).
+          # strict = sólo acepta un certificado válido para FTP_SERVER. El FTP de
+          # cPanel presenta el certificado del NOMBRE DEL SERVIDOR
+          # (host101.latinoamericahosting.com), no el de ftp.dihyc.com.pe que
+          # muestra "Configurar cliente FTP": FTP_SERVER debe ser ese nombre.
+          # "loose" sólo como último recurso (README-deploy.md: cifra igual, pero
+          # no verifica con quién habla).
           security: ${{ vars.FTP_SECURITY || 'strict' }}
           local-dir: ./dist/
           # Recomendado: crear la cuenta FTP en cPanel con directorio public_html,
@@ -257,14 +285,23 @@ jobs:
     steps:
       - name: Comprobar páginas, redirecciones y versión publicada
         run: |
+          # Sin -e a propósito: cada comprobación anota su fallo en $fallos y la
+          # prueba sigue, para ver TODOS los problemas de una vez. GitHub lanza
+          # "bash -e" por defecto, por eso se desactiva explícitamente.
+          set +e
           set -uo pipefail
           fallos=0
           codigo() { curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$1"; }
+          salto()  { curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 20 "$1"; }
 
           # 1) La portada debe traer ESTE commit. Se reintenta ~3 minutos por si el
           #    hosting tarda en servir la versión nueva.
           for intento in $(seq 1 12); do
-            if curl -s --max-time 20 "$SITIO/" | grep -q "name=\"dihyc-build\" content=\"${GITHUB_SHA}\""; then
+            # La página se guarda ANTES de buscar en ella. "curl | grep -q" con
+            # pipefail falla en falso: grep cierra la tubería al encontrar la
+            # marca y curl, que aún escribía el resto, termina con error.
+            portada=$(curl -s --max-time 20 "$SITIO/")
+            if [[ "$portada" == *"name=\"dihyc-build\" content=\"${GITHUB_SHA}\""* ]]; then
               echo "✅ La portada en vivo es la versión ${GITHUB_SHA}"; break
             fi
             if [ "$intento" = 12 ]; then
@@ -287,17 +324,33 @@ jobs:
 
           # 4) Sin www y sin https deben llevar a la dirección canónica en un salto.
           for origen in "http://dihyc.com.pe/" "https://dihyc.com.pe/" "http://www.dihyc.com.pe/"; do
-            r=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 20 "$origen")
+            r=$(salto "$origen")
             if [ "$r" = "301 https://www.dihyc.com.pe/" ]; then echo "✅ $origen → 301 a https://www"
             else echo "::error::$origen respondió '$r' (esperado 301 a https://www.dihyc.com.pe/)"; fallos=1; fi
           done
 
-          # 5) Cabeceras de seguridad: AVISO, no error. Si el hosting no tiene
+          # 5) Las direcciones del sitio viejo (PHP) llevan a las páginas nuevas.
+          #    Si fallara, el servidor estaría mostrando el sitio viejo en ellas.
+          for par in "/index.php|https://www.dihyc.com.pe/" "/productos.php|https://www.dihyc.com.pe/productos/"; do
+            r=$(salto "$SITIO${par%%|*}")
+            if [ "$r" = "301 ${par#*|}" ]; then echo "✅ ${par%%|*} → 301 ${par#*|}"
+            else echo "::error::${par%%|*} respondió '$r' (esperado 301 a ${par#*|})"; fallos=1; fi
+          done
+
+          # 6) Cabeceras de seguridad: AVISO, no error. Si el hosting no tiene
           #    mod_headers el sitio funciona igual, pero conviene saberlo.
           cab=$(curl -s -o /dev/null -D - --max-time 20 "$SITIO/")
           for h in Content-Security-Policy Strict-Transport-Security X-Content-Type-Options X-Frame-Options; do
-            if echo "$cab" | grep -qi "^$h:"; then echo "✅ cabecera $h"
+            if grep -qi "^$h:" <<<"$cab"; then echo "✅ cabecera $h"
             else echo "::warning::El sitio en vivo no envía $h (¿mod_headers desactivado en el hosting?)"; fi
           done
+
+          # 7) /admin debe recibir SÓLO su política (admin/.htaccess). Si el
+          #    servidor sumara la del sitio, el panel no cargaría.
+          adm=$(curl -s -o /dev/null -D - --max-time 20 "$SITIO/admin/")
+          n=$(grep -ci '^content-security-policy:' <<<"$adm")
+          if [ "$n" = 1 ] && grep -qi "frame-ancestors 'none'" <<<"$adm"; then echo "✅ /admin/ con su propia política"
+          elif [ "$n" = 0 ]; then echo "::warning::/admin/ no envía Content-Security-Policy"
+          else echo "::warning::/admin/ envía $n políticas de seguridad: si el panel no carga, revisar public/admin/.htaccess"; fi
 
           exit $fallos

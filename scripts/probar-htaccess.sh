@@ -6,7 +6,7 @@
 #
 # Compila el sitio, levanta un Apache 2.4 temporal (HTTP en 18080 y HTTPS en
 # 18443 con un certificado autofirmado para dihyc.com.pe y www.dihyc.com.pe),
-# corre 44 comprobaciones y lo apaga. No necesita sudo ni toca nada del sistema:
+# corre todas las comprobaciones y lo apaga. No necesita sudo ni toca nada del sistema:
 # todo vive en una carpeta temporal que se borra al terminar.
 #
 # Por qué existe: un error en el .htaccess de un hosting compartido tumba el
@@ -41,6 +41,12 @@ cp -R "$RAIZ/dist" "$T/www"
 mkdir -p "$T/www/.well-known/acme-challenge" "$T/logs"
 echo "token-de-prueba" > "$T/www/.well-known/acme-challenge/prueba.txt"
 echo '{"lista":"secreta"}' > "$T/www/.ftp-deploy-sync-state.json"
+# Restos del sitio viejo que quedan en public_html tras la primera publicación
+# (FTP no borra lo que no subió). Sin PHP en este Apache, se sirven como texto:
+# basta para saber QUÉ archivo eligió el servidor.
+for f in index productos empresa servicios contacto; do echo "SITIO-VIEJO-$f" > "$T/www/$f.php"; done
+echo "SITIO-VIEJO-indexw" > "$T/www/indexw.html"
+mkdir -p "$T/www/otra-app" && echo "OTRA-APP-PHP" > "$T/www/otra-app/index.php"
 
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=www.dihyc.com.pe" \
   -addext "subjectAltName=DNS:www.dihyc.com.pe,DNS:dihyc.com.pe" \
@@ -176,6 +182,27 @@ echo "j) Nada que no deba verse"
 r=$(hdr https www.dihyc.com.pe '/assets/fichas-tecnicas/'); bdir=$(body https www.dihyc.com.pe '/assets/fichas-tecnicas/'); [ "$(st "$r")" = 403 ] && [[ "$bdir" != *"Index of"* ]] && ok "sin listado de carpetas (403, sin 'Index of')" || ko "listado" "$(st "$r")"
 r=$(hdr https www.dihyc.com.pe '/.htaccess');               [ "$(st "$r")" = 403 ] && ok "/.htaccess → 403" || ko ".htaccess" "$(st "$r")"
 r=$(hdr https www.dihyc.com.pe '/.ftp-deploy-sync-state.json'); [ "$(st "$r")" = 403 ] && ok "estado de la publicación FTP → 403" || ko "state" "$(st "$r")"
+
+echo "l) Restos del sitio viejo (PHP) en public_html"
+bport=$(body https www.dihyc.com.pe '/')
+[[ "$bport" == *dihyc-build* ]] && ok "/ sirve el index.html nuevo aunque siga el index.php viejo" || ko "portada" "sirvió otra cosa"
+for par in "/index.php|https://www.dihyc.com.pe/" "/index.php?pag=2|https://www.dihyc.com.pe/" "/indexw.html|https://www.dihyc.com.pe/" \
+           "/productos.php|https://www.dihyc.com.pe/productos/" "/empresa.php?id=3|https://www.dihyc.com.pe/empresa/" \
+           "/servicios.php|https://www.dihyc.com.pe/servicios/" "/contacto.php|https://www.dihyc.com.pe/contacto/"; do
+  ruta="${par%%|*}"; dest="${par#*|}"
+  r=$(hdr https www.dihyc.com.pe "$ruta"); [ "$(st "$r")" = 301 ] && [ "$(loc "$r")" = "$dest" ] && ok "$ruta → 301 $dest" || ko "$ruta" "$(st "$r") $(loc "$r")"
+done
+f=$(curl -sk -L -o /dev/null -w '%{http_code} %{num_redirects} %{url_effective}' --connect-to www.dihyc.com.pe:443:127.0.0.1:18443 --connect-to dihyc.com.pe:443:127.0.0.1:18443 "https://dihyc.com.pe/productos.php")
+[ "$f" = "200 2 https://www.dihyc.com.pe/productos/" ] && ok "sin www + .php → 2 saltos hasta /productos/ (200)" || ko "cadena .php" "$f"
+r=$(hdr https www.dihyc.com.pe '/productos'); [ "$(st "$r")" = 301 ] && [[ "$(loc "$r")" == */productos/ ]] && ok "/productos (dirección vieja sin extensión) → /productos/" || ko "/productos" "$(st "$r") $(loc "$r")"
+r=$(hdr https www.dihyc.com.pe '/otra-app/'); bapp=$(body https www.dihyc.com.pe '/otra-app/')
+[ "$(st "$r")" = 200 ] && [ "$bapp" = "OTRA-APP-PHP" ] && ok "una carpeta PHP (sitio viejo u otro dominio) sigue respondiendo con su index.php" || ko "carpeta PHP" "$(st "$r")"
+# Ventana de la primera publicación: el .htaccess nuevo ya subió pero el
+# index.html todavía no. La portada vieja debe seguir viva, sin bucle.
+mv "$T/www/index.html" "$T/www/index.html.espera"
+r=$(hdr https www.dihyc.com.pe '/'); bv=$(body https www.dihyc.com.pe '/')
+[ "$(st "$r")" = 200 ] && [ "$bv" = "SITIO-VIEJO-index" ] && ok "mientras sube: / sigue sirviendo la portada vieja (200, sin bucle)" || ko "ventana de subida" "$(st "$r") $(loc "$r")"
+mv "$T/www/index.html.espera" "$T/www/index.html"
 
 
 echo
