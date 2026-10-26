@@ -67,7 +67,7 @@
     "label": "Brida loca PVC · Agua fría",
     "family": "conexiones",
     "visible": true,
-    "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES BRIDA LOCA PVC GEORG FISCHER.pdf",
+    "technicalSheet": "/assets/panel/fichas/especificaciones-brida-loca-pvc-georg-fischer.pdf",
     "image": "",
     "groupKey": "agua|conexiones|brida-loca|pvc|agua-fria"
   },

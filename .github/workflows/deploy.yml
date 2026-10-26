@@ -99,10 +99,15 @@ jobs:
           fi
           # Archivos que el HTML cita y no existen. En el servidor (Linux) el
           # nombre debe coincidir byte a byte: mayúsculas, tildes y "ñ" incluidas
-          # (en un Mac "Ñ" y "N+~" son el mismo archivo; aquí no). Aviso y no
-          # error: una foto o ficha pendiente no debe impedir publicar.
+          # (en un Mac "Ñ" y "N+~" son el mismo archivo; aquí no).
+          # ERROR (no se publica) si falta una ficha, una foto de catálogo o algo
+          # del panel: la biblioteca del panel deja borrar archivos y el sitio
+          # publicado quedaría con enlaces rotos. El resto (p. ej. /assets/services/,
+          # cuya foto de alquiler falta a propósito) sigue siendo sólo aviso.
+          # Mientras falte un archivo crítico NINGUNA publicación sale, tampoco
+          # los guardados posteriores del panel: hay que restaurarlo o quitar la cita.
           python3 - <<'PY'
-          import os, re, html, pathlib, urllib.parse
+          import os, re, sys, html, pathlib, urllib.parse
           dist = pathlib.Path("dist")
           def existe(ruta):
               p = dist
@@ -126,9 +131,15 @@ jobs:
                   ruta = urllib.parse.unquote(html.unescape(r))
                   if ruta.startswith(("/assets/", "/_astro/")) and "${" not in ruta and not existe(ruta):
                       faltan.setdefault(ruta, set()).add(str(f.relative_to(dist)))
+          criticas = ("/assets/fichas-tecnicas/", "/assets/hero/", "/assets/categories/",
+                      "/assets/products/", "/assets/materiales/", "/assets/panel/")
+          errores = 0
           for ruta, pags in sorted(faltan.items()):
-              print(f"::warning::{ruta} no existe en el sitio (citado en {', '.join(sorted(pags))})")
-          print(f"Archivos citados que faltan: {len(faltan)}")
+              nivel = "error" if ruta.startswith(criticas) else "warning"
+              errores += nivel == "error"
+              print(f"::{nivel}::{ruta} no existe en el sitio (citado en {', '.join(sorted(pags))})")
+          print(f"Archivos citados que faltan: {len(faltan)} ({errores} críticos)")
+          sys.exit(1 if errores else 0)
           PY
 
           echo "Sitio compilado OK: $(find dist -type f | wc -l) archivos, $(du -sh dist | cut -f1)."

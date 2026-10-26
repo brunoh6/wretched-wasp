@@ -9,8 +9,9 @@
       (No es una medida de seguridad: la seguridad la da el login de GitHub.)
     -->
     <meta name="robots" content="noindex, nofollow" />
-    <title>Panel de administración · DIHYC</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Panel DIHYC</title>
+    <!-- Sveltia lo sustituye por logo.src de config.yml en cuanto carga. -->
+    <link rel="icon" href="/assets/panel/logo-panel.png" type="image/png" />
   </head>
   <body>
     <!--
@@ -20,18 +21,25 @@
       (https://sveltiacms.app/en/docs/start) que hay que respetar:
         1. NO añadir type="module" al script.
         2. NO enlazar ninguna hoja de estilos.
-      El CMS construye toda su interfaz por su cuenta; cualquiera de esas dos
-      cosas produce comportamientos inesperados.
 
-      La URL no lleva versión fijada, tal como recomienda la documentación: así
-      el panel recibe correcciones de fallos sin tocar el repositorio. Si algún
-      día una actualización rompiera algo, se puede congelar la versión
-      escribiendo la última que funcionaba, por ejemplo:
-        https://unpkg.com/@sveltia/cms@0.196.0/dist/sveltia-cms.js
-      (0.196.0 es la versión con la que se probó este panel; consultar la actual
-      en https://www.npmjs.com/package/@sveltia/cms antes de fijar otra).
-      Ver README-admin.md, apartado "El panel deja de funcionar...".
+      VERSIÓN FIJADA (0.252.0). Sin versión, unpkg sirve la última: entre
+      0.205.2 y 0.252.0 hubo 100 versiones y dos cambios incompatibles
+      (v0.223.0 dejó de mostrar las ayudas escritas con `comment`), y el panel
+      cambiaba de un día para otro sin tocar el repositorio.
+
+      integrity = sha384 del archivo EXACTO de esa versión: si la CDN sirviera
+      otra cosa, el navegador no lo ejecuta (el panel tiene permiso de escritura
+      sobre el repositorio). crossorigin="anonymous" es obligatorio con
+      integrity en un script de otro dominio. Los idiomas y los módulos extra
+      los descarga el propio Sveltia de la misma versión.
+
+      Para subir de versión: README-admin.md, parte 2, "Actualizar Sveltia"
+      (cambiar versión e integrity aquí y el $schema de config.yml a la vez).
     -->
-    <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+    <script
+      src="https://unpkg.com/@sveltia/cms@0.252.0/dist/sveltia-cms.js"
+      integrity="sha384-1lhFs8+tXG4MV80L+/4enmKGio3aT9qrPGfM8/OTuo7Td7z+PW/8eOZBUXgXwRRc"
+      crossorigin="anonymous"
+    ></script>
   </body>
 </html>

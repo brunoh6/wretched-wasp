@@ -1,533 +1,387 @@
 # Panel de administración del catálogo
 
-Este documento explica cómo usar y cómo poner en marcha el panel con el que se
-gestionan las fichas técnicas, las fotos y la visibilidad de los productos.
+Este documento tiene dos partes:
 
-- **Dónde vive:** `public/admin/` (dos archivos: `index.html` y `config.yml`).
-- **Qué motor usa:** [Sveltia CMS](https://sveltiacms.app), un CMS que funciona
-  dentro del navegador y guarda los cambios como commits en este mismo
-  repositorio de GitHub.
-- **Dirección del panel:** `https://TU-DOMINIO/admin/`
-
-> **Por qué Sveltia y no Decap CMS**
-> Se evaluaron los dos. Sveltia es el sucesor moderno de Decap/Netlify CMS, se
-> carga como un único archivo JavaScript y —lo importante para este proyecto—
-> permite entrar con un **token personal de GitHub sin montar ningún servidor de
-> autenticación**. Decap obliga a montar ese servidor sí o sí. No se encontró
-> ningún impedimento para usar Sveltia, así que se usó Sveltia.
+- **Parte 1 · Guía para el gerente.** Cómo usar el panel, paso a paso, con los
+  textos que se ven en pantalla. Se puede imprimir sola.
+- **Parte 2 · Parte técnica.** Cómo está montado, dónde se guardan las cosas,
+  cómo se actualiza y qué se comprobó. Para quien mantiene la web.
 
 ---
 
-## 1. Cómo se entra al panel
+# Parte 1 · Guía para el gerente
 
-Hay tres formas. La tabla resume cuál conviene en cada momento; abajo está el
-detalle de cada una.
+## 1. Para qué sirve el panel
 
-| Forma de entrar | ¿Necesita montar algo? | ¿Cuándo usarla? |
+Desde el panel usted puede, sin ayuda:
+
+- **Subir o cambiar la ficha técnica (PDF)** de un producto de agua.
+- **Subir o cambiar la foto** de un producto de agua.
+- **Ocultar o volver a mostrar** un producto en la web.
+- **Cambiar las 4 tarjetas** de la página Productos: foto, título, subtítulo,
+  si se ven y en qué orden.
+
+Lo que **no** se cambia desde el panel (llame al equipo técnico):
+
+- Las fichas y fotos de la línea **contra incendio (FM)**.
+- Las medidas, códigos y materiales: vienen del Excel de productos.
+- Las categorías nuevas y las certificaciones.
+
+Un **grupo de producto** son todas las medidas de un mismo producto. Por
+ejemplo, «Codo 90° PVC · Agua fría» es un grupo con sus 20 medidas. La ficha,
+la foto y el «se ve / no se ve» se ponen **una vez por grupo** y valen para
+todas sus medidas.
+
+## 2. Cómo entrar
+
+1. Abra **www.dihyc.com.pe/admin/** en su navegador. Conviene guardarla en
+   Favoritos.
+2. **El acceso (con su correo y un código) se lo configura el equipo técnico.**
+   Siga las indicaciones que le den el primer día; después el navegador lo
+   recuerda.
+
+**Si el panel sale en inglés:** pulse el botón redondo de arriba a la derecha
+(el de su cuenta) → **Ajustes** (*Settings*) → **Idioma** (*Language*) → abra
+la lista que dice **Automático** (*Automatic*) y elija **Español (Colombia)**
+(en inglés aparece como *Spanish (Colombia)*). Queda guardado. *(Captura 6.)* Algún aviso suelto puede seguir
+saliendo en inglés.
+
+## 3. La pantalla principal
+
+*(Captura 1.)*
+
+- A la izquierda, bajo **Colecciones**, hay dos secciones:
+  - **Grupos de producto** (32): los productos de agua, PVC y CPVC.
+  - **Tarjetas de portada**: las 4 tarjetas de la página Productos.
+- Arriba, en el centro, la casilla **Buscar contenido…** busca un producto por
+  su nombre.
+- Arriba a la izquierda, el icono de la foto abre **Recursos** (todos los
+  archivos subidos desde el panel). No hace falta usarlo; vea el punto 9.
+
+## 4. Encontrar un producto
+
+*(Capturas 2 y 2b.)*
+
+- **Buscando:** escriba en **Buscar contenido…** una palabra, por ejemplo
+  `codo`, y pulse la tecla Enter. Salen los grupos que la contienen.
+- **Filtrando:** dentro de **Grupos de producto**, pulse **Filtrar** y elija:
+  - **Sin ficha técnica**: los que todavía no tienen PDF.
+  - **Sin foto**: los que todavía no tienen foto.
+  - **Ocultos en la web**: los que usted ocultó.
+
+  Para quitar el filtro, vuelva a pulsar **Filtrar** y la misma opción.
+- **Agrupando:** **Agrupar** → **Material** separa la lista en «CPVC Corzan» y
+  «PVC». **Ninguno** la deja como estaba.
+
+Pulse el nombre de un grupo para abrirlo.
+
+## 5. Subir o cambiar una ficha técnica
+
+*(Capturas 3 y 3b.)*
+
+1. Abra el grupo (punto 4).
+2. En **Ficha técnica (PDF)**, pulse **Explorar** y elija el PDF en su
+   computadora. También puede arrastrar el archivo hasta el recuadro que dice
+   «Arrastra un archivo aquí o».
+3. Debajo aparece el nombre del archivo, en minúsculas y con guiones: es
+   normal, así no se rompen los enlaces.
+4. Pulse **Guardar** (botón azul, arriba a la derecha).
+5. Abajo aparece «Entrada guardada.». Listo.
+
+- **Para cambiar una ficha** que ya existe: pulse **Reemplazar** y elija el
+  PDF nuevo. **Quitar** la deja vacía (la web muestra «Ficha pendiente»).
+- El PDF puede pesar **hasta 10 MB**. Si pesa más, el panel avisa
+  «Este archivo no se puede subir porque supera el tamaño máximo…»: pida al
+  equipo técnico que lo comprima.
+
+## 6. Subir o cambiar una foto
+
+1. Abra el grupo.
+2. En **Foto del producto**, pulse **Explorar** (o arrastre la foto al recuadro
+   «Arrastra un archivo de imagen aquí o»).
+3. **Sirve cualquier foto, también la del celular o la del iPhone.** El panel
+   la achica y la convierte sola en unos segundos; mientras tanto dice
+   «Procesando un archivo. Esto puede tardar un poco.».
+4. Pulse **Guardar**.
+
+La foto sale como **miniatura junto al nombre en cada fila del catálogo de
+agua**. Mejor con el producto centrado y fondo claro.
+
+## 7. Ocultar o volver a mostrar un producto
+
+1. Abra el grupo.
+2. En **¿Se ve en la web?**, mueva el interruptor:
+   - hacia **Visible** (azul): el producto sale en la web;
+   - hacia **Oculto** (gris): el producto y todas sus medidas dejan de verse.
+     **No se borra nada**: se puede volver a mostrar cuando quiera.
+3. Pulse **Guardar**.
+
+## 8. Cambiar una tarjeta de la página Productos
+
+*(Captura 4.)*
+
+1. A la izquierda, pulse **Tarjetas de portada** y luego **Las 4 tarjetas de
+   la página Productos**.
+2. Cada tarjeta tiene:
+   - **Título** (máximo 40 letras) y **Subtítulo** (máximo 70);
+   - **Foto de la tarjeta**: **Reemplazar** para poner otra. Mejor apaisada
+     (más ancha que alta); si no, la web la recorta por el centro;
+   - **¿Se ve en la página Productos?**: **Visible** u **Oculta**;
+   - **Posición**: 1 es la de más a la izquierda. No repita el mismo número.
+3. Pulse **Guardar**.
+
+Las tarjetas no se pueden añadir ni borrar: son siempre 4. Para quitar una,
+póngala en **Oculta**.
+
+## 9. Cuándo se ve el cambio en la web
+
+- Después de **Guardar**, la web se actualiza **en unos 5 minutos**. Si guarda
+  varias veces seguidas, cuente desde el último guardado.
+- Para comprobarlo, pulse **Ver en el sitio en vivo** (arriba, junto a
+  Guardar): abre la página del producto en la web. Si todavía ve lo de antes,
+  espere un poco y recargue la página (en Mac: Cmd + Mayúsculas + R).
+- Si a los **15 minutos** sigue sin verse, avise al equipo técnico con el
+  nombre del producto y la hora a la que guardó.
+
+## 10. Si se equivoca
+
+- **Un interruptor, un título o una posición:** vuelva a ponerlo como estaba y
+  pulse **Guardar**.
+- **Una ficha o una foto equivocada:** use **Reemplazar** en el mismo
+  producto y guarde.
+- **Antes de guardar** puede deshacer todo lo que cambió: botón de los tres
+  puntos (arriba a la derecha) → **Revertir todos los cambios**.
+- **En Recursos, no borre ni cambie el nombre de los archivos.** Para cambiar
+  una ficha o una foto, hágalo siempre desde el producto, con **Reemplazar**.
+- No use **Reordenar**: el orden de la lista no cambia nada en la web.
+- Si borró algo por error, avise al equipo técnico con la fecha y la hora: se
+  puede recuperar.
+
+## 11. Palabras que verá en pantalla
+
+| En pantalla | Qué hace |
+|---|---|
+| **Guardar** | Guarda los cambios. Hasta que no lo pulse, no se guarda nada. |
+| **Explorar** | Abre su computadora para elegir un archivo. |
+| «Arrastra un archivo aquí o» | Puede arrastrar el archivo hasta ese recuadro. |
+| **Pegar** / **Pegar imagen** | Pega un archivo o una imagen que copió antes. |
+| **Reemplazar** / **Quitar** | Cambia el archivo por otro / lo deja vacío. |
+| «Buscar contenido…» | Busca un producto por su nombre. |
+| **Filtrar** / **Agrupar** / **Ordenar** | Ordena la lista para encontrar lo que busca. |
+| **Ver en el sitio en vivo** | Abre esa página de la web. |
+| «Entrada guardada.» | El cambio se guardó. La web lo mostrará en unos 5 minutos. |
+| **Expandir todo** / **Contraer todo** | Abre o pliega las 4 tarjetas. |
+| **Recursos** | Los archivos subidos desde el panel. |
+| **Ajustes** / **Cerrar sesión** | En el botón redondo de arriba a la derecha. |
+| «El administrador ha deshabilitado la creación de nuevas entradas…» | Normal: los grupos salen del Excel, no se crean aquí. |
+
+---
+
+# Parte 2 · Parte técnica
+
+## A. Archivos
+
+| Archivo | Qué es |
+|---|---|
+| `public/admin/index.html` | Carga Sveltia CMS **0.252.0** desde unpkg con `integrity` (SRI). |
+| `public/admin/config.yml` | Colecciones, campos, carpetas y límites. Validado contra el esquema de 0.252.0. |
+| `src/data/catalog/overrides.json` | Una entrada por grupo de agua (lista en la raíz). La edita el panel y la mantiene el importador (`README-catalogo.md`). |
+| `src/data/catalog/cards.json` | Las 4 tarjetas de `/productos`. Formateado exactamente como lo escribe el panel, para que el primer guardado no reformatee el archivo. |
+| `public/assets/panel/` | Todo lo que sube el panel, más `logo-panel.png` (logo cuadrado del panel). |
+
+Sveltia es un CMS que funciona en el navegador: al pulsar **Guardar** hace un
+commit en `main` de `brunoh6/wretched-wasp` y el workflow publica en el cPanel
+(`README-deploy.md`).
+
+## B. Colecciones
+
+**Grupos de producto** (`name: grupos`) es una colección de entradas en un solo
+archivo (`file:` sobre `overrides.json`). Da buscador, filtros, agrupación,
+miniatura y el nombre legible de cada grupo.
+
+- `create`, `delete` y `duplicate` en `false`: los grupos los crea el
+  importador. El botón **Reordenar** no se puede quitar en este tipo de
+  colección, pero es inofensivo (`index.ts` busca por `groupKey`).
+- `identifier_field: label`, `summary: '{{label}}'`, `thumbnail: image`,
+  `sortable_fields: [label]`.
+- `view_filters`: Sin ficha técnica (`technicalSheet` vacío), Sin foto
+  (`image` vacío), Ocultos en la web (`visible: false`).
+- `view_groups`: Material (patrón `CPVC Corzan|PVC` sobre `label`) y Agua fría o
+  caliente.
+- `preview_path: /productos/{{family}}/?linea=agua` con
+  `site_url: https://www.dihyc.com.pe`: botón «Ver en el sitio en vivo».
+- Campos `label`, `family` y `groupKey`: `widget: hidden`. No se ven y su valor
+  se conserva al guardar. Los escribe el importador.
+- El orden de los campos en `config.yml` es el de las claves del JSON (`label,
+  family, visible, technicalSheet, image, groupKey`): un guardado sólo cambia
+  las líneas del grupo editado.
+- Sin campo `notes`: el repositorio es público y las «notas internas» se
+  podían leer en GitHub.
+
+**Tarjetas de portada** (`name: portada`, archivo `tarjetas`) es una lista
+bloqueada (`allow_add/remove/duplicate/reorder: false`). `slug`, `family` y
+`line` construyen el enlace `/productos/{family}/?linea={line}`: van `hidden`
+para que no se puedan cambiar. Desde v0.223.0 Sveltia no muestra `comment`;
+las explicaciones van en `hint` (en los campos `hidden` o `readonly` tampoco se
+ve el `hint`).
+
+`editor.preview: false`: la vista previa genérica de Sveltia no se parece a la
+web y le quitaba medio ancho al formulario.
+
+## C. Carpetas de medios
+
+| Qué | Carpeta del repo | URL pública |
 |---|---|---|
-| **A. Token de acceso personal** | No | **Para arrancar hoy mismo**, con el sitio en cualquier hosting |
-| **B. "Sign In with GitHub" (OAuth)** | Sí, según dónde se aloje | Cuando el cliente entre solo y a menudo |
-| **C. Repositorio local** | No | Sólo para pruebas en la computadora de quien programa |
+| Biblioteca global (Recursos) | `public/assets/panel/` | `/assets/panel/` |
+| Fichas de grupo | `public/assets/panel/fichas/` | `/assets/panel/fichas/` |
+| Fotos de grupo | `public/assets/panel/fotos/` | `/assets/panel/fotos/` |
+| Fotos de tarjeta | `public/assets/panel/tarjetas/` | `/assets/panel/tarjetas/` |
 
-### A. Token de acceso personal — la vía rápida (recomendada para empezar)
+**Por qué una carpeta propia:** la biblioteca deja borrar, renombrar y
+reemplazar todo lo que hay bajo `media_folder` y sólo corrige las rutas de los
+JSON que edita, nunca las del código (`.ts`/`.astro`). Con `public/assets`
+entero se podía borrar el logo o una ficha FM y la web quedaba rota. Ahora la
+biblioteca sólo ve `public/assets/panel/` (comprobado: no muestra
+`hero/logo.png` ni las fichas FM).
 
-Funciona **en cualquier hosting**, incluso GitHub Pages, y **no requiere montar
-ningún servicio de OAuth**. Es la forma más rápida de dejar el panel operativo.
+Los archivos que las tarjetas y la Brida loca PVC usaban se **copiaron** aquí
+(las fotos raster convertidas a WebP, calidad 82); los originales siguen en
+`categories/`, `products/` y `fichas-tecnicas/` porque el código los usa
+(`categories.ts`, `productLines.ts`, `fmProducts.ts`).
 
-1. Abrir `https://TU-DOMINIO/admin/`.
-2. Pulsar **"Sign In Using Access Token"**.
-3. El propio panel muestra un enlace a la página de GitHub donde se crea el
-   token **con los permisos ya marcados**. Se sigue ese enlace y se crea.
-4. Se pega el token en el panel. Queda guardado en ese navegador, así que sólo
-   hay que hacerlo una vez por computadora.
+## D. Subidas: conversión, límites y nombres
 
-> ⚠ **El token es una contraseña.** No se comparte por WhatsApp ni por correo.
-> Cada persona crea el suyo. Si alguien deja la empresa, se borra su token desde
-> GitHub → Settings → Developer settings.
+- **Fotos** (grupos y tarjetas): `accept` JPG, PNG, WebP, HEIC y HEIF (sin
+  SVG: un SVG es código servido desde el dominio). Se convierten a **WebP
+  calidad 82** en el navegador, como máximo 1600×1600 (tarjetas 1600×1200).
+  Límite **1 MB** medido después de convertir. El HEIC se decodifica con
+  `@discourse/heic`, que Sveltia descarga de unpkg la primera vez (salvo en
+  Safari, que lo lee solo). La conversión borra los datos EXIF (y el GPS).
+- **PDF:** límite global **10 MB** (`media_libraries.all.max_file_size`,
+  10 000 000 bytes para que el aviso diga «10 MB»). Un `max_file_size` de
+  campo manda sobre el global; un `transformations` de campo reemplaza entero
+  al global.
+- **Nombres:** `slugify_filename` con `slug.encoding: ascii` y
+  `clean_accents`: «Ficha Técnica #40 100% Codo 45°.pdf» se guarda como
+  `ficha-tecnica-40-100-codo-45.pdf`. Sólo afecta a subidas nuevas.
+- Si se sube un archivo idéntico a uno que ya existe, Sveltia reutiliza el
+  existente (no crea una copia).
 
-**Desventaja:** al cliente hay que explicarle qué es un token, y caduca si se le
-pone fecha de caducidad. Por eso, si el cliente va a entrar a menudo, conviene
-pasar a la opción B.
+## E. Versión fijada de Sveltia y cómo actualizarla
 
-### B. "Sign In with GitHub" — la vía cómoda para el cliente
+`index.html` carga `https://unpkg.com/@sveltia/cms@0.252.0/dist/sveltia-cms.js`
+con `integrity="sha384-…"` y `crossorigin="anonymous"`. Si la CDN sirviera otro
+archivo, el navegador no lo ejecuta (comprobado con un hash alterado: «Failed
+to find a valid digest… The resource has been blocked.»). Sin versión fijada,
+el panel cambiaba solo: entre 0.205.2 y 0.252.0 hubo 100 versiones y dos
+cambios incompatibles. A cambio, las correcciones ya no llegan solas: revisar
+una vez al mes (el 26/10/2026 ya existía 0.253.0).
 
-El cliente pulsa un botón, GitHub le pide usuario y contraseña, y listo. No hay
-tokens que copiar. **Requiere un pequeño servicio de OAuth**, porque un sitio
-estático no puede guardar el secreto que GitHub exige. Ese servicio no existe
-todavía en este proyecto. Hay dos maneras de conseguirlo:
+Para subir de versión (por ejemplo a `X.Y.Z`):
 
-#### B.1 · Worker de OAuth en Cloudflare ← **RECOMENDADA**
-
-El sitio vive en el **cPanel de la empresa** (decidido en octubre de 2026), así
-que las opciones de alojar el sitio en Netlify o Cloudflare Pages ya no aplican.
-Lo único que hace falta para el botón "Sign In with GitHub" es el pequeño
-servicio de OAuth, y se puede alojar gratis en Cloudflare Workers **sin mover el
-sitio ni tocar el DNS ni el correo**: el Worker vive en una dirección propia
-`*.workers.dev`.
-
-1. Crear una cuenta gratuita en Cloudflare (no hace falta añadir el dominio).
-2. Desplegar el
-   [Sveltia CMS Authenticator](https://github.com/sveltia/sveltia-cms-auth) en
-   Cloudflare Workers (el repositorio trae un botón de despliegue directo).
-3. Crear una OAuth App en GitHub (**Settings → Developer settings → OAuth Apps
-   → New OAuth App**) con
-   **Authorization callback URL: `https://TU-WORKER.workers.dev/callback`**.
-4. En el Worker, configurar las variables de entorno:
-   - `GITHUB_CLIENT_ID`
-   - `GITHUB_CLIENT_SECRET` (marcar **Encrypt**)
-   - `ALLOWED_DOMAINS` = `www.dihyc.com.pe`. **No es opcional en la práctica:**
-     sin esta lista, cualquier web ajena puede usar tu Worker y llegar a obtener
-     un token de acceso.
-5. Añadir en `public/admin/config.yml`, dentro de `backend:`:
-   ```yaml
-   base_url: https://TU-WORKER.workers.dev
-   ```
-   y publicar (el cambio sale solo, ver `README-deploy.md`).
-
-#### B.2 · Servicio propio en un VPS (si se autoaloja)
-
-Si el sitio va a vivir en un servidor propio, hace falta un microservicio que
-haga de intermediario en el "baile" de OAuth. Es pequeño pero hay que
-mantenerlo: dominio, certificado HTTPS, actualizaciones y vigilancia.
-
-Lo que tendría que hacer, en tres pasos:
-
-1. `GET /auth` → redirige a
-   `https://github.com/login/oauth/authorize` con el `client_id` y un parámetro
-   `state` aleatorio (el `state` evita que un tercero falsifique la vuelta).
-2. `GET /callback` → GitHub vuelve con un `code`. El servicio lo cambia por un
-   token llamando a `https://github.com/login/oauth/access_token` **desde el
-   servidor**, que es donde puede vivir el `client_secret` sin quedar expuesto.
-3. Devuelve el token a la ventana del panel con `postMessage`, comprobando
-   antes que el dominio que lo pide está en una lista blanca.
-
-En la práctica **no hace falta escribirlo**: el mismo
-[sveltia-cms-auth](https://github.com/sveltia/sveltia-cms-auth) se puede
-desplegar en un VPS con Node en lugar de en Cloudflare, y ya implementa esos
-tres pasos con el `state` y la lista blanca bien hechos.
-
-Después hay que apuntar el panel a ese servicio en `config.yml`:
-
-```yaml
-backend:
-  name: github
-  repo: brunoh6/wretched-wasp
-  branch: main
-  base_url: https://auth.tu-dominio.com
-```
-
-#### Recomendación
-
-**El Worker de Cloudflare (opción B.1).** Motivos:
-
-- Resuelve el login de un clic sin mover el sitio del cPanel ni tocar el DNS.
-- Es gratuito y no hay servidor que mantener.
-- La B.2 (servicio propio) sólo tendría sentido si algún día se monta un VPS por
-  otros motivos.
-
-**Plan sugerido:** empezar con la **opción A (token)** para que el cliente pueda
-usar el panel ya, y montar la **B.1** cuando el cliente vaya a entrar seguido.
-No son excluyentes: los dos botones conviven en la pantalla de entrada.
-
-### C. Repositorio local (pruebas de quien programa)
-
-Sirve para probar el panel **sin OAuth y sin tocar GitHub**: los cambios se
-escriben directamente en los archivos del disco.
-
-1. Levantar el servidor de desarrollo:
+1. Leer las notas de cada versión intermedia en
+   <https://github.com/sveltia/sveltia-cms/releases> buscando **BREAKING**.
+2. Calcular el hash del archivo exacto:
    ```bash
-   PATH=/opt/homebrew/bin:$PATH npm run dev
+   curl -sL https://unpkg.com/@sveltia/cms@X.Y.Z/dist/sveltia-cms.js \
+     | openssl dgst -sha384 -binary | openssl base64 -A
    ```
-2. Abrir **`http://localhost:4321/admin/index.html`**
-   ⚠ **Ojo:** en desarrollo hay que escribir `/admin/index.html` completo.
-   `http://localhost:4321/admin/` devuelve **404** — está comprobado. Es una
-   peculiaridad del servidor de desarrollo de Astro, que no busca el
-   `index.html` de una carpeta. En producción `/admin/` sí funciona.
-3. Pulsar **"Work with Local Repository"** y, cuando el navegador lo pida,
-   seleccionar la carpeta raíz del repositorio (`wretched-wasp`).
-
-> **Requiere Chrome, Edge, Brave o similar.** Usa la File System Access API, que
-> Firefox y Safari no tienen.
->
-> **Nota técnica:** Sveltia **no** usa `local_backend: true` ni el proxy
-> `decap-server` / `netlify-cms-proxy-server`; su documentación dice
-> expresamente que no los soporta y que la opción `local_backend` se ignora. Por
-> eso no aparece en `config.yml`: ponerla no haría nada.
-
----
-
-## 2. Grupos de producto
-
-El panel tiene dos secciones, las dos dentro de **Catálogo**:
-
-| Sección | Qué controla | Archivo que edita | Dónde se explica |
-|---|---|---|---|
-| **Grupos de producto** | Ficha técnica, foto y visibilidad de cada grupo del catálogo | `src/data/catalog/overrides.json` | esta sección |
-| **Tarjetas de portada** | Las cuatro tarjetas de la página **Productos** | `src/data/catalog/cards.json` | sección 3 |
-
-El aviso del idioma y el glosario de abajo valen para las dos.
-
-> ⚠ **LOS BOTONES DEL PANEL ESTÁN EN INGLÉS Y NO SE PUEDEN TRADUCIR.**
-> Todo lo NUESTRO está en español: los nombres de los campos ("Ficha técnica
-> (PDF)"), las ayudas y el interruptor Oculto/Activo. Pero los botones y menús
-> del propio programa son inglés fijo: el paquete de Sveltia CMS trae **un único
-> diccionario de textos, el inglés**, y su configuración **no tiene ninguna
-> opción de idioma**. No es algo que se haya dejado a medias: no se puede
-> cambiar sin modificar el programa.
->
-> Glosario de lo que el cliente se va a encontrar:
->
-> | En pantalla | Qué es |
-> |---|---|
-> | **Save** | Guardar |
-> | **Browse** | Buscar el archivo en la computadora |
-> | **Paste** / **Paste Image** | Pegar un archivo o una imagen del portapapeles |
-> | **Drop a file here** | Arrastrar el archivo hasta aquí |
-> | **Expand All** / **Collapse All** | Desplegar / plegar todos los grupos |
-> | **Contents** / **Collections** | Contenidos / Colecciones (el menú lateral) |
-> | **Search for contents…** | Buscar |
-> | **Sign In with GitHub** | Entrar con la cuenta de GitHub |
-> | **Sign In Using Access Token** | Entrar con un token (ver sección 1.A) |
-> | **Work with Local Repository** | Trabajar con los archivos del disco (sección 1.C) |
-
-### Qué es un "grupo"
-
-Un grupo son **todas las medidas de un mismo producto**. Por ejemplo, "Codo 90°
-PVC · Agua fría" es un grupo con sus 20 diámetros. La ficha técnica y la foto
-son las mismas para todas las medidas, así que **se cargan una sola vez por
-grupo**: 32 grupos en lugar de 443 productos sueltos.
-
-Cada grupo aparece en la lista identificado por su código, que se lee de
-izquierda a derecha separado por barras:
-
-```
-agua | conexiones | codo-90 | pvc | agua-fria
- │       │           │      │      └─ aplicación
- │       │           │      └──────── material
- │       │           └─────────────── producto
- │       └─────────────────────────── familia
- └─────────────────────────────────── línea comercial
-```
-
-### Los cinco campos
-
-| Campo | Para qué sirve |
-|---|---|
-| **Identificador del grupo** | Sólo lectura. Es lo que une este grupo con sus medidas. No se puede modificar. |
-| **Estado en la web** | Interruptor **Activo / Oculto**. Oculto quita el grupo y todas sus medidas del catálogo, sin borrar nada. |
-| **Ficha técnica (PDF)** | Sube el PDF. Si se deja vacío, la web muestra "Ficha pendiente". |
-| **Imagen del producto** | Foto del grupo. Opcional. |
-| **Notas internas** | Apuntes para el equipo. **No se publican en la web.** |
-
-### Cómo se sube una ficha técnica, paso a paso
-
-1. Entrar en **Catálogo → Grupos de producto**.
-2. Buscar el grupo en la lista y pulsarlo para desplegarlo.
-3. En **Ficha técnica (PDF)**, pulsar el recuadro y elegir el archivo.
-4. Pulsar **Save** (guardar) arriba a la derecha.
-5. El cambio se guarda como un commit en GitHub.
-
-> **¿Cuándo se ve el cambio en la web?** Cada guardado es un commit en GitHub,
-> y GitHub publica solo en el cPanel en 1–2 minutos **una vez configurada la
-> publicación** (`README-deploy.md`: cuenta FTP, secrets y la variable
-> `DEPLOY_METHOD`). Si esa variable todavía no existe, el cambio queda guardado
-> en GitHub pero no se publica. En GitHub → **Actions** se ve cada publicación y
-> si terminó bien.
-
-### Por qué no se pueden añadir ni borrar grupos
-
-Los botones de añadir, eliminar, duplicar y reordenar están **desactivados a
-propósito**. Los grupos los crea el importador de Excel; si se pudieran crear a
-mano aquí, quedarían descolgados de los datos reales y un grupo bueno podría
-perder su ficha técnica.
-
-**Para añadir productos nuevos: se manda el Excel actualizado y se vuelve a
-importar.** Los grupos nuevos aparecen solos en el panel, listos para que el
-cliente les ponga ficha y foto. Lo que ya estaba cargado **no se pierde**: el
-importador tiene prohibido sobreescribir `overrides.json`.
-
-### Dónde acaban los archivos que se suben
-
-Vale para las dos secciones del panel.
-
-| Qué se sube | Dónde se guarda | URL pública |
-|---|---|---|
-| Fichas técnicas (grupos) | `public/assets/fichas-tecnicas/` | `/assets/fichas-tecnicas/...` |
-| Imágenes de grupo | `public/assets/products/` | `/assets/products/...` |
-| Fotos de las tarjetas de portada | `public/assets/categories/` | `/assets/categories/...` |
-
----
-
-## 3. Tarjetas de portada
-
-Es la sección **Catálogo → Tarjetas de portada**. Controla las **cuatro
-tarjetas** que se ven al entrar en la página **Productos**:
-
-| Tarjeta | A qué catálogo lleva |
-|---|---|
-| Tuberías FM | Tuberías, filtrado a contra incendio |
-| Tuberías | Tuberías, filtrado a agua fría y caliente |
-| Conexiones FM | Conexiones, filtrado a contra incendio |
-| Conexiones | Conexiones, filtrado a agua fría y caliente |
-
-### Qué puede cambiar el cliente
-
-| Campo | Qué hace |
-|---|---|
-| **Título** | El texto grande debajo de la foto. Máximo 40 caracteres. |
-| **Subtítulo** | La línea gris de debajo. Máximo 70. Es obligatorio, porque el sitio lo usa además como texto alternativo de la foto. |
-| **Foto de la tarjeta** | La imagen. Ver más abajo el tamaño recomendado. |
-| **Estado en la portada** | Interruptor **Oculta / Visible**. Oculta quita la tarjeta de la portada; las otras tres se recolocan solas para llenar la fila. |
-| **Posición** | Un número del 1 al 4. 1 es la tarjeta de más a la izquierda. |
-
-> **El orden se cambia con el número, no arrastrando.** La lista no deja
-> arrastrar filas a propósito: la web ordena las tarjetas por el campo
-> **Posición**, así que mover una fila en el panel no cambiaría nada en la web.
-> Un botón de arrastrar sería un botón que miente.
->
-> Si por descuido dos tarjetas acaban con el mismo número no se rompe nada,
-> pero cuál de las dos sale antes queda al azar.
-
-### Qué NO debe tocar, y por qué
-
-Al final de cada tarjeta hay **tres casillas en gris que no dejan escribir**:
-
-| Campo bloqueado | Qué es |
-|---|---|
-| **Identificador de la tarjeta** | El nombre interno con el que el código reconoce esta tarjeta. |
-| **Familia a la que enlaza** | `tuberias` o `conexiones`. |
-| **Línea comercial a la que enlaza** | `fm` (contra incendio) o `agua` (fría y caliente). |
-
-Los dos últimos son literalmente la dirección a la que lleva la tarjeta:
-
-```
-/productos/{familia}?linea={línea}
-
-Conexiones FM  ->  /productos/conexiones?linea=fm
-```
-
-Si se pudieran cambiar, pasaría una de dos cosas, y **ninguna daría error
-visible en el panel**: la tarjeta llevaría a una página que no existe (un 404 en
-la cara del cliente final), o llevaría al catálogo equivocado —la tarjeta
-"Conexiones FM" abriendo el listado de agua—. Por eso están bloqueadas.
-
-**Para cambiar a qué catálogo lleva una tarjeta hay que tocar código.** No es
-un olvido: es que esa decisión va junto con las páginas que existen en el sitio.
-
-> ⚠ **En estos tres campos el panel sólo muestra la etiqueta.** Sveltia **no
-> pinta el texto de ayuda de los campos de sólo lectura** (se comprobó abriendo
-> el panel: ni `hint` ni `comment` llegan a verse). Por eso la explicación del
-> bloqueo está metida en el texto de arriba de la lista y en la propia etiqueta
-> de cada campo, que es lo único que el cliente va a leer en pantalla. Si algún
-> día se cambian esas etiquetas, hay que seguir dejando claro ahí que están
-> bloqueadas.
-
-### Tampoco se pueden añadir ni borrar tarjetas
-
-Igual que con los grupos, los botones de añadir, borrar, duplicar y reordenar
-están desactivados. Son **cuatro tarjetas fijas**, una por cada combinación de
-familia y línea comercial, y cada una apunta a una página que existe de verdad.
-Una tarjeta nueva creada desde el panel enlazaría a una dirección inventada.
-
-Para **quitar** una tarjeta de la portada se usa el interruptor
-**Oculta / Visible**: es reversible y no pierde nada.
-
-### Qué foto subir
-
-| | |
-|---|---|
-| **Proporción** | **4:3 apaisada** (más ancha que alta) |
-| **Tamaño mínimo** | **800 x 600 píxeles**. Recomendado 1200 x 900 |
-| **Formato** | **JPG o PNG** |
-| **Peso** | Menos de 1 MB, para que la página siga cargando rápido en el móvil |
-| **Fondo** | Blanco o gris muy claro, con el producto centrado y aire alrededor |
-
-Dos cosas que conviene saber:
-
-- **Si la foto no es 4:3, el sitio la recorta por el centro** (no la deforma).
-  Una foto vertical pierde arriba y abajo. Por eso conviene dejar margen
-  alrededor del producto.
-- **Por debajo de 800 x 600 la foto se ve borrosa**, porque la tarjeta la
-  amplía. Es exactamente el motivo por el que la tarjeta "Conexiones FM" no usa
-  una foto: la única disponible era de 300 x 300 y se pixelaba. En su lugar
-  lleva un **dibujo vectorial** (`/assets/categories/conexiones-fm.svg`), que se
-  ve nítido a cualquier tamaño. Si algún día llega una foto buena del codo de
-  HDPE, se sube por aquí y sustituye al dibujo sin tocar nada más.
-
-> **El panel no acepta SVG a propósito.** El selector de archivo sólo ofrece JPG
-> y PNG. Un SVG es código que se serviría desde el propio dominio del sitio, así
-> que los dibujos vectoriales los pone el equipo técnico, revisados, no se suben
-> desde el panel.
-
-### Un detalle del que no hay que preocuparse
-
-Dos de las cuatro tarjetas apuntan hoy a fotos que viven en
-`public/assets/products/` en lugar de en `public/assets/categories/`. Funciona
-igual: la ruta guardada es la que manda. Las fotos **nuevas** que se suban desde
-el panel irán a `public/assets/categories/`, que es la carpeta de las tarjetas.
-
----
-
-## 4. Qué NO se puede editar desde el panel (y por qué)
-
-Esto es una limitación real y conviene tenerla clara desde el principio.
-
-### Categorías → sigue siendo un cambio de código
-
-Las categorías viven en **`src/data/categories.ts`**, que es TypeScript, o sea
-**código, no datos**. Un CMS de archivos como Sveltia sabe editar JSON, YAML o
-Markdown, pero no puede editar código sin arriesgarse a romper la compilación
-del sitio.
-
-Hoy hay siete categorías y sólo dos están publicadas (`tuberias` y
-`conexiones`); las otras cinco tienen `visible: false`. **Publicar una categoría
-nueva —o mostrar una de las ocultas— exige tocar ese archivo y volver a
-desplegar.** Es un cambio de un minuto para quien programa, pero el cliente no
-lo puede hacer solo.
-
-### Certificaciones → también código, y además están apagadas
-
-Las certificaciones viven en **`src/data/certifications.ts`**, TypeScript
-igualmente, así que tampoco se pueden editar desde el panel.
-
-Además, la sección entera está **desactivada** con un interruptor:
-
-```ts
-// src/data/certifications.ts, línea 60
-export const CERTIFICATIONS_ENABLED: boolean = false;
-```
-
-Mientras esa constante valga `false`, la lista `visibleCertifications` queda
-vacía y la sección no se pinta en ninguna parte de la web. Para encender la
-sección hay que ponerla en `true` y volver a desplegar. El propio archivo
-explica en sus comentarios (línea 50) los pasos completos.
-
-### Medidas, SKU, materiales y diámetros → vienen del Excel
-
-Están en `src/data/catalog/products.json` y `groups.json`, que el importador
-**borra y reescribe enteros** en cada importación. Si se pudieran editar en el
-panel, el siguiente Excel se llevaría por delante todo el trabajo sin avisar.
-Por eso el panel sólo toca `overrides.json`, que el importador nunca sobreescribe.
-
----
-
-## 5. Problemas conocidos
-
-### El push falla por culpa del workflow
-
-Si al subir cambios GitHub responde algo como
-`refusing to allow ... without 'workflow' scope`, es por el archivo
-`.github/workflows/deploy.yml`. **Ya pasó en este repositorio**: el commit
-`b23c350`, llamado "push without workflow", lo que hizo fue borrar un
-`deploy.yml` anterior para poder subir el resto.
-
-Soluciones, de mejor a peor:
-
-1. Dar el permiso `workflow` al token que se usa para hacer push
-   (GitHub → Settings → Developer settings → Personal access tokens).
-2. Subir el archivo desde la web de GitHub, que no tiene esa restricción.
-3. **No borrarlo:** desde octubre de 2026 ese workflow es el que PUBLICA el
-   sitio en el cPanel. Sin él, ningún cambio del panel llega a la web.
-
-### El panel deja de funcionar tras una actualización
-
-`public/admin/index.html` carga Sveltia **sin fijar la versión**, tal como
-recomienda la documentación oficial, para recibir correcciones automáticamente.
-Si una actualización rompiera algo, se congela la versión editando esa línea:
-
-```html
-<script src="https://unpkg.com/@sveltia/cms@0.205.2/dist/sveltia-cms.js"></script>
-```
-
-`0.205.2` es la versión que servía unpkg cuando se probó este panel. Si se quiere fijar otra,
-la lista de versiones está en <https://www.npmjs.com/package/@sveltia/cms>.
-
-### Editar `config.yml` sin romperlo
-
-El archivo empieza con esta línea, que **no es un comentario decorativo**:
-
-```yaml
-# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms/schema/sveltia-cms.json
-```
-
-Engancha el archivo al esquema oficial de Sveltia. En VS Code con la extensión
-YAML, cualquier opción mal escrita o inventada sale marcada en rojo **antes** de
-subirla. Merece la pena instalarla: un `config.yml` inválido deja el panel con la
-pantalla "There is an error in the CMS configuration".
-
----
-
-## 6. Qué se probó de verdad y qué no
-
-Para que nadie dé por bueno algo que no se comprobó:
-
-**Comprobado y funcionando:**
-
-- `npm run build` termina con **0 errores y 7 páginas**, con el panel incluido.
-- `dist/admin/index.html` y `dist/admin/config.yml` existen después de compilar.
-- `config.yml` es YAML válido y **pasa el esquema JSON oficial de Sveltia CMS**
-  sin un solo error. Se comprobó además que ese esquema rechaza opciones
-  inventadas en todos los niveles usados, así que la validación tiene valor real.
-- El panel **carga en el navegador** en `http://localhost:4321/admin/index.html`,
-  sin errores de consola, y muestra la pantalla de entrada con las tres opciones.
-- Sveltia **lee y entiende `config.yml`**: la pantalla dice "select the root
-  directory of the *wretched-wasp* repository", nombre que sólo puede salir del
-  `repo:` configurado. También se verificó por el lado contrario: con un
-  `config.yml` roto a propósito, el panel muestra "The configuration file could
-  not be parsed".
-
-- **El editor de grupos se abrió y se comprobó campo por campo.** Como el
-  diálogo de "Work with Local Repository" es del sistema operativo y no se puede
-  automatizar, se hizo la prueba con una copia temporal del panel apuntada al
-  backend `test-repo` (en memoria) y sembrada con entradas reales de
-  `overrides.json`. Se confirmó que:
-  - los grupos salen plegados, uno por fila, titulados por su identificador;
-  - **no aparece ningún botón de añadir, borrar, duplicar ni reordenar**
-    (las cuatro cerraduras de `config.yml` funcionan);
-  - los cinco campos se pintan bien: identificador en gris y bloqueado,
-    interruptor con "Oculto" a un lado y "Activo" al otro, subida de PDF, subida
-    de imagen y notas, cada uno con su ayuda en español;
-  - al pulsar **Save** y volver a abrir, **los identificadores siguen ahí**: los
-    campos de sólo lectura sí se guardan y la forma del JSON se conserva.
-
-  La copia temporal se borró; en `public/admin/` sólo quedan `index.html` y
-  `config.yml`.
-
-- **El editor de tarjetas de portada se abrió y se comprobó igual**, con el
-  mismo montaje de repositorio en memoria. Se confirmó que:
-  - la colección **Catálogo** muestra sus **dos** archivos;
-  - los ocho campos se pintan con su etiqueta y su ayuda en español: contadores
-    de 40 y 70 caracteres en título y subtítulo, subida de imagen **sin** la
-    opción de pegar una URL, interruptor con "Oculta" y "Visible", y el número
-    de posición;
-  - con el `config.yml` real **no aparece el botón "Add Tarjeta"**: la cerradura
-    `allow_add: false` funciona, y el único menú de la lista ofrece sólo "Revert
-    Changes" (no hay ninguna vía indirecta para añadir o borrar filas);
-  - **al pulsar Save, los tres campos bloqueados se guardan intactos.** Se sembró
-    el repositorio de pruebas con el `cards.json` real, se cambió un título y se
-    volvió a leer el archivo: `slug`, `family` y `line` siguen ahí con su valor,
-    y la ruta `.svg` de "Conexiones FM" sobrevive aunque el campo sólo acepte JPG
-    y PNG (el filtro `accept` limita lo que se puede subir, no lo ya guardado);
-  - **descubrimiento:** en los campos de sólo lectura Sveltia pinta únicamente
-    la etiqueta. Se probaron `hint` y `comment` en un campo `readonly` y **no se
-    ve ninguno de los dos**. Por eso la explicación de los tres campos
-    bloqueados se movió al texto de cabecera de la lista y a las etiquetas.
-
-- **La ilustración `conexiones-fm.svg` se miró en el navegador**, no sólo se
-  escribió: en la página `/productos` real (con el realce `img-bright` que el
-  sitio aplica a las fotos), junto a las otras tres tarjetas, y suelta a 400 y a
-  1200 píxeles de ancho. Se corrigieron tres cosas que sólo se veían al ampliar:
-  el reborde de fusión parecía una arandela pegada, el codo quedaba pequeño
-  dentro del encuadre, y la sombra de contacto se cortaba en seco dejando una
-  raya horizontal (el margen del filtro de desenfoque era más estrecho que el
-  propio desenfoque). Las tres se comprobaron midiendo el archivo ya
-  rasterizado, no sólo mirándolo.
-
-**NO comprobado (hay que hacerlo a mano):**
-
-- **Ninguna de las dos rutas de OAuth se probó en producción.** El hosting ya
-  está decidido (cPanel), pero no hay OAuth App creada ni Worker desplegado. Los pasos de la sección 1
-  salen de la documentación oficial de Sveltia y de su autenticador, no de una
-  instalación real de este proyecto.
-- **No se probó guardar contra GitHub.** Habría hecho falta un token de acceso
-  real, y eso lo tiene que hacer una persona con su propia cuenta.
+3. Cambiar en `index.html` la versión y el `integrity` (`sha384-<hash>`), y en
+   la primera línea de `config.yml` el `$schema` a la misma versión.
+4. Validar `config.yml` contra
+   `https://unpkg.com/@sveltia/cms@X.Y.Z/schema/sveltia-cms.json` (ajv o VS Code
+   con la extensión YAML).
+5. Probar el panel en el arnés de pruebas (punto F) y en `/admin/` tras
+   publicar: carga, lista de grupos, guardar.
+
+Los idiomas (`locales/es-CO.json`) y los módulos extra los descarga el propio
+Sveltia de la misma versión.
+
+## F. Validaciones
+
+- **Esquema:** `config.yml` pasa el esquema JSON de 0.252.0 sin errores, y el
+  esquema rechaza una opción inventada en cada nivel usado (raíz, `logo`,
+  `editor`, `media_libraries`, colección, filtro, grupo, campo, transformación,
+  archivo y subcampo).
+- **Al publicar** (`deploy.yml`, paso «Validar el sitio compilado»): si el HTML
+  cita un archivo que no existe bajo `/assets/fichas-tecnicas/`, `hero/`,
+  `categories/`, `products/`, `materiales/` o `panel/`, la publicación **falla**
+  (`::error::`). Lo demás que falte (hoy `/assets/services/alquiler-maquinas.png`,
+  a propósito) es sólo aviso. Mientras falte un archivo crítico no sale ninguna
+  publicación, tampoco los guardados del panel.
+- **`.htaccess`:** los SVG de `/assets/` llevan su propia CSP
+  (`default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox`):
+  un SVG con `<script>` abierto directamente no se ejecuta en el dominio donde
+  el panel guarda su sesión. Dentro de `<img>` se ven igual. Lo comprueba
+  `bash scripts/probar-htaccess.sh` (sección m).
+- **Arnés de pruebas del panel** (sin GitHub): una copia de `config.yml` con
+  `backend: { name: test-repo }`, el mismo `sveltia-cms.js` servido en local y
+  `<link rel="cms-seed-url" href="/seed/manifest.json">` en el `index.html`, con
+  un `manifest.json` (`{"files": [...]}`) que lista los archivos reales a
+  sembrar. El repositorio de pruebas vive en el navegador (OPFS), así que
+  después de guardar se puede leer lo que el panel escribió.
+
+## G. Cómo se entra al panel (pendiente de decisión)
+
+El método de entrada para el gerente se decide aparte; `config.yml` no se tocó
+en esto. Opciones técnicas:
+
+- **Token de acceso personal** («Iniciar sesión con un token de acceso»). Ojo:
+  el enlace que ofrece el propio panel crea un token *fine-grained*, que no
+  sirve a un colaborador de un repositorio personal; haría falta un token
+  clásico con alcance `repo`/`public_repo`.
+- **«Iniciar sesión con GitHub» (OAuth)** con el Worker gratuito
+  [sveltia-cms-auth](https://github.com/sveltia/sveltia-cms-auth) en
+  Cloudflare: OAuth App con callback `https://<worker>.workers.dev/callback`;
+  en el Worker `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` y
+  `ALLOWED_DOMAINS=www.dihyc.com.pe`, las tres como *Secret*; y en `backend:`
+  `base_url: https://<worker>.workers.dev`. **Hoy ese botón abre una ventana
+  con «Not Found»** porque no hay `base_url`; se puede esconder con
+  `auth_methods: [token]` mientras tanto.
+- **Repositorio local** («Trabajar con un repositorio local», sólo Chrome/Edge
+  y sólo para quien programa): `npm run dev` y abrir
+  `http://localhost:4321/admin/index.html` (en desarrollo `/admin/` da 404).
+  Sveltia ignora `local_backend`.
+
+## H. Qué NO se puede editar desde el panel
+
+- **Línea FM:** las fichas y fotos están en `src/data/fmProducts.ts`
+  (`TECH_SHEETS`, `PRODUCT_IMAGES`), que es código.
+- **Categorías** (`src/data/categories.ts`) y **certificaciones**
+  (`src/data/certifications.ts`, apagadas con `CERTIFICATIONS_ENABLED = false`):
+  código TypeScript.
+- **Medidas, SKU, materiales:** `products.json` y `groups.json`, que el
+  importador reescribe enteros (`README-catalogo.md`).
+
+## I. Problemas conocidos
+
+- **El push falla por `workflow` scope:** dar ese permiso al token con el que
+  se hace push, o subir `deploy.yml` desde la web de GitHub. No borrar
+  `deploy.yml`: es el que publica.
+- **«Hay un error en la configuración del CMS»:** `config.yml` inválido.
+  Validarlo contra el esquema (punto F).
+- **Las fotos de grupo ya se suben, pero la miniatura por fila del catálogo
+  de agua la pinta `src/pages/productos/[category].astro`;** si ese cambio no
+  está publicado, la foto sólo se ve en el bloque de marca.
+
+## J. Qué se comprobó (26/10/2026, arnés con Sveltia 0.252.0 y Chrome en es-PE)
+
+- `/admin/` del sitio compilado carga 0.252.0 con SRI y muestra «Panel DIHYC»,
+  el logo H&C y los botones en español; con el hash alterado no carga.
+- Grupos: 32 filas con su nombre, «Buscar contenido…» con `codo` encuentra 4,
+  Filtrar → Sin ficha técnica 31, Sin foto 32, Ocultos 0 («No se encontraron
+  entradas.»); Agrupar → Material da «CPVC Corzan» y «PVC».
+- Guardar un grupo (interruptor + foto + PDF) cambia **sólo 3 líneas** de
+  `overrides.json`; `label`, `family` y `groupKey` siguen igual en las 32 filas.
+- Foto `foto-prueba.jpg` → `/assets/panel/fotos/foto-prueba.webp`; JPG de
+  3000×2250 → WebP de 1600×1200 en tarjetas; HEIC del iPhone → WebP;
+  «Ficha Técnica #40 100% Codo 45°.pdf» → `ficha-tecnica-40-100-codo-45.pdf`;
+  PDF de 11,7 MB rechazado con el aviso de 10 MB.
+- Tarjetas: guardar conserva `slug`, `family` y `line` y el orden de claves.
+- «Ver en el sitio en vivo» abre `https://www.dihyc.com.pe/productos/conexiones/?linea=agua`
+  (grupo de conexiones) y `https://www.dihyc.com.pe/productos/` (tarjetas).
+- Recursos sólo lista `public/assets/panel/` (7 archivos), sin el logo del
+  sitio ni las fichas FM.
+
+**No comprobado:** guardar contra GitHub de verdad (hace falta una cuenta con
+acceso) y la conversión de fotos grandes en Safari del iPhone.

@@ -125,6 +125,11 @@ scope"*:
 2. En GitHub → pestaña **Actions** → la ejecución **Construir y publicar**.
 3. Deben ponerse en verde, en orden:
    - **Compilar y validar** — el sitio compiló y no falta ningún archivo clave.
+     Si el HTML cita una ficha, una foto del catálogo o un archivo del panel
+     (`/assets/fichas-tecnicas/`, `hero/`, `categories/`, `products/`,
+     `materiales/`, `panel/`) que no existe, **falla y no publica** (línea roja
+     `::error::` con la ruta y la página). Lo demás que falte (hoy la foto de
+     alquiler de `/assets/services/`) sólo avisa en amarillo.
    - **Publicar por FTPS** — los archivos se subieron a `public_html`.
    - **Probar el sitio en vivo** — entra a www.dihyc.com.pe y comprueba:
      que se ve **esta** versión, que las páginas principales responden, que una
@@ -144,7 +149,9 @@ scope"*:
 > respaldo (de archivos **y** de la base de datos), **sin tocar nunca**
 > `.well-known`, `cgi-bin` ni la carpeta de otro dominio.
 
-Desde entonces, cada guardado en el panel `/admin` publica solo en 1–2 minutos.
+Desde entonces, cada guardado en el panel `/admin` publica solo: la
+publicación tarda 1–2 minutos y, con la caché del navegador, el cambio se ve
+en la web en unos 5 minutos (es lo que dice el panel).
 Si se guardan varios cambios seguidos, se encolan y se publica el último.
 
 ---
@@ -242,6 +249,7 @@ concreta como `public_html/`.
 | Se cambió un secret o una variable y hay que reintentar | Mejor Actions → **Construir y publicar** → **Run workflow** (ejecución nueva) que *Re-run*. |
 | *Probar el sitio en vivo* dice que **no se ve la versión nueva** | Si se restauró el `.zip` (sección 4), falta borrar `.ftp-deploy-sync-state.json`. Si no, el hosting puede tener una caché propia: esperar unos minutos y **Re-run failed jobs**. |
 | *Probar el sitio en vivo* avisa (en amarillo) que **faltan cabeceras de seguridad** | El sitio funciona; el hosting no tiene activo `mod_headers`. Consultar al proveedor si lo puede activar. |
+| *Compilar y validar* falla con `::error::/assets/... no existe en el sitio` | Alguien borró o renombró un archivo que la web cita (p. ej. desde la biblioteca del panel). Mientras siga así **no se publica ningún cambio**, tampoco los guardados del panel. Restaurar el archivo (está en el historial de GitHub) o quitar la cita, y volver a publicar. |
 | El push falla por **workflow scope** | Ver 1.5. |
 
 ---
@@ -259,10 +267,11 @@ bash scripts/probar-htaccess.sh
 ```
 
 Levanta un Apache 2.4 temporal (sin sudo; en macOS ya viene instalado) y corre
-63 comprobaciones: las tres redirecciones a `https://www.dihyc.com.pe` en un
+76 comprobaciones: las tres redirecciones a `https://www.dihyc.com.pe` en un
 salto, la query conservada, PDFs con espacios y `°`, la 404 propia, `/admin` con
 su política, `.well-known` sin redirección, otro dominio intacto, caché,
-compresión, sin listado de carpetas, archivos ocultos bloqueados, los restos
+compresión, sin listado de carpetas, archivos ocultos bloqueados, SVG de
+`/assets/` servidos sin scripts, los restos
 del sitio viejo (sus `.php` redirigen, la portada nueva gana al `index.php`
 viejo, y mientras sube la primera publicación la portada vieja sigue viva), y
 que el sitio **no** da 500 si al hosting le faltan `mod_headers`, `mod_deflate`
@@ -279,6 +288,8 @@ la prueba en vivo del workflow confirma en el servidor lo esencial.
   navegador sin violaciones en todas las páginas). Si se añade Google Analytics,
   hay que sumar sus dominios a la CSP.
 - HSTS de 1 día, sin `includeSubDomains`: subirlo a un año tras un mes estable.
+- SVG de `/assets/`: CSP propia (`default-src 'none'; sandbox`) para que un SVG
+  con `<script>` abierto directamente no se ejecute en el dominio del panel.
 - Caché: `/_astro/` un año; HTML, sitemap y config del CMS siempre frescos;
   PDFs e imágenes 1 día (las fichas se reemplazan con el mismo nombre).
 - Redirecciones, cabeceras y bloqueos acotados a `dihyc.com.pe` /

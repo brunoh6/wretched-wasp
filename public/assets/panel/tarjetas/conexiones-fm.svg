@@ -1,0 +1,208 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600"
+     preserveAspectRatio="xMidYMid slice" role="img"
+     aria-label="Codo de 90 grados de HDPE negro para termofusion">
+  <title>Codo 90° HDPE para termofusión</title>
+  <!--
+    ILUSTRACIÓN VECTORIAL · Codo 90° HDPE (accesorio típico de la línea FM).
+    Por qué existe este archivo: la única foto disponible del accesorio FM
+    (codo_integrity.jpg) es de 300x300 px y se pixela al ampliarla en una
+    tarjeta 4:3. Un SVG no pierde nitidez a ningún tamaño.
+
+    CONVENCIONES DE DIBUJO (para quien tenga que retocarlo):
+      · Vista ortográfica de catálogo. Las bocas se dibujan como elipses
+        achatadas (convención de ilustración técnica) para que se vea el
+        espesor de pared y el interior del tubo.
+      · Toda la geometría deriva de 4 números: R (radio exterior del tubo),
+        Rb (radio del eje de la curva) y el centro C de la curva.
+            R = 90 · Rb = 155 · C = (385, 335)
+            radio exterior de la curva  Ro = Rb + R = 245
+            radio interior de la curva  Ri = Rb - R =  65
+        Tramo vertical: eje x = 230 (bordes en x = 140 y x = 320).
+        Tramo horizontal: eje y = 180 (bordes en y = 90 y y = 270).
+      · La luz entra por arriba a la izquierda. El brillo especular va
+        SIEMPRE por la cara exterior del codo, así que los tres degradados
+        (curva, tramo vertical, tramo horizontal) usan las mismas paradas
+        de color y coinciden exactamente en las líneas de tangencia
+        (y = 335 y x = 385). Por eso no se ve costura entre las piezas.
+      · preserveAspectRatio="xMidYMid slice" para acompañar al object-cover
+        de la tarjeta; el producto lleva margen de sobra por los 4 lados
+        para que un recorte accidental no lo corte.
+  -->
+  <defs>
+    <!-- Fondo: gris muy claro, coherente con las fotos de las otras tarjetas -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fbfcfd"/>
+      <stop offset="0.55" stop-color="#f2f4f6"/>
+      <stop offset="1" stop-color="#e6e9ed"/>
+    </linearGradient>
+    <radialGradient id="bgGlow" cx="380" cy="250" r="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="0.62" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Curva del codo: el degradado es radial desde C, así el color depende
+         sólo de la distancia al eje de giro = sombreado cilíndrico correcto.
+         Las paradas van de Ri/Ro = 0.265 (borde interior) a 1 (borde exterior). -->
+    <radialGradient id="gBend" cx="385" cy="335" r="245" gradientUnits="userSpaceOnUse">
+      <stop offset="0.265" stop-color="#2c3036"/>
+      <stop offset="0.300" stop-color="#202429"/>
+      <stop offset="0.350" stop-color="#14161a"/>
+      <stop offset="0.480" stop-color="#24282d"/>
+      <stop offset="0.620" stop-color="#3c4147"/>
+      <stop offset="0.720" stop-color="#575d65"/>
+      <stop offset="0.800" stop-color="#757b84"/>
+      <stop offset="0.835" stop-color="#8d949d"/>
+      <stop offset="0.870" stop-color="#656b73"/>
+      <stop offset="0.920" stop-color="#35393f"/>
+      <stop offset="0.965" stop-color="#1c1f23"/>
+      <stop offset="1.000" stop-color="#0d0f12"/>
+    </radialGradient>
+
+    <!-- Tramo vertical: mismas paradas reproyectadas. La equivalencia es
+         t = (1 - offsetRadial) / 0.735, y por eso empalma sin salto. -->
+    <linearGradient id="gLegA" x1="140" y1="335" x2="320" y2="335" gradientUnits="userSpaceOnUse">
+      <stop offset="0.000" stop-color="#0d0f12"/>
+      <stop offset="0.048" stop-color="#1c1f23"/>
+      <stop offset="0.109" stop-color="#35393f"/>
+      <stop offset="0.177" stop-color="#656b73"/>
+      <stop offset="0.224" stop-color="#8d949d"/>
+      <stop offset="0.272" stop-color="#757b84"/>
+      <stop offset="0.381" stop-color="#575d65"/>
+      <stop offset="0.517" stop-color="#3c4147"/>
+      <stop offset="0.707" stop-color="#24282d"/>
+      <stop offset="0.884" stop-color="#14161a"/>
+      <stop offset="0.952" stop-color="#202429"/>
+      <stop offset="1.000" stop-color="#2c3036"/>
+    </linearGradient>
+
+    <!-- Tramo horizontal: idéntico, girado 90°. -->
+    <linearGradient id="gLegB" x1="385" y1="90" x2="385" y2="270" gradientUnits="userSpaceOnUse">
+      <stop offset="0.000" stop-color="#0d0f12"/>
+      <stop offset="0.048" stop-color="#1c1f23"/>
+      <stop offset="0.109" stop-color="#35393f"/>
+      <stop offset="0.177" stop-color="#656b73"/>
+      <stop offset="0.224" stop-color="#8d949d"/>
+      <stop offset="0.272" stop-color="#757b84"/>
+      <stop offset="0.381" stop-color="#575d65"/>
+      <stop offset="0.517" stop-color="#3c4147"/>
+      <stop offset="0.707" stop-color="#24282d"/>
+      <stop offset="0.884" stop-color="#14161a"/>
+      <stop offset="0.952" stop-color="#202429"/>
+      <stop offset="1.000" stop-color="#2c3036"/>
+    </linearGradient>
+
+    <!-- Reborde de fusión: sobresale del tubo, así que recibe algo más de luz. -->
+    <linearGradient id="gBead" x1="210.51" y1="154.51" x2="346.29" y2="290.29" gradientUnits="userSpaceOnUse">
+      <stop offset="0.00" stop-color="#191c20"/>
+      <stop offset="0.07" stop-color="#31363c"/>
+      <stop offset="0.15" stop-color="#6e747d"/>
+      <stop offset="0.21" stop-color="#98a0a9"/>
+      <stop offset="0.28" stop-color="#7c828b"/>
+      <stop offset="0.44" stop-color="#4e535a"/>
+      <stop offset="0.64" stop-color="#32363b"/>
+      <stop offset="0.86" stop-color="#1a1d21"/>
+      <stop offset="1.00" stop-color="#2a2e33"/>
+    </linearGradient>
+
+    <!-- Corona de la boca = corte de la pared del tubo. Superficie plana mate. -->
+    <linearGradient id="gRimA" x1="160" y1="465" x2="300" y2="505" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6d737b"/>
+      <stop offset="0.35" stop-color="#4a4f56"/>
+      <stop offset="0.75" stop-color="#2b2f34"/>
+      <stop offset="1" stop-color="#1d2024"/>
+    </linearGradient>
+    <linearGradient id="gRimB" x1="615" y1="110" x2="655" y2="250" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6d737b"/>
+      <stop offset="0.35" stop-color="#4a4f56"/>
+      <stop offset="0.75" stop-color="#2b2f34"/>
+      <stop offset="1" stop-color="#1d2024"/>
+    </linearGradient>
+
+    <!-- Interior del tubo: la pared del fondo se ve iluminada, el resto cae a negro. -->
+    <linearGradient id="gBoreA" x1="230" y1="467" x2="230" y2="503" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#33383e"/>
+      <stop offset="0.45" stop-color="#131518"/>
+      <stop offset="1" stop-color="#07080a"/>
+    </linearGradient>
+    <linearGradient id="gBoreB" x1="617" y1="180" x2="653" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#33383e"/>
+      <stop offset="0.45" stop-color="#131518"/>
+      <stop offset="1" stop-color="#07080a"/>
+    </linearGradient>
+
+    <filter id="blurBig" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+    <!-- La sombra de contacto es una elipse muy achatada (40 px de alto), así que
+         un margen del 40 % de su caja son sólo 16 px: menos que los ~39 px que
+         necesita un desenfoque de 13 para apagarse del todo. Con esos márgenes el
+         navegador RECORTA el desenfoque y deja una raya horizontal dura bajo el
+         codo (se veía a y = 572). Los márgenes se dan en porcentaje de una caja
+         muy baja, por eso hacen falta cifras grandes. -->
+    <filter id="blurSmall" x="-100%" y="-300%" width="300%" height="700%">
+      <feGaussianBlur stdDeviation="13"/>
+    </filter>
+
+    <!-- Silueta completa del codo. Se reutiliza para: recorte de los degradados,
+         sombra proyectada y contorno. Un solo origen de verdad. -->
+    <path id="sil" d="M 140 485
+                      L 140 335
+                      A 245 245 0 0 1 385 90
+                      L 635 90
+                      A 22 90 0 0 1 635 270
+                      L 385 270
+                      A 65 65 0 0 0 320 335
+                      L 320 485
+                      A 90 22 0 0 1 140 485 Z"/>
+    <clipPath id="clipBody"><use href="#sil"/></clipPath>
+  </defs>
+
+  <!-- ── Fondo ────────────────────────────────────────────────────────────── -->
+  <rect x="-4" y="-4" width="808" height="608" fill="url(#bg)"/>
+  <rect x="-4" y="-4" width="808" height="608" fill="url(#bgGlow)"/>
+
+  <!-- Producto + sus sombras, escalados juntos respecto del centro del lienzo. -->
+  <g transform="translate(400 300) scale(1.07) translate(-400 -300)">
+  <!-- ── Sombras (antes del producto) ─────────────────────────────────────── -->
+  <use href="#sil" transform="translate(18 30)" fill="#0f1c30" opacity="0.16" filter="url(#blurBig)"/>
+  <ellipse cx="238" cy="518" rx="126" ry="20" fill="#0f1c30" opacity="0.22" filter="url(#blurSmall)"/>
+
+  <!-- ── Cuerpo ───────────────────────────────────────────────────────────── -->
+  <g clip-path="url(#clipBody)">
+    <!-- Primero la curva (disco completo recortado por la silueta)… -->
+    <circle cx="385" cy="335" r="245" fill="url(#gBend)"/>
+    <!-- …y encima los dos tramos rectos, que tapan el disco fuera del cuarto
+         de curva. Solapan 2 px sobre la tangente: los degradados coinciden
+         ahí, así que el solape no se nota y evita una costura de antialias. -->
+    <rect x="140" y="333" width="180" height="200" fill="url(#gLegA)"/>
+    <rect x="383" y="90" width="277" height="180" fill="url(#gLegB)"/>
+  </g>
+  <use href="#sil" fill="none" stroke="#0a0c0e" stroke-opacity="0.55" stroke-width="1.6"/>
+
+  <!-- ── Reborde de fusión, en el centro de la curva ──────────────────────── -->
+  <!-- Dos elipses casi superpuestas, separadas ~8 px a lo largo del eje del
+       tubo: la de atrás asoma como canto oscuro y da el grosor del cordón; la
+       de delante lleva el degradado. Sobresalen 6 px del tubo por los dos
+       lados: eso es lo que lo hace leer como relieve y no como franja pintada.
+       El achatamiento aquí (15/96) es mayor que en las bocas (22/90) a
+       propósito: en la coronilla el eje del tubo va a 45° en el plano del
+       dibujo, así que el anillo se ve más de canto. Probado a 1200 px: con el
+       achatamiento de las bocas el cordón parecía una arandela pegada. -->
+  <ellipse cx="272.4" cy="228.4" rx="96" ry="15" transform="rotate(45 272.4 228.4)" fill="#0e1013"/>
+  <ellipse cx="278.4" cy="222.4" rx="96" ry="15" transform="rotate(45 278.4 222.4)"
+           fill="url(#gBead)" stroke="#0a0c0e" stroke-opacity="0.4" stroke-width="1"/>
+
+  <!-- ── Boca inferior (tramo vertical) ───────────────────────────────────── -->
+  <ellipse cx="230" cy="485" rx="90" ry="22" fill="url(#gRimA)"
+           stroke="#0a0c0e" stroke-opacity="0.55" stroke-width="1.4"/>
+  <ellipse cx="230" cy="485" rx="73" ry="18" fill="url(#gBoreA)"
+           stroke="#0a0c0e" stroke-opacity="0.6" stroke-width="1.1"/>
+
+  <!-- ── Boca derecha (tramo horizontal) ──────────────────────────────────── -->
+  <ellipse cx="635" cy="180" rx="22" ry="90" fill="url(#gRimB)"
+           stroke="#0a0c0e" stroke-opacity="0.55" stroke-width="1.4"/>
+  <ellipse cx="635" cy="180" rx="18" ry="73" fill="url(#gBoreB)"
+           stroke="#0a0c0e" stroke-opacity="0.6" stroke-width="1.1"/>
+  </g>
+</svg>

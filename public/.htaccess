@@ -118,6 +118,13 @@ AddDefaultCharset UTF-8
   RewriteCond %{HTTP_HOST} ^(www\.)?dihyc\.com\.pe(:[0-9]+)?$ [NC]
   RewriteCond %{REQUEST_URI} !^/_astro/
   RewriteRule \.(pdf|jpe?g|png|webp|gif|svg|ico)$ - [E=DIHYC_CACHE_CORTA:1]
+
+  #    SVG de /assets/: un SVG es un documento que puede llevar <script>. Abierto
+  #    directamente se ejecutaría en www.dihyc.com.pe, el mismo origen donde el
+  #    panel /admin guarda su sesión de GitHub. Se sirven inertes (CSP de abajo);
+  #    dentro de <img> se ven igual.
+  RewriteCond %{HTTP_HOST} ^(www\.)?dihyc\.com\.pe(:[0-9]+)?$ [NC]
+  RewriteRule ^assets/.*\.svgz?$ - [NC,E=DIHYC_SVG:1]
 </IfModule>
 
 # ── Cabeceras ────────────────────────────────────────────────────────────────
@@ -154,6 +161,9 @@ AddDefaultCharset UTF-8
   # Caché
   Header set Cache-Control "public, max-age=31536000, immutable" env=DIHYC_INMUTABLE
   Header set Cache-Control "public, max-age=86400" env=DIHYC_CACHE_CORTA
+  # Va DESPUÉS de la CSP general: "set" la sustituye (una sola cabecera) en
+  # los SVG de /assets/, sin scripts ni recursos externos.
+  Header always set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox" env=DIHYC_SVG
   # HTML, sitemap, robots y config del CMS: el navegador revalida en cada visita,
   # así un cambio hecho desde el panel se ve al instante.
   <FilesMatch "\.(html?|xml|txt|ya?ml|json)$">

@@ -213,6 +213,17 @@ done
 r=$(hdr http dihyc.com.pe '/adminxL242/'); [ "$(st "$r")" = 301 ] && [ "$(loc "$r")" = "https://www.dihyc.com.pe/adminxL242/" ] && ok "http sin www → primero a https://www (y allí 410)" || ko "admin http" "$(st "$r") $(loc "$r")"
 r=$(hdr https www.dihyc.com.pe '/testimonios/'); [ "$(st "$r")" = 200 ] && ok "/testimonios/ NO se ve afectado (sólo /test exacto)" || ko "testimonios" "$(st "$r")"
 
+echo "m) SVG de /assets/ servidos inertes (sin scripts)"
+for s in /assets/categories/conexiones-fm.svg /assets/panel/tarjetas/conexiones-fm.svg; do
+  r=$(hdr https www.dihyc.com.pe "$s")
+  [ "$(st "$r")" = 200 ] && [ "$(echo "$r" | grep -ci '^Content-Security-Policy:')" = 1 ] \
+    && echo "$r" | grep -i '^Content-Security-Policy:' | grep -q "default-src 'none'.*sandbox" \
+    && ok "$s → una sola CSP, default-src 'none' + sandbox" || ko "$s" "$(st "$r") $(echo "$r" | grep -i content-security)"
+  has "$r" "Cache-Control: public, max-age=86400" && ok "  y conserva la caché de 1 día" || ko "caché svg" "$(echo "$r" | grep -i cache-control)"
+done
+r=$(hdr https www.dihyc.com.pe '/productos/'); echo "$r" | grep -i '^Content-Security-Policy:' | grep -q "default-src 'self'" && ok "las páginas siguen con la CSP del sitio" || ko "CSP página" "$(echo "$r" | grep -i content-security)"
+r=$(hdr http otro-dominio.test '/assets/categories/conexiones-fm.svg'); has "$r" "Content-Security-Policy" && ko "el addon recibe la CSP de SVG" "" || ok "el addon NO recibe la CSP de SVG"
+
 
 echo
 echo "k) Sin mod_headers, mod_deflate ni mod_filter el sitio NO da error 500"

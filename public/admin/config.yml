@@ -1,12 +1,12 @@
-# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms/schema/sveltia-cms.json
+# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms@0.252.0/schema/sveltia-cms.json
 # ─────────────────────────────────────────────────────────────────────────────
 # Panel de administración del catálogo · DIHYC
-# Motor: Sveltia CMS (https://sveltiacms.app)
+# Motor: Sveltia CMS 0.252.0, versión FIJADA en index.html (https://sveltiacms.app)
 #
-# La primera línea NO es decorativa: engancha este archivo al esquema oficial de
-# Sveltia. En VS Code (con la extensión YAML) marca en rojo cualquier opción mal
-# escrita o inventada ANTES de subirla. Este archivo se validó contra ese mismo
-# esquema y pasa sin errores.
+# La primera línea NO es decorativa: engancha este archivo al esquema de la
+# MISMA versión que carga index.html. En VS Code (con la extensión YAML) marca
+# en rojo cualquier opción mal escrita o inventada ANTES de subirla. Si se sube
+# de versión, se cambian las dos a la vez (ver README-admin.md, parte 2).
 #
 # POR QUÉ ESTE ARCHIVO ES ASÍ
 #
@@ -20,206 +20,239 @@
 #
 # QUÉ NO ESTÁ AQUÍ Y POR QUÉ (explicado también en README-admin.md):
 #   · Las medidas, SKU y materiales viven en products.json / groups.json, que
-#     los REGENERA el importador de Excel. Si se pudieran editar aquí, la
-#     siguiente importación borraría el trabajo sin avisar.
-#   · Las categorías (src/data/categories.ts) y las certificaciones
-#     (src/data/certifications.ts) son código TypeScript, no datos. Un CMS de
-#     archivos no puede editarlas: publicar una categoría nueva sigue siendo un
-#     cambio de código.
+#     los REGENERA el importador de Excel.
+#   · La línea FM (fichas y fotos en src/data/fmProducts.ts), las categorías y
+#     las certificaciones son código TypeScript, no datos.
 # ─────────────────────────────────────────────────────────────────────────────
 
 backend:
   name: github
   repo: brunoh6/wretched-wasp
   # Se escribe directamente en main porque el sitio se publica desde main.
-  # Si algún día se quiere revisión previa, aquí iría una rama de borradores.
   branch: main
 
-# Título del panel (pestaña del navegador y pantalla de entrada). Sin esto pone
-# "Sveltia CMS", que al cliente no le dice nada. No traduce los botones: la
-# interfaz del programa es inglés fijo (ver README-admin.md, sección 2).
+# Título de la pestaña y de la pantalla de entrada. Los botones del programa
+# salen en español si el navegador está en español (Sveltia elige es-CO solo).
 app_title: Panel DIHYC
+# logo.src debe ser cuadrado: es también el icono de la pestaña.
+logo:
+  src: /assets/panel/logo-panel.png
+# site_url es la base de los enlaces "ver en la web" (preview_path); display_url
+# es el enlace a la web que se ve en la cabecera del panel.
+site_url: https://www.dihyc.com.pe
+display_url: https://www.dihyc.com.pe/productos/
 
-# Carpeta del repositorio donde se guardan los archivos subidos y ruta pública
-# con la que el sitio los sirve. `public/` se copia tal cual a `dist/`, así que
-# public/assets/foo.pdf se publica en /assets/foo.pdf.
-media_folder: public/assets
-public_folder: /assets
+# La vista previa genérica de Sveltia no se parece a la web (pinta los valores
+# sueltos) y le quita medio ancho al formulario.
+editor:
+  preview: false
+
+# Carpeta GLOBAL de la biblioteca de medios: SOLO lo que sube el panel. La
+# biblioteca deja borrar, renombrar y reemplazar todo lo que hay bajo esta
+# carpeta y sólo corrige las rutas de overrides.json/cards.json, nunca las del
+# código (.ts/.astro). Con public/assets entero, borrar el logo o una ficha FM
+# "para ordenar" rompía la web. Los archivos del panel que el código también usa
+# están COPIADOS aquí; los originales siguen en categories/, products/ y
+# fichas-tecnicas/.
+media_folder: public/assets/panel
+public_folder: /assets/panel
+
+# Nombres de archivo subidos en minúsculas, ASCII y con guiones: sin espacios,
+# tildes, "°", "#" ni "%", que rompen enlaces ("Ficha #40.pdf" cortaba la ruta).
+slug:
+  encoding: ascii
+  clean_accents: true
+media_libraries:
+  all:
+    slugify_filename: true
+    # 10 MB: el límite que vale para los PDF. Las fotos llevan el suyo (1 MB)
+    # en cada campo, que manda sobre este. El tamaño se mide tras convertir.
+    # En bytes decimales para que el aviso diga "10 MB" y no "10,5 MB".
+    max_file_size: 10000000
 
 # Cómo se escribe el JSON al guardar. Se fija explícitamente para que los
-# commits del CMS no reformateen overrides.json y los cambios reales se vean
+# commits del CMS no reformateen los archivos y los cambios reales se vean
 # limpios en el historial de GitHub.
 output:
   # false = los campos vacíos siguen apareciendo como "" en el JSON.
-  # Es lo que espera src/data/catalog/index.ts y mantiene estable la forma del
-  # archivo aunque el cliente no rellene la ficha ni la foto.
+  # Es lo que espera src/data/catalog/index.ts.
   omit_empty_optional_fields: false
-  # false = las rutas se guardan tal cual, con espacios y tildes.
-  # Es la convención que ya usa el sitio (mirar fmProducts.ts:
-  # "/assets/fichas-tecnicas/ESPECIFICACIONES CODO 45° ... .pdf").
+  # false = las rutas se guardan tal cual. Con slugify_filename los archivos
+  # nuevos ya no llevan espacios; los existentes no cambian de nombre.
   encode_file_path: false
   json:
     indent_style: space
     indent_size: 2
 
 collections:
-  - name: catalogo
-    label: Catálogo
-    icon: inventory_2
+  # ═════════════════════════════════════════════════════════════════════════
+  # GRUPOS DE PRODUCTO (línea Agua)
+  #
+  # Colección de ENTRADAS guardadas en un solo archivo: overrides.json es una
+  # lista en la raíz y cada elemento es una entrada. Así el panel da buscador,
+  # filtros, agrupación, miniatura y el nombre legible de cada grupo, en vez de
+  # una lista plegada de códigos.
+  #
+  # Los grupos los crea el importador de Excel: crear, borrar o duplicar aquí
+  # los desincronizaría de groups.json. El arrastre para reordenar no se puede
+  # quitar en este tipo de colección, pero es inofensivo: index.ts busca por
+  # groupKey, no por posición.
+  #
+  # label, family y groupKey los escribe el importador. Van como `hidden`: no se
+  # ven y su valor se conserva al guardar (comprobado guardando en el panel). El
+  # orden de los campos es el de las claves del JSON, para que un guardado no
+  # reordene las filas.
+  # ═════════════════════════════════════════════════════════════════════════
+  - name: grupos
+    label: Grupos de producto
+    label_singular: Grupo
+    icon: water_drop
+    description: >-
+      Productos de la línea **Agua** (PVC y CPVC). Un grupo son todas las
+      medidas de un producto: su ficha, su foto y si se ve en la web valen para
+      todas. Las fichas y fotos de la línea contra incendio (FM) no están aquí:
+      las cambia el equipo técnico.
+    file: src/data/catalog/overrides.json
+    create: false
+    delete: false
+    duplicate: false
+    identifier_field: label
+    summary: '{{label}}'
+    thumbnail: image
+    sortable_fields: [label]
+    view_filters:
+      - label: Sin ficha técnica
+        field: technicalSheet
+        empty: true
+      - label: Sin foto
+        field: image
+        empty: true
+      - label: Ocultos en la web
+        field: visible
+        eq: false
+    # El nombre del grupo es lo que coincide con el patrón: sale "PVC" o
+    # "CPVC Corzan" tal como se escribe en el Excel ("CPVC Corzan" va primero
+    # porque contiene "PVC").
+    view_groups:
+      - label: Material
+        field: label
+        pattern: CPVC Corzan|PVC
+      - label: Agua fría o caliente
+        field: label
+        pattern: Agua (fría|caliente)
+    # Botón "ver en la web" de cada grupo. Lleva al catálogo de su familia
+    # filtrado a agua; no indica si la publicación ya terminó.
+    preview_path: /productos/{{family}}/?linea=agua
+    fields:
+      - name: label
+        label: Producto
+        widget: hidden
+      - name: family
+        label: Familia
+        widget: hidden
+      - name: visible
+        label: ¿Se ve en la web?
+        widget: boolean
+        default: true
+        before_input: Oculto
+        after_input: Visible
+        hint: >-
+          Oculto = el producto y todas sus medidas dejan de verse en la web, sin
+          borrar nada. Al guardar, la web se actualiza en unos 5 minutos.
+      - name: technicalSheet
+        label: Ficha técnica (PDF)
+        widget: file
+        required: false
+        default: ''
+        accept: application/pdf,.pdf
+        # Sin "pegar una URL": la ficha tiene que vivir en el repositorio.
+        choose_url: false
+        # A nivel de campo la ruta DEBE empezar por "/" (raíz del repositorio).
+        media_folder: /public/assets/panel/fichas
+        public_folder: /assets/panel/fichas
+        hint: >-
+          Solo PDF, de hasta 10 MB. Si se deja vacío, la web muestra «Ficha
+          pendiente». El nombre del archivo se guarda en minúsculas y con
+          guiones. Al guardar, la web se actualiza en unos 5 minutos.
+      - name: image
+        label: Foto del producto
+        widget: image
+        required: false
+        default: ''
+        # `accept` explícito: sin él el campo admite SVG (código servido desde
+        # el dominio). HEIC/HEIF sólo se aceptan porque raster_image los
+        # convierte; la comprobación de `accept` se hace tras convertir.
+        accept: image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif
+        choose_url: false
+        media_folder: /public/assets/panel/fotos
+        public_folder: /assets/panel/fotos
+        # Un `transformations` de campo reemplaza entero al global: aquí va
+        # completo. max_file_size se mide DESPUÉS de convertir.
+        media_libraries:
+          default:
+            config:
+              max_file_size: 1000000
+              transformations:
+                raster_image:
+                  format: webp
+                  quality: 82
+                  width: 1600
+                  height: 1600
+        hint: >-
+          Es la miniatura que sale junto al nombre en cada fila del catálogo de
+          agua. Sirve cualquier foto, también la del celular: al subirla se
+          reduce y se convierte sola. Al guardar, la web se actualiza en unos 5
+          minutos.
+      - name: groupKey
+        label: Código interno
+        widget: hidden
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # TARJETAS DE LA PÁGINA PRODUCTOS
+  #
+  # /productos hace exactamente dos cosas con cards.json (src/pages/
+  # productos.astro): filtra por `visible` y ordena por `order`. Por eso
+  # arrastrar filas no cambiaría nada y `allow_reorder` va en false.
+  #
+  # slug, family y line construyen el enlace /productos/{family}/?linea={line}:
+  # cambiarlos manda al visitante a una página que no existe. Van `hidden`
+  # (no se ven y se conservan al guardar; comprobado) y en el orden de las
+  # claves del JSON para que un guardado no reordene el archivo.
+  # ═════════════════════════════════════════════════════════════════════════
+  - name: portada
+    label: Tarjetas de portada
+    icon: view_cozy
     files:
-      - name: grupos
-        # Los dos archivos llevan icono: si sólo lo llevara uno, en la lista de
-        # la colección una fila saldría con icono y la otra sin él, desalineadas.
-        icon: format_list_bulleted
-        label: Grupos de producto
-        file: src/data/catalog/overrides.json
-        fields:
-          - name: overrides
-            label: Grupos de producto
-            label_singular: Grupo
-            widget: list
-            # ── Las cuatro cerraduras ──────────────────────────────────────
-            # Los grupos los crea el importador a partir del Excel, no el
-            # cliente. Si el cliente pudiera añadir o borrar filas aquí, se
-            # desincronizarían con groups.json y el grupo huérfano no pintaría
-            # nada (o peor: un grupo real perdería su ficha técnica).
-            # Estas cuatro opciones esconden los botones Añadir, Eliminar,
-            # Duplicar y Reordenar; el cliente sólo puede EDITAR lo que ya hay.
-            allow_add: false
-            allow_remove: false
-            allow_duplicate: false
-            allow_reorder: false
-            # Con ~30 grupos, la lista abierta sería inmanejable. Plegada se ve
-            # una fila por grupo y se abre sólo la que interesa.
-            collapsed: true
-            # Título visible de cada fila plegada.
-            # NOTA HONESTA: aquí se querría la etiqueta bonita ("Bushing PVC ·
-            # Agua fría"), pero esa etiqueta vive en groups.json y el CMS sólo
-            # puede mostrar campos del archivo que está editando. Se usa el
-            # identificador, que se lee bien igualmente porque lleva dentro
-            # línea, familia, producto, material y aplicación separados por "|".
-            summary: '{{groupKey}}'
-            comment: >-
-              Cada fila es un **grupo de productos** (por ejemplo todas las
-              medidas de "Codo PVC · Agua fría"). Lo que se ponga aquí se
-              aplica a **todas las medidas del grupo**: una sola ficha técnica y
-              una sola foto sirven para las 40 medidas. Los grupos se crean
-              solos al importar el Excel: aquí no se añaden ni se borran, sólo
-              se completan.
-            fields:
-              - name: groupKey
-                label: Identificador del grupo
-                widget: string
-                readonly: true
-                hint: >-
-                  No se puede modificar. Es el código interno que une este grupo
-                  con sus medidas del Excel. Se lee de izquierda a derecha:
-                  línea | familia | producto | material | aplicación.
-
-              - name: visible
-                label: Estado en la web
-                widget: boolean
-                default: true
-                # Un interruptor a secas no dice qué significa encendido. Estas
-                # dos etiquetas se pintan a cada lado del interruptor.
-                before_input: 'Oculto'
-                after_input: 'Activo'
-                hint: >-
-                  Activo = el grupo y todas sus medidas aparecen en el catálogo.
-                  Oculto = desaparecen de la web al instante, pero no se borra
-                  nada: se puede volver a activar cuando se quiera.
-
-              - name: technicalSheet
-                label: Ficha técnica (PDF)
-                widget: file
-                required: false
-                default: ''
-                # Sólo PDF: es lo único que la web sabe enlazar como ficha.
-                accept: application/pdf,.pdf
-                # Se desactiva "pegar una URL": las fichas tienen que vivir en
-                # el repositorio, si no se rompen cuando el enlace externo caiga.
-                choose_url: false
-                # Estas dos rutas mandan sobre las generales de arriba, para
-                # que los PDF no acaben mezclados con logos y fotos.
-                # A nivel de campo la ruta DEBE empezar por "/" (es absoluta
-                # desde la raíz del repositorio).
-                media_folder: /public/assets/fichas-tecnicas
-                public_folder: /assets/fichas-tecnicas
-                hint: >-
-                  Se puede dejar vacío: mientras no haya ficha, la web muestra
-                  "Ficha pendiente" en lugar del enlace de descarga. Conviene
-                  que el nombre del archivo describa el producto, porque es lo
-                  que ve el cliente final al descargarlo.
-
-              - name: image
-                label: Imagen del producto
-                widget: image
-                required: false
-                default: ''
-                choose_url: false
-                media_folder: /public/assets/products
-                public_folder: /assets/products
-                hint: >-
-                  Opcional. Una foto por grupo, no por medida. Mejor fondo
-                  blanco o transparente y menos de 1 MB, para que el catálogo
-                  siga cargando rápido en el móvil.
-
-              - name: notes
-                label: Notas internas
-                widget: text
-                required: false
-                default: ''
-                hint: >-
-                  Apuntes para el equipo (proveedor, stock, pendientes...). Hoy
-                  NO se publican en la web; sirven para no perder el contexto de
-                  por qué un grupo está oculto o le falta la ficha.
-
-      # ═════════════════════════════════════════════════════════════════════
-      # TARJETAS DE LA PORTADA DE PRODUCTOS (decisión D7 del cliente)
-      #
-      # Segundo archivo de la MISMA colección "Catálogo", no una colección
-      # aparte: en el menú lateral quedan "Grupos de producto" y "Tarjetas de
-      # portada" una debajo de otra, que es como el cliente las piensa.
-      #
-      # Este archivo alimenta /productos, que hace exactamente dos cosas con
-      # él (ver src/pages/productos.astro): filtra por `visible` y ordena por
-      # `order`. Por eso arrastrar filas aquí NO cambiaría nada en la web: el
-      # orden lo manda el número, no la posición en el archivo. Se deja
-      # `allow_reorder: false` para no ofrecer un botón que miente.
-      # ═════════════════════════════════════════════════════════════════════
       - name: tarjetas
-        label: Tarjetas de portada
+        label: Las 4 tarjetas de la página Productos
         icon: view_cozy
         file: src/data/catalog/cards.json
+        preview_path: /productos/
         fields:
           - name: cards
-            label: Tarjetas de la portada de productos
+            label: Tarjetas
             label_singular: Tarjeta
             widget: list
-            # Mismas cerraduras que en los grupos, y por el mismo motivo: son
-            # cuatro tarjetas fijas (dos familias x dos líneas comerciales) y
-            # cada una apunta a una página que existe. Una tarjeta nueva creada
-            # aquí enlazaría a una URL inventada; una borrada dejaría una línea
-            # comercial sin entrada en la portada.
             allow_add: false
             allow_remove: false
             allow_duplicate: false
             allow_reorder: false
-            # Sólo son cuatro: se muestran abiertas para verlas de un vistazo.
             collapsed: false
-            summary: '{{title}}'
-            comment: >-
-              Las cuatro tarjetas que se ven en la página **Productos**. De cada
-              una se puede cambiar la **foto**, el **título**, el **subtítulo**,
-              si **se ve o no** y en **qué posición** sale. No se pueden añadir
-              ni borrar tarjetas.
-
-
-              Los **tres últimos campos de cada ficha salen en gris y no dejan
-              escribir**: son los que deciden a qué catálogo lleva la tarjeta al
-              pulsarla. Están bloqueados a propósito, porque cambiarlos mandaría
-              al cliente final a una página que no existe.
+            summary: '{{title}} · posición {{order}}'
+            thumbnail: image
+            hint: >-
+              Son 4 tarjetas fijas: no se añaden ni se borran. El orden lo
+              decide el número «Posición», no arrastrar.
             fields:
+              - name: slug
+                label: Identificador
+                widget: hidden
+              - name: family
+                label: Familia
+                widget: hidden
+              - name: line
+                label: Línea
+                widget: hidden
               - name: title
                 label: Título
                 widget: string
@@ -228,54 +261,54 @@ collections:
                 hint: >-
                   Lo que se lee en grande debajo de la foto (por ejemplo
                   "Tuberías FM"). Cuanto más corto, mejor: si es largo, en el
-                  móvil parte en dos líneas y descoloca la fila de tarjetas.
-
+                  celular parte en dos líneas.
               - name: subtitle
                 label: Subtítulo
                 widget: string
                 required: true
                 maxlength: 70
                 hint: >-
-                  La línea gris de debajo del título. Es obligatoria porque el
-                  sitio la usa además como texto alternativo de la foto (lo que
-                  leen los buscadores y los lectores de pantalla). Se usa el
-                  separador "·", como en "Contra incendio · HDPE certificado FM".
-
+                  La línea gris de debajo del título. Es obligatoria: la web la
+                  usa también como descripción de la foto para buscadores y
+                  lectores de pantalla.
               - name: image
                 label: Foto de la tarjeta
                 widget: image
                 required: true
-                # Sólo mapa de bits. El SVG queda fuera a propósito: subir un
-                # SVG es subir código que se sirve desde el propio dominio.
-                # (La ilustración conexiones-fm.svg que ya trae el sitio la hizo
-                # el equipo y está revisada; el cliente no necesita subir SVG.)
-                accept: image/jpeg,image/png,.jpg,.jpeg,.png
-                # Sin URLs externas: si el enlace de fuera se cae, la tarjeta se
-                # queda sin foto y nadie se entera.
+                # Sin SVG por lo mismo que en los grupos. La ilustración
+                # conexiones-fm.svg ya guardada la hizo el equipo; `accept`
+                # limita lo que se sube, no lo que ya está guardado.
+                accept: image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif
                 choose_url: false
-                # A nivel de campo la ruta empieza por "/" (raíz del repo).
-                media_folder: /public/assets/categories
-                public_folder: /assets/categories
+                media_folder: /public/assets/panel/tarjetas
+                public_folder: /assets/panel/tarjetas
+                # Máximo 1600×1200: la tarjeta es 4:3.
+                media_libraries:
+                  default:
+                    config:
+                      max_file_size: 1000000
+                      transformations:
+                        raster_image:
+                          format: webp
+                          quality: 82
+                          width: 1600
+                          height: 1200
                 hint: >-
-                  Proporción **4:3 apaisada** y **mínimo 800 x 600 píxeles**
-                  (por ejemplo 1200 x 900). **JPG o PNG**, menos de 1 MB. Fondo
-                  blanco o gris muy claro y el producto centrado, para que las
-                  cuatro tarjetas se vean como un juego. Si la foto no es 4:3 el
-                  sitio la recorta por el centro, así que conviene dejar aire
-                  alrededor del producto.
-
+                  Mejor apaisada (más ancha que alta), con el producto centrado
+                  y fondo claro: si no es 4:3 la web la recorta por el centro.
+                  Sirve cualquier foto, también la del celular: al subirla se
+                  reduce y se convierte sola. Al guardar, la web se actualiza en
+                  unos 5 minutos.
               - name: visible
-                label: Estado en la portada
+                label: ¿Se ve en la página Productos?
                 widget: boolean
                 default: true
-                before_input: 'Oculta'
-                after_input: 'Visible'
+                before_input: Oculta
+                after_input: Visible
                 hint: >-
-                  Visible = la tarjeta sale en la página Productos. Oculta = deja
-                  de salir, pero no se borra nada y el catálogo al que enlaza
-                  sigue funcionando por su dirección web. Las tarjetas que quedan
-                  se recolocan solas para llenar la fila.
-
+                  Oculta = la tarjeta deja de salir, sin borrar nada; las demás
+                  se recolocan solas. Al guardar, la web se actualiza en unos 5
+                  minutos.
               - name: order
                 label: Posición
                 widget: number
@@ -285,52 +318,5 @@ collections:
                 max: 4
                 step: 1
                 hint: >-
-                  De izquierda a derecha: 1 es la primera. **Aquí se cambia el
-                  orden; arrastrar las filas de esta lista no sirve para nada**,
-                  porque la web ordena por este número. Conviene no repetir el
-                  mismo número en dos tarjetas: si se repite, no falla nada, pero
-                  cuál de las dos va antes queda al azar.
-
-              # ── Bloqueado: la identidad de la tarjeta ──────────────────────
-              # Estos tres campos construyen el enlace de la tarjeta:
-              #     /productos/{family}?linea={line}
-              # Cambiar cualquiera de ellos manda al cliente final a una página
-              # que no existe o a un catálogo equivocado, y `slug` es además la
-              # forma de reconocer cada tarjeta desde el código. Se dejan a la
-              # vista, en modo sólo lectura, para que se entienda qué es cada
-              # fila; el widget `string` con `readonly: true` los muestra pero
-              # no deja escribir, y guarda su valor tal cual estaba.
-              #
-              # OJO, COMPROBADO EN EL PANEL: en un campo `readonly` Sveltia
-              # pinta SÓLO la etiqueta y la casilla gris. Ni `hint` ni `comment`
-              # se llegan a ver. Por eso el porqué del bloqueo se explica en dos
-              # sitios que sí se ven —el `comment` de la lista y la propia
-              # etiqueta de cada campo— y los `hint` de aquí abajo quedan como
-              # documentación para quien mantenga este archivo, no como texto
-              # que el cliente vaya a leer en pantalla.
-              - name: slug
-                label: Identificador de la tarjeta — bloqueado
-                widget: string
-                readonly: true
-                hint: >-
-                  No se puede modificar. Es el nombre interno de esta tarjeta.
-
-              - name: family
-                label: Familia a la que enlaza, "tuberias" o "conexiones" — bloqueado
-                widget: string
-                readonly: true
-                hint: >-
-                  No se puede modificar. Es la página del catálogo que se abre al
-                  pulsar la tarjeta: "tuberias" abre /productos/tuberias y
-                  "conexiones" abre /productos/conexiones. Si se cambiara, la
-                  tarjeta llevaría a una dirección que no existe.
-
-              - name: line
-                label: Línea comercial a la que enlaza, "fm" o "agua" — bloqueado
-                widget: string
-                readonly: true
-                hint: >-
-                  No se puede modificar. Es el filtro con el que se abre el
-                  catálogo: "fm" muestra sólo contra incendio y "agua" sólo agua
-                  fría y caliente. Si se cambiara, la tarjeta "Conexiones FM"
-                  abriría el catálogo de agua.
+                  De izquierda a derecha: 1 es la primera. No repetir el mismo
+                  número en dos tarjetas.
