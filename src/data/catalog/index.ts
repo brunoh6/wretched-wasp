@@ -11,16 +11,17 @@
 // SKU) que sólo cambian en el Excel.
 //
 // `overrides.json`, en cambio, lo edita una PERSONA desde el CMS: la ficha
-// técnica en PDF, la foto del producto, las notas y el interruptor de
-// publicado/oculto. Ese trabajo no está en el Excel y nadie lo puede
-// reconstruir automáticamente.
+// técnica en PDF, la foto del producto y el interruptor de publicado/oculto.
+// Ese trabajo no está en el Excel y nadie lo puede reconstruir
+// automáticamente.
 //
 // Si esos campos del CMS vivieran dentro de `products.json`, la siguiente
 // importación los BORRARÍA sin aviso: bastaría con que el cliente mandara un
 // Excel actualizado para perder todas las fichas y todas las fotos cargadas.
-// Por eso viven aparte, el importador tiene prohibido sobreescribir
-// `overrides.json` (sólo añade los grupos nuevos), y es aquí —en tiempo de
-// build— donde ambas mitades se vuelven a unir.
+// Por eso viven aparte. El importador reescribe `overrides.json` (una fila por
+// grupo, con `label` y `family` para el panel) pero copia intactos los datos
+// del CMS, y se detiene si un grupo con datos desaparece del Excel. Es aquí
+// —en tiempo de build— donde ambas mitades se vuelven a unir.
 //
 // La unión se hace POR GRUPO, no por producto: un grupo es "Codo PVC · Agua
 // fría", con sus ~40 medidas. La ficha técnica y la foto son las mismas para
@@ -87,9 +88,17 @@ export type CatalogGroupSpec = {
   diameters: string[];
 };
 
-/** Una entrada de `overrides.json`: lo que el CMS guarda para un grupo. */
-export type CatalogOverride = CatalogPresentation & {
+/**
+ * Una entrada de `overrides.json`: lo que el CMS guarda para un grupo.
+ * `label` y `family` los escribe el importador sólo para el panel (título de
+ * la fila y enlace de vista previa); aquí no se usan. `notes` salió del panel
+ * porque el repositorio es público: puede faltar.
+ */
+export type CatalogOverride = Omit<CatalogPresentation, "notes"> & {
   groupKey: string;
+  notes?: string;
+  label?: string;
+  family?: string;
 };
 
 /** Producto listo para pintar: especificación + datos heredados del CMS. */
@@ -116,7 +125,15 @@ const DEFAULT_PRESENTATION: CatalogPresentation = {
 // es quien garantiza la forma: valida las cabeceras y sólo emite estos valores.
 const productSpecs = productsData.products as unknown as CatalogProductSpec[];
 const groupSpecs = groupsData.groups as unknown as CatalogGroupSpec[];
-const overrides = overridesData.overrides as unknown as CatalogOverride[];
+// overrides.json es una lista en la raíz (así lo pide la colección de un solo
+// archivo del panel). Se acepta también la forma anterior `{ overrides: [...] }`
+// para que un archivo viejo no tumbe el build.
+const overridesRaw = overridesData as unknown;
+const overrides = (
+  Array.isArray(overridesRaw)
+    ? overridesRaw
+    : ((overridesRaw as { overrides?: unknown[] } | null)?.overrides ?? [])
+) as CatalogOverride[];
 
 /** Índice por groupKey para no recorrer la lista de overrides en cada producto. */
 const overridesByGroupKey = new Map<string, CatalogOverride>(

@@ -13,11 +13,16 @@ técnicos, la segunda sí.
 1. **El Excel manda sobre los datos técnicos.** Medidas, materiales, SKU,
    diámetros, tipo de unión… todo eso se cambia en el Excel, nunca en la web.
 2. **El panel de administración (CMS) manda sobre lo visual.** La ficha técnica
-   en PDF, la foto del producto, las notas y el botón de publicar/ocultar se
-   cambian desde el CMS, nunca en el Excel.
+   en PDF, la foto del producto y el botón de publicar/ocultar se cambian desde
+   el CMS, nunca en el Excel.
 
 Las dos cosas conviven sin pisarse. Puedes mandar un Excel nuevo diez veces y
-**las fichas y fotos que cargaste en el CMS no se pierden**.
+**las fichas, fotos y ocultaciones que cargaste en el CMS se conservan**,
+siempre que el producto siga llamándose igual en el Excel (mismo producto,
+material y aplicación). Si el Excel le cambia el nombre a un producto que ya
+tenía ficha, foto u ocultación, la importación **se detiene sin tocar nada** y
+dice qué producto es y cómo se llama ahora, para que nadie pierda ese trabajo
+sin enterarse (ver "Productos que cambian de nombre" en la Parte 2).
 
 ### Actualizar el catálogo con un Excel nuevo
 
@@ -37,7 +42,7 @@ El primero convierte el Excel en datos para la web. El segundo publica el sitio.
 | --- | --- |
 | `src/data/catalog/products.json` | El importador. **Se borra y se reescribe entero en cada importación.** |
 | `src/data/catalog/groups.json` | El importador. Igual que el anterior. |
-| `src/data/catalog/overrides.json` | **El CMS.** El importador nunca lo pisa. |
+| `src/data/catalog/overrides.json` | **El CMS** (ficha, foto, visible) y el importador (la lista de filas y sus nombres). El importador nunca cambia lo que puso el CMS. |
 
 Si editas `products.json` o `groups.json` a mano, tu cambio desaparecerá la
 próxima vez que se importe un Excel. Si quieres cambiar un dato técnico,
@@ -49,7 +54,7 @@ El catálogo no gestiona los productos de uno en uno, sino por grupos. Un grupo
 es, por ejemplo, **"Codo PVC · Agua fría"**, que reúne todas sus medidas.
 
 Esto importa porque **la ficha técnica y la foto se cargan una vez por grupo**,
-no una vez por medida. Con el Excel actual eso significa gestionar 30 fichas en
+no una vez por medida. Con el Excel actual eso significa gestionar 32 fichas en
 lugar de 443. Si ocultas un grupo desde el CMS, desaparecen del catálogo todas
 sus medidas a la vez.
 
@@ -72,8 +77,8 @@ PATH=/opt/homebrew/bin:$PATH npm run build
 ```
 Excel  ──▶  scripts/import-products.mjs  ──▶  products.json  ─┐
                                           ──▶  groups.json   ─┼─▶  src/data/catalog/index.ts  ──▶  páginas
-                                                              │
-CMS    ─────────────────────────────────▶  overrides.json  ───┘
+                       (filas y nombres)  ──▶                 │
+CMS    ──────── (ficha, foto, visible) ──▶  overrides.json  ───┘
 ```
 
 `src/data/catalog/index.ts` es la única puerta de entrada para las páginas.
@@ -94,15 +99,87 @@ La unión se hace por `groupKey`, que se construye así:
 > con su grupo. Si cambias la forma de generarla, todas las fichas y fotos
 > cargadas quedan huérfanas y hay que volver a asignarlas a mano.
 
+### Forma de `overrides.json`
+
+Una **lista en la raíz** del archivo, con una fila por grupo del Excel, en el
+mismo orden que `groups.json` (familia → producto → material → aplicación).
+Es la forma que pide la colección de un solo archivo del panel (Sveltia).
+
+```json
+[
+  {
+    "label": "Brida loca PVC · Agua fría",
+    "family": "conexiones",
+    "visible": true,
+    "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES BRIDA LOCA PVC GEORG FISCHER.pdf",
+    "image": "",
+    "groupKey": "agua|conexiones|brida-loca|pvc|agua-fria"
+  }
+]
+```
+
+| Clave | Quién la escribe | Para qué |
+| --- | --- | --- |
+| `label` | Importador (sale de `groups.json`) | Título legible de la fila en el panel. La web no la usa. |
+| `family` | Importador | `tuberias` o `conexiones`: enlace de vista previa del panel. La web no la usa. |
+| `visible` | CMS | `false` oculta el grupo entero de la web. |
+| `technicalSheet` | CMS | Ruta del PDF. Vacío = "Ficha pendiente". |
+| `image` | CMS | Ruta de la foto. Vacío = sin foto. |
+| `groupKey` | Importador | Une la fila con su grupo. No se cambia nunca a mano. |
+
+**El orden de las claves es fijo** (`label, family, visible, technicalSheet,
+image, groupKey`) y debe coincidir con el orden de los campos de la colección en
+`public/admin/config.yml`: el panel reescribe el archivo en el orden de su
+config, y si ambos coinciden ni un guardado ni una importación generan diffs de
+pura reordenación. Si una fila trae otras claves, el importador las conserva
+detrás, en su orden.
+
+**Ya no hay `notes`.** El repositorio es público, así que cualquier "nota
+interna" se podía leer en GitHub. El campo salió del panel y el importador ya no
+escribe `notes` vacías. Si alguna fila tuviera una nota escrita, se conserva
+tal cual (es trabajo de alguien), y `index.ts` sigue entregando `notes: ""`
+cuando falta, así que la API del catálogo no cambia.
+
+`index.ts` acepta también la forma anterior (`{ "overrides": [...] }`) y el
+importador la convierte a lista la primera vez que se ejecuta.
+
+### Productos que cambian de nombre (filas huérfanas)
+
+Una fila es **huérfana** cuando su `groupKey` ya no sale del Excel: casi
+siempre porque el Excel cambió el nombre del producto, del material o de la
+aplicación (por ejemplo, `CPVC CORZAN` → `CPVC`). Una fila huérfana no pinta
+nada en la web. El importador hace esto:
+
+- **Huérfana vacía** (visible, sin ficha, sin foto, sin notas): se **retira**
+  sola y el informe la lista en "Retirados".
+- **Huérfana con datos** (ficha, foto, oculta o notas): la importación **se
+  detiene sin escribir ningún archivo**, lista esas filas y sugiere el grupo
+  nuevo que más se le parece. Hay dos salidas:
+  1. Si fue un error del Excel, corregirlo y volver a importar.
+  2. Si el cambio de nombre es correcto, copiar la ficha/foto/visible a la fila
+     del grupo nuevo (o volver a cargarlos desde el panel después) y repetir con
+     la opción `--permitir-huerfanos`, **escrita después de la ruta del Excel**:
+
+     ```bash
+     npm run import:productos -- "/ruta/al/archivo.xlsx" --permitir-huerfanos
+     ```
+
+     Con esa opción las huérfanas con datos se conservan al final del archivo,
+     con `label` = `(ya no está en el Excel) <groupKey>`, para que se puedan
+     revisar o borrar a mano. Una opción mal escrita detiene la importación.
+
 ### Garantías del importador
 
 - **Idempotente.** Ejecutarlo dos veces seguidas produce archivos byte a byte
   idénticos; sólo escribe si el contenido cambió, así que no ensucia `git`.
-- **No destructivo con el CMS.** A `overrides.json` sólo le añade los grupos
-  nuevos. Nunca modifica ni borra una entrada existente, ni siquiera si su grupo
-  desapareció del Excel (lo reporta como huérfano y lo deja estar).
+- **No pierde trabajo del CMS en silencio.** De cada fila copia intactos
+  `visible`, `technicalSheet` e `image` (y cualquier otra clave que tenga).
+  Sólo escribe él `label`, `family` y `groupKey`. Retira únicamente filas
+  huérfanas vacías, y se detiene si una huérfana tiene datos.
 - **Aborta sin escribir nada** si falta una cabecera obligatoria, si algún
-  `SKU_Web` está vacío o si `overrides.json` no es JSON válido.
+  `SKU_Web` está vacío, si `overrides.json` no es JSON válido o no tiene una
+  forma reconocible, o si hay huérfanas con datos y no se pasó
+  `--permitir-huerfanos`.
 
 ### Normalizaciones que aplica
 
@@ -129,7 +206,7 @@ Cada ejecución imprime un informe. Qué mirar:
 | `Grupos sin ficha técnica` | Cuántos grupos están pendientes de PDF. Se publican igual, mostrando "Ficha pendiente". |
 | `Categorías sin tilde definida` | Una categoría nueva del Excel que el diccionario no conocía. Se acentúa con una regla genérica: **conviene revisarla a ojo**. |
 | `Columnas 100% vacías` | Columnas del Excel sin ningún dato. Informativo. |
-| `Overrides` | Cuántos se conservaron intactos y cuántos grupos nuevos se añadieron. |
+| `Datos del panel` | `Conservados N / Retirados M / Nuevos K`: filas cuyo grupo sigue en el Excel (con sus datos intactos), huérfanas vacías retiradas y grupos nuevos (entran visibles y sin ficha). Lista los retirados y los nuevos por nombre. |
 | `AVISOS` | No detienen la importación, pero indican datos sucios en el Excel que alguien debería corregir. |
 
 **Códigos de salida:** `0` si todo fue bien (aunque haya avisos), `1` si hubo un

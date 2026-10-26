@@ -2,8 +2,8 @@
 /**
  * Importador de catálogo: Excel -> JSON.
  *
- * Uso:  node scripts/import-products.mjs <ruta.xlsx>
- *       npm run import:productos -- <ruta.xlsx>
+ * Uso:  node scripts/import-products.mjs <ruta.xlsx> [--permitir-huerfanos]
+ *       npm run import:productos -- <ruta.xlsx> [--permitir-huerfanos]
  *
  * POR QUÉ EXISTE ESTE SCRIPT
  * El cliente mantiene los datos masivos del catálogo en Excel (es su herramienta
@@ -12,12 +12,24 @@
  * Excel en `products.json` + `groups.json`, que se REGENERAN COMPLETOS en cada
  * ejecución y por eso NO deben editarse a mano.
  *
- * POR QUÉ NO ESCRIBE `overrides.json`
- * Los datos que edita una persona desde el CMS (ficha técnica, imagen, si el
- * grupo se publica o no, notas) viven en `overrides.json`, un archivo aparte.
- * Si vivieran dentro de `products.json` se perderían en la siguiente
- * importación, porque ese archivo se reescribe entero. El importador sólo
- * AÑADE los grupos nuevos a `overrides.json` y jamás toca los existentes.
+ * QUÉ HACE CON `overrides.json`
+ * Los datos que edita una persona desde el panel (ficha técnica, foto, si el
+ * grupo se publica o no) viven en `overrides.json`, un archivo aparte. Si
+ * vivieran dentro de `products.json` se perderían en la siguiente importación,
+ * porque ese archivo se reescribe entero.
+ *
+ * El importador reescribe `overrides.json` como una lista con una fila por
+ * grupo del Excel, en el orden del catálogo. De cada fila escribe él mismo lo
+ * que sale del Excel (`label`, `family`, `groupKey`) y COPIA TAL CUAL lo que
+ * puso el panel (`visible`, `technicalSheet`, `image` y cualquier otra clave
+ * que ya tuviera la fila). Los grupos nuevos entran vacíos y visibles.
+ *
+ * Una fila cuyo grupo ya no está en el Excel ("huérfana") no pinta nada en la
+ * web. Si está vacía se retira y se informa. Si tiene datos del panel, el
+ * importador SE DETIENE sin escribir nada: casi siempre es un nombre cambiado
+ * en el Excel, y seguir dejaría esa ficha/foto/ocultación sin efecto mientras
+ * el grupo "nuevo" sale visible y sin ficha. `--permitir-huerfanos` (detrás de
+ * la ruta del Excel) sigue adelante y conserva esas filas al final, marcadas.
  */
 
 import fs from "node:fs";
@@ -56,6 +68,21 @@ const REQUIRED_HEADERS = [
 
 /** Cabeceras opcionales: hoy vienen vacías, pero se mapean si algún día traen datos. */
 const OPTIONAL_HEADERS = ["Certificacion", "SDR_RDE", "Clase_Presion", "Norma"];
+
+const ALLOW_ORPHANS_OPTION = "--permitir-huerfanos";
+const KNOWN_OPTIONS = new Set([ALLOW_ORPHANS_OPTION]);
+
+/**
+ * Orden de las claves de cada fila de `overrides.json`. El panel (Sveltia)
+ * reescribe el archivo en el orden de los campos de public/admin/config.yml:
+ * si ambos coinciden, ni un guardado del panel ni una importación generan
+ * diffs de pura reordenación. Las claves que no están aquí (p. ej. `notes`,
+ * que salió del panel) se conservan detrás, en su orden original.
+ */
+const OVERRIDE_KEYS = ["label", "family", "visible", "technicalSheet", "image", "groupKey"];
+
+/** Prefijo del `label` de una fila huérfana conservada con --permitir-huerfanos. */
+const ORPHAN_LABEL_PREFIX = "(ya no está en el Excel) ";
 
 // ---------------------------------------------------------------------------
 // Normalización de texto
@@ -391,6 +418,59 @@ function readSheet(filePath, warnings) {
 }
 
 // ---------------------------------------------------------------------------
+// Filas de overrides.json
+// ---------------------------------------------------------------------------
+
+/**
+ * ¿La fila tiene algo que puso una persona desde el panel? `notes` cuenta
+ * aunque ya no esté en el panel: si alguien la escribió, es trabajo humano.
+ */
+function hasPanelData(override) {
+  return (
+    override?.visible === false ||
+    Boolean(clean(override?.technicalSheet)) ||
+    Boolean(clean(override?.image)) ||
+    Boolean(clean(override?.notes))
+  );
+}
+
+/**
+ * Arma una fila con las claves en el orden de OVERRIDE_KEYS. Los datos del
+ * panel se copian sin pasar por clean(): una ruta de ficha puede llevar un
+ * espacio duro real en el nombre del archivo, y "limpiarla" rompería el enlace.
+ * `notes` vacía no se escribe: el campo salió del panel porque el repositorio
+ * es público, y una clave vacía sólo invitaría a rellenarla a mano.
+ */
+function overrideRow({ label, family, groupKey }, previous = {}) {
+  const row = {
+    label,
+    family,
+    visible: previous.visible !== false,
+    technicalSheet: typeof previous.technicalSheet === "string" ? previous.technicalSheet : "",
+    image: typeof previous.image === "string" ? previous.image : "",
+    groupKey
+  };
+
+  for (const [key, value] of Object.entries(previous)) {
+    if (OVERRIDE_KEYS.includes(key)) continue;
+    if (key === "notes" && !clean(value)) continue;
+    row[key] = value;
+  }
+
+  return row;
+}
+
+/** Qué datos del panel tiene una fila, en palabras, para los mensajes. */
+function describePanelData(override) {
+  const parts = [];
+  if (clean(override?.technicalSheet)) parts.push(`ficha "${override.technicalSheet}"`);
+  if (clean(override?.image)) parts.push(`foto "${override.image}"`);
+  if (override?.visible === false) parts.push("OCULTO en la web");
+  if (clean(override?.notes)) parts.push("notas");
+  return parts.join(", ");
+}
+
+// ---------------------------------------------------------------------------
 // Escritura idempotente
 // ---------------------------------------------------------------------------
 
@@ -417,10 +497,27 @@ function main() {
   const errors = [];
   const warnings = [];
 
-  const inputArg = process.argv[2];
+  const args = process.argv.slice(2);
+  const options = args.filter((arg) => arg.startsWith("--"));
+  const positional = args.filter((arg) => !arg.startsWith("--"));
+  const unknownOptions = options.filter((option) => !KNOWN_OPTIONS.has(option));
+  const allowOrphans = options.includes(ALLOW_ORPHANS_OPTION);
+
+  if (unknownOptions.length || positional.length > 1) {
+    if (unknownOptions.length) {
+      console.error(`ERROR FATAL: opción desconocida: ${unknownOptions.join(", ")}.`);
+    } else {
+      // Lo típico: una ruta con espacios sin comillas llega partida en trozos.
+      console.error("ERROR FATAL: se recibió más de una ruta. Si la ruta lleva espacios, ponla entre comillas.");
+    }
+    console.error(`Uso: node scripts/import-products.mjs <ruta.xlsx> [${ALLOW_ORPHANS_OPTION}]`);
+    process.exit(1);
+  }
+
+  const inputArg = positional[0];
   if (!inputArg) {
     console.error("ERROR FATAL: falta la ruta del Excel.");
-    console.error("Uso: node scripts/import-products.mjs <ruta.xlsx>");
+    console.error(`Uso: node scripts/import-products.mjs <ruta.xlsx> [${ALLOW_ORPHANS_OPTION}]`);
     process.exit(1);
   }
 
@@ -673,45 +770,122 @@ function main() {
     group.diameters.sort(compareDiameter);
   });
 
-  // --- Overrides: merge NO destructivo ------------------------------------
+  // --- Overrides: datos del panel ------------------------------------------
   let existingOverrides = [];
-  let overridesExisted = false;
+  let overridesShape = "nuevo";
 
   if (fs.existsSync(OVERRIDES_FILE)) {
-    overridesExisted = true;
+    let parsed;
     try {
-      const parsed = JSON.parse(fs.readFileSync(OVERRIDES_FILE, "utf8"));
-      existingOverrides = Array.isArray(parsed?.overrides) ? parsed.overrides : [];
+      parsed = JSON.parse(fs.readFileSync(OVERRIDES_FILE, "utf8"));
     } catch (error) {
       // Nunca se sobreescribe un overrides.json ilegible: contiene trabajo
-      // humano hecho desde el CMS que no se puede reconstruir.
+      // humano hecho desde el panel que no se puede reconstruir.
       console.error(
         `ERROR FATAL: "${OVERRIDES_FILE}" existe pero no es JSON válido (${error.message}).`
       );
       console.error("No se escribió ningún archivo. Corrige el JSON y vuelve a ejecutar.");
       process.exit(1);
     }
+
+    if (Array.isArray(parsed)) {
+      existingOverrides = parsed;
+      overridesShape = "lista";
+    } else if (Array.isArray(parsed?.overrides)) {
+      // Forma anterior a 2026-10: { "overrides": [...] }. Se lee y se pasa a lista.
+      existingOverrides = parsed.overrides;
+      overridesShape = "antigua { overrides: [...] }";
+    } else {
+      console.error(
+        `ERROR FATAL: "${OVERRIDES_FILE}" no tiene la forma esperada (una lista de grupos).`
+      );
+      console.error("No se escribió ningún archivo. Revisa el archivo y vuelve a ejecutar.");
+      process.exit(1);
+    }
   }
 
-  const existingKeys = new Set(existingOverrides.map((override) => override?.groupKey));
-  const newOverrides = groups
-    .filter((group) => !existingKeys.has(group.groupKey))
-    .map((group) => ({
-      groupKey: group.groupKey,
-      visible: true,
-      technicalSheet: "",
-      image: "",
-      notes: ""
-    }));
-
-  // Se conserva el orden original de los existentes y se añaden los nuevos al
-  // final: así el CMS no ve reordenamientos sorpresa en su archivo.
-  const mergedOverrides = [...existingOverrides, ...newOverrides];
+  // Si un groupKey aparece dos veces se queda la ÚLTIMA fila, porque es la que
+  // usa index.ts (un Map por groupKey): así importar no cambia lo que muestra
+  // la web. Se avisa para que una persona revise la que se descarta.
+  const existingByKey = new Map();
+  const duplicatedKeys = new Set();
+  const rowsWithoutKey = [];
+  for (const override of existingOverrides) {
+    const key = override?.groupKey;
+    if (typeof key !== "string" || !key) {
+      rowsWithoutKey.push(override);
+      continue;
+    }
+    if (existingByKey.has(key)) duplicatedKeys.add(key);
+    existingByKey.set(key, override);
+  }
+  duplicatedKeys.forEach((key) =>
+    warnings.push(
+      `overrides.json tenía el grupo "${key}" repetido; se conservó la última fila, que es la que usaba la web.`
+    )
+  );
 
   const groupKeys = new Set(groups.map((group) => group.groupKey));
-  const orphanOverrides = existingOverrides.filter(
-    (override) => override?.groupKey && !groupKeys.has(override.groupKey)
-  );
+  const keptCount = groups.filter((group) => existingByKey.has(group.groupKey)).length;
+  const newGroups = groups.filter((group) => !existingByKey.has(group.groupKey));
+
+  const orphanOverrides = [
+    ...[...existingByKey.values()].filter((override) => !groupKeys.has(override.groupKey)),
+    ...rowsWithoutKey
+  ];
+  const orphansWithData = orphanOverrides.filter(hasPanelData);
+  const retiredOrphans = orphanOverrides.filter((override) => !hasPanelData(override));
+
+  if (orphansWithData.length && !allowOrphans) {
+    // Un parecido es un grupo nuevo que coincide en 4 de las 5 piezas del
+    // groupKey: lo normal cuando el Excel reescribe un material o un producto.
+    const pieces = (key) => String(key ?? "").split("|");
+    console.error("\nERROR FATAL: hay datos del panel en grupos que ya no están en el Excel.");
+    console.error("Si se siguiera, esos datos dejarían de verse en la web (y si el grupo sólo cambió de nombre,");
+    console.error("el grupo con el nombre nuevo saldría visible y sin ficha ni foto):");
+    for (const override of orphansWithData) {
+      const orphanPieces = pieces(override?.groupKey);
+      const similar = newGroups
+        .filter(
+          (group) =>
+            pieces(group.groupKey).filter((piece, index) => piece === orphanPieces[index]).length >= 4
+        )
+        .map((group) => `"${group.label}" (${group.groupKey})`);
+      console.error(`  - ${override?.groupKey ?? "(fila sin groupKey)"}: ${describePanelData(override)}`);
+      if (similar.length) console.error(`      ¿Ahora se llama ${similar.join(" o ")}?`);
+    }
+    console.error("\nNo se escribió ningún archivo. Hay dos salidas:");
+    console.error("  1. Si fue un error del Excel, corrígelo y vuelve a importar.");
+    console.error("  2. Si el cambio es correcto, copia esos datos a la fila del grupo nuevo en");
+    console.error("     overrides.json (o vuelve a cargarlos desde el panel después) y repite así:");
+    console.error(`     npm run import:productos -- "<ruta.xlsx>" ${ALLOW_ORPHANS_OPTION}`);
+    process.exit(1);
+  }
+
+  // Una fila por grupo del Excel, en el orden del catálogo (el de groups.json):
+  // un grupo nuevo queda junto a sus parientes y no al final del archivo.
+  const liveOverrides = groups.map((group) => overrideRow(group, existingByKey.get(group.groupKey)));
+
+  // Con --permitir-huerfanos las filas con datos se conservan al final, con
+  // un `label` que dice por qué no se ven en la web.
+  const keptOrphans = orphansWithData.map((override) => {
+    const key = String(override?.groupKey ?? "");
+    return overrideRow(
+      {
+        label: `${ORPHAN_LABEL_PREFIX}${key}`,
+        family: override?.family ?? key.split("|")[1] ?? "",
+        groupKey: override?.groupKey
+      },
+      override
+    );
+  });
+  if (keptOrphans.length) {
+    warnings.push(
+      `${keptOrphans.length} fila(s) del panel sin grupo en el Excel se conservaron por ${ALLOW_ORPHANS_OPTION}: no se ven en la web. Revisa el bloque "Datos del panel".`
+    );
+  }
+
+  const mergedOverrides = [...liveOverrides, ...keptOrphans];
 
   // --- Escritura ----------------------------------------------------------
   const sourceName = path.basename(filePath);
@@ -720,14 +894,10 @@ function main() {
     products
   });
   const groupsChanged = writeJsonIfChanged(GROUPS_FILE, { groups });
-  const overridesChanged = writeJsonIfChanged(OVERRIDES_FILE, {
-    overrides: mergedOverrides
-  });
+  const overridesChanged = writeJsonIfChanged(OVERRIDES_FILE, mergedOverrides);
 
   // --- Informe de validación ---------------------------------------------
-  const withoutSheet = mergedOverrides.filter(
-    (override) => groupKeys.has(override?.groupKey) && !clean(override?.technicalSheet)
-  ).length;
+  const withoutSheet = liveOverrides.filter((override) => !clean(override.technicalSheet)).length;
 
   const line = "-".repeat(64);
   console.log(`\n${line}`);
@@ -777,15 +947,33 @@ function main() {
   console.log(`\nColumnas 100% vacías en el Excel: ${emptyColumns.length}`);
   emptyColumns.forEach((column) => console.log(`   · ${column}`));
 
-  console.log(`\nOverrides (los edita el CMS, el importador nunca los pisa):`);
-  console.log(`   · Archivo ${overridesExisted ? "ya existía" : "creado por primera vez"}.`);
-  console.log(`   · Conservados intactos ... ${existingOverrides.length}`);
-  console.log(`   · Grupos nuevos añadidos . ${newOverrides.length}`);
-  if (orphanOverrides.length) {
-    console.log(
-      `   · Huérfanos (su grupo ya no está en el Excel, NO se borran): ${orphanOverrides.length}`
+  console.log(`\nDatos del panel (overrides.json):`);
+  console.log(
+    overridesShape === "nuevo"
+      ? "   · Archivo creado por primera vez."
+      : `   · Archivo leído (forma: ${overridesShape}).`
+  );
+  console.log(
+    `   · Conservados ${keptCount} / Retirados ${retiredOrphans.length} / Nuevos ${newGroups.length}`
+  );
+  console.log(`   · Conservados: grupos que siguen en el Excel, con ficha, foto y visibilidad intactas.`);
+  if (retiredOrphans.length) {
+    console.log(`   · Retirados (su grupo ya no está en el Excel y la fila estaba vacía):`);
+    retiredOrphans.forEach((override) =>
+      console.log(`       - ${override?.groupKey ?? "(fila sin groupKey)"}`)
     );
-    orphanOverrides.forEach((override) => console.log(`       - ${override.groupKey}`));
+  }
+  if (newGroups.length) {
+    console.log(`   · Nuevos (entran visibles y sin ficha ni foto):`);
+    newGroups.forEach((group) => console.log(`       - ${group.label}`));
+  }
+  if (keptOrphans.length) {
+    console.log(
+      `   · Huérfanos CON datos conservados por ${ALLOW_ORPHANS_OPTION} (no se ven en la web): ${keptOrphans.length}`
+    );
+    orphansWithData.forEach((override) =>
+      console.log(`       - ${override?.groupKey ?? "(fila sin groupKey)"}: ${describePanelData(override)}`)
+    );
   }
 
   if (warnings.length) {
