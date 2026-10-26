@@ -7,6 +7,10 @@ import ServiceCard from "../components/ServiceCard.astro";
 import BrandCarousel from "../components/BrandCarousel.astro";
 import ContactForm from "../components/ContactForm.astro";
 import { getFeaturedFmProducts } from "../data/catalogDisplayItems";
+import heroHome from "../assets/hero/home.png";
+import heroNuestraEmpresa from "../assets/hero/nuestraempresa.png";
+import heroSlide3 from "../assets/hero/slide3.png";
+import heroSlide4 from "../assets/hero/slide4.png";
 
 // La portada destaca el catálogo FM publicado (tuberías y conexiones).
 const featuredProducts = getFeaturedFmProducts(8);
@@ -36,12 +40,7 @@ const brands = [
     ctaHref="/productos/"
     secondaryLabel="Habla con un especialista"
     secondaryHref="/contacto/"
-    images={[
-      "/assets/hero/home.png",
-      "/assets/hero/nuestraempresa.png",
-      "/assets/hero/slide3.png",
-      "/assets/hero/slide4.png"
-    ]}
+    images={[heroHome, heroNuestraEmpresa, heroSlide3, heroSlide4]}
   />
 
   <!-- EMPRESA -->

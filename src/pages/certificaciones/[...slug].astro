@@ -3,6 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import Hero from "../../components/Hero.astro";
 import Section from "../../components/Section.astro";
 import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import heroSlide3 from "../../assets/hero/slide3.png";
 import {
   CERTIFICATIONS_ENABLED,
   CERTIFICATION_TYPES,
@@ -53,7 +54,7 @@ const hasCertifications = visibleCertifications.length > 0;
   <Hero
     title="Certificaciones"
     subtitle="Respaldo documentado de los productos que distribuimos y de los servicios que ejecutamos."
-    images={["/assets/hero/slide3.png"]}
+    images={[heroSlide3]}
     compact
   />
 

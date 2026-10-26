@@ -113,9 +113,18 @@ jobs:
               return p.is_file()
           faltan = {}
           for f in dist.rglob("*.html"):
-              for m in re.finditer(r"""["'](/(?:assets|_astro)/[^"'#?<>\\]+)""", f.read_text(encoding="utf-8")):
-                  ruta = urllib.parse.unquote(html.unescape(m.group(1)))
-                  if "${" not in ruta and not existe(ruta):
+              texto = f.read_text(encoding="utf-8")
+              rutas = []
+              # srcset aparte: "a.webp 960w, b.webp 1920w" son DOS archivos. Fuera
+              # de srcset los espacios sí son parte del nombre (las fichas los llevan).
+              def candidatos(m):
+                  rutas.extend(c.split()[0] for c in m.group(2).split(",") if c.strip())
+                  return " "
+              texto = re.sub(r"""\ssrcset=(["'])(.*?)\1""", candidatos, texto)
+              rutas += re.findall(r"""["'](/(?:assets|_astro)/[^"'#?<>\\]+)""", texto)
+              for r in rutas:
+                  ruta = urllib.parse.unquote(html.unescape(r))
+                  if ruta.startswith(("/assets/", "/_astro/")) and "${" not in ruta and not existe(ruta):
                       faltan.setdefault(ruta, set()).add(str(f.relative_to(dist)))
           for ruta, pags in sorted(faltan.items()):
               print(f"::warning::{ruta} no existe en el sitio (citado en {', '.join(sorted(pags))})")

@@ -6,6 +6,12 @@
       "runtimeExecutable": "/opt/homebrew/bin/node",
       "runtimeArgs": ["./node_modules/.bin/astro", "dev", "--port", "4321"],
       "port": 4321
+    },
+    {
+      "name": "dihyc-preview",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["./node_modules/.bin/astro", "preview", "--port", "4331"],
+      "port": 4331
     }
   ]
 }

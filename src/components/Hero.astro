@@ -1,4 +1,7 @@
 ---
+import { Image } from "astro:assets";
+import fotoPorDefecto from "../assets/hero/home.png";
+
 const {
   title,
   subtitle,
@@ -6,7 +9,12 @@ const {
   ctaHref,
   secondaryLabel,
   secondaryHref,
-  images = ["/assets/hero/home.png"],
+  /**
+   * Fotos importadas desde src/assets (no rutas de public/): así Astro las
+   * convierte a WebP en dos tamaños y el móvil descarga la pequeña. Una ruta
+   * en texto sigue funcionando, pero se sirve tal cual, sin optimizar.
+   */
+  images = [fotoPorDefecto],
   /** `compact` para páginas interiores, donde el hero es sólo encabezado. */
   compact = false
 } = Astro.props;
@@ -35,13 +43,28 @@ const heightClass = compact
         data-slide={index}
         aria-hidden="true"
       >
-        <img
-          src={image}
-          alt=""
-          class="img-bright-hero absolute inset-0 h-full w-full object-cover"
-          loading={index === 0 ? "eager" : "lazy"}
-          decoding="async"
-        />
+        {typeof image === "string" ? (
+          <img
+            src={image}
+            alt=""
+            class="img-bright-hero absolute inset-0 h-full w-full object-cover"
+            loading={index === 0 ? "eager" : "lazy"}
+            decoding="async"
+          />
+        ) : (
+          <Image
+            src={image}
+            alt=""
+            widths={[960, 1920]}
+            sizes="100vw"
+            format="webp"
+            quality={78}
+            class="img-bright-hero absolute inset-0 h-full w-full object-cover"
+            loading={index === 0 ? "eager" : "lazy"}
+            fetchpriority={index === 0 ? "high" : "auto"}
+            decoding="async"
+          />
+        )}
       </div>
     ))}
 
@@ -53,7 +76,9 @@ const heightClass = compact
   </div>
 
   <!-- CONTENIDO: vive fuera de los slides, así el CTA nunca desaparece -->
-  <div class="relative z-20 mx-auto w-full max-w-7xl px-6 py-14 md:py-20">
+  <!-- Con carrusel, sm:px-20 deja libre la franja de las flechas (left-3 + 44 px):
+       sin ese margen la flecha "‹" tapaba la primera letra del título. -->
+  <div class={`relative z-20 mx-auto w-full max-w-7xl px-6 py-14 md:py-20 ${hasCarousel ? "sm:px-20" : ""}`}>
     <div class="max-w-2xl">
       {title && (
         <h1 class="text-3xl font-bold leading-tight drop-shadow-sm sm:text-4xl md:text-5xl">
