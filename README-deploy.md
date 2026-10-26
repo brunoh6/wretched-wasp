@@ -136,10 +136,13 @@ scope"*:
 > qué subió). Mientras sube (unos minutos), la portada vieja sigue
 > respondiendo. Los archivos del sitio viejo quedan en el servidor: sus
 > direcciones (`/index.php`, `/productos.php`, `/empresa.php`, `/servicios.php`,
-> `/contacto.php`) llevan a las páginas nuevas, pero sus carpetas (por ejemplo el
-> panel viejo `adminxL242/` o `test/`) siguen accesibles hasta que alguien
-> técnico las borre, después del respaldo, **sin tocar nunca** `.well-known`,
-> `cgi-bin` ni la carpeta de otro dominio.
+> `/contacto.php`) llevan a las páginas nuevas, y el panel viejo `adminxL242/`
+> y su copia de pruebas `test/` están **cerrados** (responden 410) desde el
+> `.htaccess`: sus archivos y la base de datos siguen en el hosting, sólo que
+> nadie puede abrirlos. Para reabrirlos, quitar la regla "2c" del `.htaccess`.
+> Si algún día se borran los restos, que lo haga alguien técnico después del
+> respaldo (de archivos **y** de la base de datos), **sin tocar nunca**
+> `.well-known`, `cgi-bin` ni la carpeta de otro dominio.
 
 Desde entonces, cada guardado en el panel `/admin` publica solo en 1–2 minutos.
 Si se guardan varios cambios seguidos, se encolan y se publica el último.

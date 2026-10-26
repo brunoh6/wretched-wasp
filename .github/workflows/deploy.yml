@@ -336,6 +336,12 @@ jobs:
             if [ "$r" = "301 ${par#*|}" ]; then echo "✅ ${par%%|*} → 301 ${par#*|}"
             else echo "::error::${par%%|*} respondió '$r' (esperado 301 a ${par#*|})"; fallos=1; fi
           done
+          #    Y el panel viejo y su copia de pruebas siguen cerrados.
+          for ruta in /adminxL242/ /test/; do
+            c=$(codigo "$SITIO$ruta")
+            if [ "$c" = 410 ]; then echo "✅ $ruta cerrado (410)"
+            else echo "::error::$ruta respondió $c (esperado 410: carpeta vieja cerrada)"; fallos=1; fi
+          done
 
           # 6) Cabeceras de seguridad: AVISO, no error. Si el hosting no tiene
           #    mod_headers el sitio funciona igual, pero conviene saberlo.

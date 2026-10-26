@@ -47,6 +47,9 @@ echo '{"lista":"secreta"}' > "$T/www/.ftp-deploy-sync-state.json"
 for f in index productos empresa servicios contacto; do echo "SITIO-VIEJO-$f" > "$T/www/$f.php"; done
 echo "SITIO-VIEJO-indexw" > "$T/www/indexw.html"
 mkdir -p "$T/www/otra-app" && echo "OTRA-APP-PHP" > "$T/www/otra-app/index.php"
+mkdir -p "$T/www/adminxL242" "$T/www/test" "$T/www/testimonios"
+for f in index delProd; do echo "PANEL-VIEJO" > "$T/www/adminxL242/$f.php"; done
+echo "COPIA-PRUEBAS" > "$T/www/test/index.php"; echo "OTRA-CARPETA" > "$T/www/testimonios/index.php"
 
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=www.dihyc.com.pe" \
   -addext "subjectAltName=DNS:www.dihyc.com.pe,DNS:dihyc.com.pe" \
@@ -203,6 +206,12 @@ mv "$T/www/index.html" "$T/www/index.html.espera"
 r=$(hdr https www.dihyc.com.pe '/'); bv=$(body https www.dihyc.com.pe '/')
 [ "$(st "$r")" = 200 ] && [ "$bv" = "SITIO-VIEJO-index" ] && ok "mientras sube: / sigue sirviendo la portada vieja (200, sin bucle)" || ko "ventana de subida" "$(st "$r") $(loc "$r")"
 mv "$T/www/index.html.espera" "$T/www/index.html"
+for ruta in /adminxL242 /adminxL242/ /adminxL242/delProd.php /test/ /test/index.php; do
+  r=$(hdr https www.dihyc.com.pe "$ruta"); bc=$(body https www.dihyc.com.pe "$ruta")
+  [ "$(st "$r")" = 410 ] && [[ "$bc" != *PANEL-VIEJO* && "$bc" != *COPIA-PRUEBAS* ]] && ok "$ruta → 410 cerrado (no se ejecuta)" || ko "$ruta" "$(st "$r")"
+done
+r=$(hdr http dihyc.com.pe '/adminxL242/'); [ "$(st "$r")" = 301 ] && [ "$(loc "$r")" = "https://www.dihyc.com.pe/adminxL242/" ] && ok "http sin www → primero a https://www (y allí 410)" || ko "admin http" "$(st "$r") $(loc "$r")"
+r=$(hdr https www.dihyc.com.pe '/testimonios/'); [ "$(st "$r")" = 200 ] && ok "/testimonios/ NO se ve afectado (sólo /test exacto)" || ko "testimonios" "$(st "$r")"
 
 
 echo

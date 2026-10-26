@@ -83,6 +83,14 @@ AddDefaultCharset UTF-8
   RewriteCond %{THE_REQUEST} \s/+(productos|empresa|servicios|contacto)\.php[\s?]
   RewriteRule ^ https://www.dihyc.com.pe/%1/? [R=301,L]
 
+  # 2c) Carpetas del sitio viejo cerradas: el panel de administración viejo
+  #     (con páginas que borran datos) y su copia de pruebas. 410 = "ya no
+  #     existe", para que Google también las olvide. NO se borró nada: los
+  #     archivos y la base de datos siguen en el hosting; para reabrir, quitar
+  #     estas dos líneas.
+  RewriteCond %{HTTP_HOST} ^www\.dihyc\.com\.pe(:[0-9]+)?$ [NC]
+  RewriteRule ^(adminxL242|test)(/|$) - [G]
+
   # 3) Archivos ocultos (nombre que empieza por punto) prohibidos. Ejemplo real:
   #    la publicación por FTP deja .ftp-deploy-sync-state.json con la lista de
   #    archivos del sitio, que no tiene por qué ser pública. (.well-known ya salió
