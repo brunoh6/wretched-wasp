@@ -36,7 +36,7 @@ backend:
 app_title: Panel DIHYC
 # logo.src debe ser cuadrado: es también el icono de la pestaña.
 logo:
-  src: /assets/panel/logo-panel.png
+  src: /admin/logo-panel.png
 # site_url es la base de los enlaces "ver en la web" (preview_path); display_url
 # es el enlace a la web que se ve en la cabecera del panel.
 site_url: https://www.dihyc.com.pe

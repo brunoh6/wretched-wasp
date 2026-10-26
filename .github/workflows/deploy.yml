@@ -122,10 +122,11 @@ jobs:
               rutas = []
               # srcset aparte: "a.webp 960w, b.webp 1920w" son DOS archivos. Fuera
               # de srcset los espacios sí son parte del nombre (las fichas los llevan).
+              # data-srcset: el carrusel difiere las diapositivas 2-4 con él.
               def candidatos(m):
                   rutas.extend(c.split()[0] for c in m.group(2).split(",") if c.strip())
                   return " "
-              texto = re.sub(r"""\ssrcset=(["'])(.*?)\1""", candidatos, texto)
+              texto = re.sub(r"""\s(?:data-)?srcset=(["'])(.*?)\1""", candidatos, texto)
               rutas += re.findall(r"""["'](/(?:assets|_astro)/[^"'#?<>\\]+)""", texto)
               for r in rutas:
                   ruta = urllib.parse.unquote(html.unescape(r))
