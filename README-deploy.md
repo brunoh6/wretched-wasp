@@ -295,7 +295,8 @@ WhatsApp, teléfono y formulario cuentan también como conversiones de Ads.
 | Evento en GA4 | Cuándo | Datos que lleva |
 |---|---|---|
 | `page_view` | Cada página que se abre (lo envía GA4 solo). | la dirección de la página |
-| `view_search_results` | Al buscar en el sitio: la búsqueda lleva al catálogo con `?q=…` en la dirección y la **medición mejorada** de GA4 la reconoce sola (no hace falta un evento propio). | `search_term`: lo que se buscó |
+| `view_search_results` | Al buscar algo que el catálogo entiende (material, marca, producto…): la búsqueda lleva al catálogo con `?q=…` en la dirección y la **medición mejorada** de GA4 la reconoce sola. | `search_term`: lo que se buscó |
+| `busqueda` | Las demás búsquedas, que no pasan por el catálogo: Enter o clic hacia un resultado suelto, y sobre todo **«Sin resultados»** (cuenta al dejar de teclear 1,5 s, aunque no se pulse Enter). Una vez por término y página. Si el texto parece un correo o un teléfono, no se envía. | `termino`: lo que se buscó; `resultados`: `si` o `no` |
 | `filtro_aplicado` | Al marcar un filtro del catálogo (material, marca, línea…). | `faceta` (p. ej. `material`) y `valor` (p. ej. `HDPE`) |
 | `cotizar_marcado` | Al marcar una casilla **«Cotizar»** del catálogo. | `producto`: «Tubo · HDPE · EXTRUCOL» |
 | `ficha_descargada` | Al abrir una ficha técnica (PDF). | `archivo`: nombre del PDF |
@@ -304,8 +305,8 @@ WhatsApp, teléfono y formulario cuentan también como conversiones de Ads.
 | `formulario_enviado` | Sólo cuando Formspree confirma que el mensaje llegó (no al pulsar el botón). Va acompañado de `generate_lead`, el evento que Google recomienda para un contacto. | `origen`: `contacto` o `inicio` |
 
 **Nunca** se envía nada de lo que la persona escribe en el formulario (nombre,
-correo, teléfono, mensaje): sólo de dónde vino el clic y qué producto, filtro o
-ficha.
+correo, teléfono, mensaje): sólo de dónde vino el clic, qué producto, filtro o
+ficha, y qué se escribió en el **buscador** de productos.
 
 ### A. Google Ads
 
@@ -453,7 +454,8 @@ Google para los dos.
 3. **Dimensiones personalizadas** (Administrar → Visualización de datos →
    **Definiciones personalizadas** → *Crear dimensión personalizada*, alcance
    **Evento**): crear una por cada dato, con el mismo nombre de parámetro:
-   `origen`, `producto`, `faceta`, `valor` y `archivo`. Sin esto, GA4 recibe
+   `origen`, `producto`, `faceta`, `valor`, `archivo`, `termino` y
+   `resultados`. Sin esto, GA4 recibe
    esos datos pero no los muestra en los informes ni en las exploraciones.
 4. **Conservación de datos** (Administrar → Recopilación y modificación de
    datos → *Retención de datos*): subirla a **14 meses** (por defecto son 2, y
@@ -539,8 +541,10 @@ ni sus dominios en la CSP.
    fichas, cómo se encuentra el producto); si marcan pero no escriben, en el
    paso a WhatsApp.
 
-Otros datos útiles: **Informes → Interacción → Eventos** → `view_search_results`
-(qué busca la gente: sirve para saber qué productos faltan),
+Otros datos útiles: **Informes → Interacción → Eventos** → `busqueda` con
+`resultados` = `no` (lo que la gente busca y el sitio no tiene: sirve para
+saber qué productos faltan), `view_search_results` por `search_term` (qué
+busca la gente entre lo que sí hay),
 `cotizar_marcado` por `producto` (lo más pedido), `clic_whatsapp` por `origen`
 (qué botón funciona) y `filtro_aplicado` por `faceta` y `valor`.
 

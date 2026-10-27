@@ -151,7 +151,8 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
           a GA4 con gtag("event", nombre, …) y send_to = el ID de GA4 (Ads no
           recibe estos eventos). Nombres y parámetros en README-deploy.md,
           sección 6. Nunca se envían valores del formulario ni datos de
-          contacto: sólo de dónde vino el clic y qué producto, filtro o ficha.
+          contacto: sólo de dónde vino el clic, qué producto, filtro o ficha,
+          y qué se buscó en el buscador de productos.
         - formulario_enviado va acompañado de generate_lead, el evento
           recomendado de Google para un contacto (sin valor: la empresa no
           asigna un monto a cada consulta).
@@ -160,8 +161,13 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
           código de la casilla. Cotizar y filtros cuentan sólo al MARCAR: lo
           que el catálogo marca o desmarca por código (filtros de la URL,
           opciones imposibles) no dispara "change".
-        - La búsqueda NO se envía: con ?q= en la URL, la medición mejorada de
-          GA4 ya registra view_search_results (parámetro q por defecto).
+        - Búsquedas: las que llevan al catálogo con ?q= las registra sola la
+          medición mejorada de GA4 (view_search_results); este script no las
+          repite. Las que no llegan ahí (Enter o clic hacia un resultado
+          suelto, "Sin resultados") las avisa SearchBar con "dihyc:busqueda" y
+          salen como busqueda {termino, resultados: si|no}. Un término con @ o
+          7 o más dígitos seguidos, aunque vayan separados por espacios,
+          puntos o guiones (correo, teléfono), no se envía.
         No llama a preventDefault: la navegación sigue sola y transport_type
         "beacon" hace que el aviso a Google sobreviva a la salida de la página
         (Google sugiere retrasar el enlace con event_callback; aquí no, para no
@@ -289,6 +295,12 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
       document.addEventListener("dihyc:conversion", function (evento) {
         var tipo = evento.detail && evento.detail.tipo;
         if (typeof tipo === "string" && tipo) registrar(tipo, origenDePagina());
+      });
+      document.addEventListener("dihyc:busqueda", function (evento) {
+        var detalle = evento.detail || {};
+        var termino = corto(detalle.termino);
+        if (!termino || /@|(\d[\s.-]?){7,}/.test(termino)) return;
+        medir("busqueda", { termino: termino, resultados: detalle.resultados === "si" ? "si" : "no" }, true);
       });
     </script>
 

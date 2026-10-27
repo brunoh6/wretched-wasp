@@ -380,6 +380,34 @@ function renderResults(items, query, parsed, url) {
   `).join("");
 }
 
+/**
+ * Medición de búsquedas. Las que acaban en el catálogo llevan ?q= en la
+ * dirección y GA4 ya las cuenta solo (view_search_results). Las demás se
+ * perderían: Enter o clic hacia un resultado suelto, o "Sin resultados" (lo
+ * que más interesa: productos que la gente busca y no encuentra). Para esas
+ * se avisa con "dihyc:busqueda" y BaseLayout decide si va a GA4. Una vez por
+ * término y página, compartido entre el buscador de escritorio y el de móvil.
+ */
+const avisadas = new Set();
+
+function avisarBusqueda(query, hayResultados) {
+  const termino = query.replace(/\s+/g, " ").trim().slice(0, 100);
+  const clave = normalize(termino);
+  if (!termino || avisadas.has(clave)) return;
+  avisadas.add(clave);
+  document.dispatchEvent(new CustomEvent("dihyc:busqueda", {
+    detail: { termino, resultados: hayResultados ? "si" : "no" }
+  }));
+}
+
+function llevaQ(href) {
+  try {
+    return new URL(href, location.href).searchParams.has("q");
+  } catch {
+    return false;
+  }
+}
+
 // Cada instancia (escritorio / móvil) se cablea por separado dentro de su
 // propio contenedor, para que las dos puedan coexistir en la misma página.
 document.querySelectorAll("[data-search-root]").forEach((root) => {
@@ -399,8 +427,12 @@ document.querySelectorAll("[data-search-root]").forEach((root) => {
     input.setAttribute("aria-expanded", "false");
   }
 
+  let hayResultados = false;
+  let esperaVacia = 0;
+
   function render() {
     const query = input.value.trim();
+    clearTimeout(esperaVacia);
 
     clearBtn?.classList.toggle("hidden", !query);
     clearBtn?.classList.toggle("flex", Boolean(query));
@@ -416,9 +448,17 @@ document.querySelectorAll("[data-search-root]").forEach((root) => {
     // poder ofrecer el catálogo ya filtrado además de los resultados sueltos.
     const parsed = parseQuery(query);
     const catalogUrl = buildCatalogUrl(parsed);
+    const items = searchProducts(query, 6);
+    hayResultados = items.length > 0;
 
-    results.innerHTML = renderResults(searchProducts(query, 6), query, parsed, catalogUrl);
+    results.innerHTML = renderResults(items, query, parsed, catalogUrl);
     open();
+
+    // "Sin resultados" cuenta aunque no se pulse Enter, pero sólo cuando se
+    // deja de teclear: así "roc", "roci"… no cuentan, sólo "rociador".
+    if (!hayResultados && !catalogUrl) {
+      esperaVacia = setTimeout(() => avisarBusqueda(query, false), 1500);
+    }
   }
 
   input.addEventListener("input", render);
@@ -432,6 +472,13 @@ document.querySelectorAll("[data-search-root]").forEach((root) => {
 
   // Clic en una búsqueda sugerida.
   results.addEventListener("click", (event) => {
+    // Un resultado suelto o "Consúltanos por este producto" sacan de la
+    // página sin ?q=: es el último momento para contar la búsqueda.
+    const enlace = event.target.closest("a[href]");
+    if (enlace && input.value.trim() && !llevaQ(enlace.getAttribute("href"))) {
+      avisarBusqueda(input.value, hayResultados);
+    }
+
     const chip = event.target.closest("[data-suggestion]");
     if (!chip) return;
 
@@ -471,6 +518,7 @@ document.querySelectorAll("[data-search-root]").forEach((root) => {
     }
 
     const first = searchProducts(query, 1);
+    avisarBusqueda(query, first.length > 0);
     if (first.length > 0) window.location.href = first[0].href;
   });
 
