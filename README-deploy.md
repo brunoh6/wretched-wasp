@@ -252,18 +252,65 @@ concreta como `public_html/`.
 | *Compilar y validar* falla con `::error::/assets/... no existe en el sitio` | Alguien borró o renombró un archivo que la web cita (p. ej. desde la biblioteca del panel). Mientras siga así **no se publica ningún cambio**, tampoco los guardados del panel. Restaurar el archivo (está en el historial de GitHub) o quitar la cita, y volver a publicar. |
 | El push falla por **workflow scope** | Ver 1.5. |
 | *Compilar* falla con `PUBLIC_GOOGLE_ADS_ID=… no tiene la forma AW-123456789` (o con una etiqueta de conversión) | La variable `GOOGLE_ADS_ID` (o `ADS_LABEL_…`) está mal copiada: sin espacios, sin comillas, el ID empieza por `AW-`. Corregirla y **Run workflow** (sección 6). |
+| *Compilar* falla con `PUBLIC_GA4_ID=… no tiene la forma G-XXXXXXXXXX` o `PUBLIC_CLARITY_ID=… no tiene la forma…` | La variable `GA4_ID` o `CLARITY_ID` está mal copiada: GA4 es el «ID de medición» (`G-` y mayúsculas/números, no el número de la propiedad); Clarity, las 10 letras minúsculas y números del proyecto. Corregirla y **Run workflow** (sección 6). |
 
 ---
 
-## 6. Activar la medición de Google Ads
+## 6. Activar la medición (Google Ads, Google Analytics 4 y Clarity)
 
-El sitio ya está preparado para medir qué anuncios traen contactos. Mientras
-no se active, **no carga nada de Google Ads** (sólo lo de siempre: la
-tipografía de Google Fonts y el mapa de Contacto): los clics sólo quedan anotados
-dentro del navegador del visitante (para un futuro Google Analytics). Activarlo
-es crear unas variables en GitHub; no hay que tocar código.
+El sitio ya está preparado para medir tres cosas, cada una con su herramienta.
+Las tres están **apagadas**: mientras no se active ninguna, el sitio **no carga
+nada de Google ni de Microsoft** (sólo lo de siempre: la tipografía de Google
+Fonts y el mapa de Contacto) y los clics sólo quedan anotados dentro del
+navegador del visitante. Activar cada una es crear una variable en GitHub y
+volver a publicar; no hay que tocar código. Se pueden activar por separado y en
+cualquier orden.
 
-Se miden tres cosas, cada una como una «acción de conversión» de Google Ads:
+| Herramienta | Para qué sirve | Variable de GitHub |
+|---|---|---|
+| **Google Ads** | Saber qué anuncios traen contactos (conversiones) para que Google puje mejor. | `GOOGLE_ADS_ID` y `ADS_LABEL_…` |
+| **Google Analytics 4** (GA4) | Cuánta gente entra, de dónde viene y cuántos llegan a pedir cotización (embudo). | `GA4_ID` |
+| **Microsoft Clarity** | Ver grabaciones anónimas de las visitas y mapas de calor: dónde hacen clic, hasta dónde bajan, dónde se traban. | `CLARITY_ID` |
+
+> ⚠ **Antes de activar cualquiera** tiene que estar publicada en el sitio la
+> **Política de privacidad**, y debe decir que el sitio usa **cookies**,
+> **Google Analytics** (estadísticas de visitas), la etiqueta de **Google Ads**
+> (resultados de la publicidad) y **Microsoft Clarity**, que **graba de forma
+> anónima cómo se usa la página** (clics, desplazamiento; lo que se escribe en
+> el formulario nunca se graba). Google y Microsoft piden informar de ello a los
+> visitantes, y la ley peruana de datos personales (Ley 29733) exige el aviso
+> de privacidad. Hoy el sitio no tiene esa página: sin ella, no activar.
+> Clarity, además, no debe usarse en sitios dirigidos a menores de 18 años, y
+> para visitantes de Europa pide consentimiento previo: el sitio está pensado
+> para empresas de Perú, pero si algún día se apunta a Europa hay que añadir un
+> aviso de cookies.
+
+### Qué se mide
+
+Siempre, aunque no haya nada activado, cada acción queda en `window.dataLayer`
+(dentro del navegador). Con **GA4** activo, además se envía a Analytics como un
+evento con el nombre y los datos de esta tabla. Con **Google Ads** activo,
+WhatsApp, teléfono y formulario cuentan también como conversiones de Ads.
+
+| Evento en GA4 | Cuándo | Datos que lleva |
+|---|---|---|
+| `page_view` | Cada página que se abre (lo envía GA4 solo). | la dirección de la página |
+| `view_search_results` | Al buscar en el sitio: la búsqueda lleva al catálogo con `?q=…` en la dirección y la **medición mejorada** de GA4 la reconoce sola (no hace falta un evento propio). | `search_term`: lo que se buscó |
+| `filtro_aplicado` | Al marcar un filtro del catálogo (material, marca, línea…). | `faceta` (p. ej. `material`) y `valor` (p. ej. `HDPE`) |
+| `cotizar_marcado` | Al marcar una casilla **«Cotizar»** del catálogo. | `producto`: «Tubo · HDPE · EXTRUCOL» |
+| `ficha_descargada` | Al abrir una ficha técnica (PDF). | `archivo`: nombre del PDF |
+| `clic_whatsapp` | Al tocar cualquier botón o enlace de WhatsApp. | `origen`: `cotizacion` (botón «Solicitar cotización» del catálogo), `boton_flotante`, `pie`, `contacto`, `catalogo`, `inicio`… |
+| `clic_telefono` | Al tocar un número de teléfono. | `origen` (igual que arriba) |
+| `formulario_enviado` | Sólo cuando Formspree confirma que el mensaje llegó (no al pulsar el botón). Va acompañado de `generate_lead`, el evento que Google recomienda para un contacto. | `origen`: `contacto` o `inicio` |
+
+**Nunca** se envía nada de lo que la persona escribe en el formulario (nombre,
+correo, teléfono, mensaje): sólo de dónde vino el clic y qué producto, filtro o
+ficha.
+
+### A. Google Ads
+
+Se miden tres conversiones, cada una como una «acción de conversión» de
+Google Ads:
 
 | Conversión | Cuándo cuenta | Variable de GitHub |
 |---|---|---|
@@ -271,14 +318,7 @@ Se miden tres cosas, cada una como una «acción de conversión» de Google Ads:
 | **Formulario enviado** | Sólo cuando Formspree confirma que el mensaje llegó (no al pulsar el botón). | `ADS_LABEL_FORMULARIO` |
 | **Clic en un teléfono** | Al tocar un número de teléfono (llamada desde el celular). | `ADS_LABEL_LLAMADA` |
 
-> ⚠ **Antes de activarlo** tiene que estar publicada en el sitio la
-> **Política de privacidad**, y debe decir que el sitio usa cookies y la
-> etiqueta de Google Ads para medir los resultados de la publicidad. Google
-> pide informar de ello a los visitantes y la ley peruana de datos personales
-> (Ley 29733) exige el aviso de privacidad. Hoy el sitio no tiene esa página:
-> sin ella, no activar.
-
-### Paso 1. Crear las acciones de conversión en Google Ads
+#### Paso 1. Crear las acciones de conversión en Google Ads
 
 Lo hace quien administra la cuenta de Google Ads. Los menús de Google cambian de
 nombre a veces; la ruta suele ser esta:
@@ -305,7 +345,7 @@ nombre a veces; la ruta suele ser esta:
 
    **No** hay que pegar ese código en ningún sitio: el sitio ya lo trae.
 
-### Paso 2. Crear las variables en GitHub
+#### Paso 2. Crear las variables en GitHub
 
 Repositorio → **Settings** → **Secrets and variables** → **Actions** →
 pestaña **Variables** → *New repository variable*, una por una:
@@ -317,8 +357,9 @@ pestaña **Variables** → *New repository variable*, una por una:
 | `ADS_LABEL_FORMULARIO` | la etiqueta de «Formulario enviado» |
 | `ADS_LABEL_LLAMADA` | la etiqueta de «Clic teléfono» |
 
-- Son **Variables**, no *Secrets*: el ID y las etiquetas no son secretos (se
-  ven en el código de cualquier página publicada).
+- Son **Variables**, no *Secrets*: los IDs y las etiquetas no son secretos (se
+  ven en el código de cualquier página publicada). Lo mismo vale para `GA4_ID`
+  y `CLARITY_ID`.
 - Copiarlos sin espacios ni comillas. Si el ID no tiene la forma
   `AW-` + números, o una etiqueta lleva caracteres raros, la compilación
   **falla a propósito** con un mensaje que lo dice, en vez de publicar un sitio
@@ -326,7 +367,7 @@ pestaña **Variables** → *New repository variable*, una por una:
 - Si falta alguna etiqueta, el sitio se publica igual y esa conversión
   simplemente no se cuenta (la compilación lo avisa en amarillo).
 
-### Paso 3. Volver a publicar
+#### Paso 3. Volver a publicar
 
 Las variables sólo se leen al compilar: **Actions** → **Construir y publicar**
 → **Run workflow**. Al terminar, comprobar en la ejecución:
@@ -335,10 +376,10 @@ Las variables sólo se leen al compilar: **Actions** → **Construir y publicar*
 - *Probar el sitio en vivo*: `✅ la CSP en vivo permite la etiqueta de Google Ads`.
 
 La «CSP» es la lista de dominios externos que el navegador deja usar a la web.
-La compilación añade sola los de Google Ads; sin ellos, el navegador bloquearía
-la etiqueta sin avisar y la campaña no mediría nada.
+La compilación añade sola los de cada herramienta activa; sin ellos, el
+navegador la bloquearía sin avisar y no se mediría nada.
 
-### Paso 4. Comprobarlo con Tag Assistant
+#### Paso 4. Comprobarlo con Tag Assistant
 
 1. Abrir [tagassistant.google.com](https://tagassistant.google.com), **Add
    domain** → `https://www.dihyc.com.pe` → **Connect**. Se abre el sitio en otra
@@ -354,33 +395,210 @@ la etiqueta sin avisar y la campaña no mediría nada.
 En Google Ads, el estado de cada acción pasa de «Sin verificar» a «Registrando
 conversiones» en unas horas, cuando llegue la primera conversión real.
 
-### Desactivarlo
+### B. Google Analytics 4
 
-Borrar la variable `GOOGLE_ADS_ID` y volver a publicar (paso 3). El sitio queda
-como antes: sin nada de Google Ads en las páginas ni en la CSP.
+#### Paso 1. Crear la propiedad y copiar el ID de medición
+
+En [analytics.google.com](https://analytics.google.com), con la cuenta de Google
+de la empresa (los nombres de los menús pueden variar un poco):
+
+1. **Administrar** (engranaje, abajo a la izquierda) → **Crear** →
+   **Propiedad**. Nombre: «DIHYC – sitio web»; zona horaria **Perú**; moneda
+   **Sol peruano (PEN)**. En los objetivos, elegir **Generar clientes
+   potenciales**.
+2. Plataforma **Web**: URL `https://www.dihyc.com.pe`, nombre del flujo «Sitio
+   web». Dejar activada la **medición mejorada** (se ajusta en el paso 3).
+3. Al crear el flujo se ve el **ID de medición**, con la forma
+   **`G-XXXXXXXXXX`**. Si hay que buscarlo después: **Administrar** →
+   **Recopilación y modificación de datos** → **Flujos de datos** → el flujo
+   web. No sirve el «ID de propiedad» ni el «ID del flujo» (sólo números).
+4. Google ofrece instrucciones para instalar la etiqueta: **no** hace falta, el
+   sitio ya la trae.
+
+#### Paso 2. Variable y publicación
+
+Crear la variable **`GA4_ID`** = `G-XXXXXXXXXX` (igual que en A, paso 2) y
+**Run workflow**. En la ejecución debe verse:
+
+- *Compilar y validar*: `Google Analytics 4 G-…: etiqueta en el HTML y CSP ampliada.`
+- *Probar el sitio en vivo*: `✅ la CSP en vivo permite Google Analytics 4`.
+
+Si Google Ads ya estaba activo, el sitio sigue cargando **una sola** etiqueta de
+Google para los dos.
+
+#### Paso 3. Ajustes en GA4 (una sola vez)
+
+1. **Medición mejorada** (Administrar → Flujos de datos → el flujo web →
+   *Medición mejorada*, el engranaje):
+   - **Vistas de página** → *Mostrar configuración avanzada* → **desmarcar
+     «Cambios de página basados en eventos del historial del navegador»**. El
+     catálogo cambia la dirección al filtrar (para que se pueda compartir el
+     enlace) y, con esa opción marcada, cada filtro contaría como una página
+     vista más y como otra búsqueda.
+   - **Búsqueda en el sitio**: dejarla **activada**. Ya reconoce el parámetro
+     `q` que usa el buscador del sitio; no hay que añadir nada.
+   - **Interacciones con formularios**: conviene **desactivarla**: contaría el
+     clic en «Enviar» aunque el mensaje no llegue. El dato bueno es
+     `formulario_enviado`.
+   - **Clics salientes** y **Descargas de archivos** pueden quedar activados
+     (registran `click` y `file_download`), pero para los informes usar
+     `clic_whatsapp` y `ficha_descargada`, que además dicen de dónde vino el
+     clic.
+2. **Eventos clave** (Administrar → Visualización de datos → **Eventos**):
+   marcar con la estrella **formulario_enviado**, **clic_whatsapp** y
+   **clic_telefono**. Los eventos aparecen en esa lista hasta 24 h después de
+   la primera vez que alguien los hace; si no se quiere esperar, *Eventos
+   clave* → **Nuevo evento clave** y escribir el nombre exacto. **No** marcar
+   también `generate_lead`: contaría dos veces cada formulario.
+3. **Dimensiones personalizadas** (Administrar → Visualización de datos →
+   **Definiciones personalizadas** → *Crear dimensión personalizada*, alcance
+   **Evento**): crear una por cada dato, con el mismo nombre de parámetro:
+   `origen`, `producto`, `faceta`, `valor` y `archivo`. Sin esto, GA4 recibe
+   esos datos pero no los muestra en los informes ni en las exploraciones.
+4. **Conservación de datos** (Administrar → Recopilación y modificación de
+   datos → *Retención de datos*): subirla a **14 meses** (por defecto son 2, y
+   las exploraciones sólo ven ese período).
+5. **Vincular Google Ads** (Administrar → Vínculos de productos → **Vínculos de
+   Google Ads** → *Vincular*, elegir la cuenta): así GA4 muestra qué campañas
+   traen visitas y Google Ads puede ver las visitas del sitio. Las conversiones
+   de Ads ya se miden con su propia etiqueta (A): si se importan los eventos
+   clave de GA4 a Google Ads, importarlos como acciones **secundarias**, para no
+   contar dos veces cada contacto.
+
+#### Paso 4. Comprobarlo
+
+- **Informes → Tiempo real**: abrir el sitio en el celular y ver que aparece
+  «1 usuario» y, al tocar WhatsApp o marcar «Cotizar», sus eventos.
+- **DebugView** (Administrar → Visualización de datos → DebugView): conectar el
+  sitio con [Tag Assistant](https://tagassistant.google.com) (como en A, paso 4)
+  y recorrerlo: cada evento aparece en DebugView al momento, con sus datos
+  (`origen`, `producto`…).
+- Las pruebas cuentan como visitas reales; son pocas y no afectan.
+
+### C. Microsoft Clarity
+
+#### Paso 1. Crear el proyecto y copiar su ID
+
+1. Entrar en [clarity.microsoft.com](https://clarity.microsoft.com) con una
+   cuenta de Microsoft, Google o Facebook de la empresa → **Nuevo proyecto** →
+   nombre «DIHYC», sitio `https://www.dihyc.com.pe`.
+2. Cuando ofrezca formas de instalarlo, **no** instalar nada: el sitio ya trae
+   el código.
+3. El **ID del proyecto** está en **Configuración** → **Información general**
+   (también en la dirección del navegador, después de `/projects/view/`). Son
+   **10 letras minúsculas y números**, por ejemplo `abcde12345`.
+
+#### Paso 2. Variable y publicación
+
+Crear la variable **`CLARITY_ID`** con ese ID y **Run workflow**. En la
+ejecución debe verse:
+
+- *Compilar y validar*: `Clarity …: código en el HTML, formulario enmascarado y CSP ampliada.`
+- *Probar el sitio en vivo*: `✅ la CSP en vivo permite Clarity`.
+
+#### Paso 3. Ajustes
+
+- **Configuración → Enmascaramiento**: dejar **Equilibrado** (lo que viene) o
+  **Estricto**; nunca **Relajado**. Clarity ya oculta siempre lo que se escribe
+  en cualquier campo, y el sitio además marca el formulario de contacto entero
+  para que no se grabe nada de él (ni siquiera los avisos que muestra).
+- Opcional: **Configuración → Configuración → Google Analytics**: vincular la
+  propiedad GA4 para pasar de un informe de GA4 a las grabaciones.
+
+#### Paso 4. Comprobarlo
+
+Abrir el sitio en el celular y, en el panel de Clarity, ver **usuarios en
+directo** (*Live*): debe aparecer la visita en unos minutos. Las grabaciones y
+los mapas de calor se llenan durante las horas siguientes.
+
+### Desactivar una herramienta
+
+Borrar su variable (`GOOGLE_ADS_ID`, `GA4_ID` o `CLARITY_ID`) y volver a
+publicar (A, paso 3). El sitio queda como antes: sin su código en las páginas
+ni sus dominios en la CSP.
+
+### Guía corta para marketing
+
+**El embudo de cotización en GA4** (*entra → ve el catálogo → marca «Cotizar»
+→ WhatsApp o formulario*):
+
+1. GA4 → **Explorar** → **Exploración de embudo**.
+2. En **Pasos**, crear cuatro:
+   1. «Entra»: evento `session_start`.
+   2. «Ve el catálogo»: evento `page_view` con la condición *Ruta de la página*
+      **contiene** `/productos/`.
+   3. «Marca Cotizar»: evento `cotizar_marcado`.
+   4. «Contacta»: evento `clic_whatsapp` **o** (*Añadir alternativa*)
+      `formulario_enviado`.
+3. Dejar el embudo **cerrado** (la gente tiene que empezar en el paso 1) y,
+   en **Desglose**, poner *Origen/medio de la sesión* o *Campaña de la sesión*:
+   así se compara lo que traen los anuncios con lo que llega de Google sin
+   pagar.
+4. Lo que más interesa: en qué paso se cae más gente. Si muchos ven el catálogo
+   pero pocos marcan «Cotizar», el problema está en el catálogo (precio,
+   fichas, cómo se encuentra el producto); si marcan pero no escriben, en el
+   paso a WhatsApp.
+
+Otros datos útiles: **Informes → Interacción → Eventos** → `view_search_results`
+(qué busca la gente: sirve para saber qué productos faltan),
+`cotizar_marcado` por `producto` (lo más pedido), `clic_whatsapp` por `origen`
+(qué botón funciona) y `filtro_aplicado` por `faceta` y `valor`.
+
+**Qué mirar en Clarity**:
+
+- **Grabaciones**: filtrar por página visitada que contenga `/productos/` y
+  ver 10–15 visitas de la semana: ¿encuentran la casilla «Cotizar»? ¿usan los
+  filtros? ¿dónde abandonan? Los filtros de **clics de rabia** (muchos clics
+  seguidos en el mismo sitio) y **clics muertos** (clics en algo que no hace
+  nada) señalan lo que confunde.
+- **Mapas de calor** de cada página del catálogo y de la portada: *Clics* (qué
+  tocan) y *Desplazamiento* (cuánta gente baja hasta la tabla de productos o
+  hasta el formulario). Compararlos en celular y en computadora.
+- El **panel** resume visitas, tiempo, desplazamiento y esas señales de
+  frustración: revisarlo después de cada cambio importante del sitio.
 
 ### Para quien toque el código
 
-- `src/layouts/BaseLayout.astro`: con `PUBLIC_GOOGLE_ADS_ID` carga la etiqueta
-  de Google (gtag.js) al principio del `<head>`, como indica
-  [la guía oficial](https://developers.google.com/tag-platform/gtagjs/install).
-  Además, en todas las páginas hay un único escucha que, en un clic a `wa.me` /
-  `api.whatsapp.com`, en un `tel:` o en el evento
-  `document.dispatchEvent(new CustomEvent("dihyc:conversion", { detail: { tipo: "formulario" } }))`,
-  llama a `gtag('event', 'conversion', { send_to: 'AW-…/etiqueta', transport_type: 'beacon' })`
-  y siempre deja `{ event: 'dihyc_conversion', tipo }` en `window.dataLayer`.
-  No retrasa ni cancela la navegación (la guía de
-  [conversiones por clic](https://support.google.com/google-ads/answer/6331304)
-  usa `event_callback` para retrasar el enlace; aquí se usa `beacon` para que
-  WhatsApp abra sin espera).
-- `scripts/csp-google-ads.mjs` (se ejecuta dentro de `npm run build`): sólo
-  con ID, añade a la CSP de `dist/.htaccess` los dominios de la
-  [guía de CSP de Google](https://developers.google.com/tag-platform/security/guides/csp)
-  para Google Ads (`script-src`, `img-src`, `connect-src`, `frame-src`; cada
-  dominio `google.<TLD>` va aparte, por eso `www.google.com.pe`). Sin ID no toca
-  nada. `public/.htaccess` no cambia.
-- Para probar en local: `PUBLIC_GOOGLE_ADS_ID=AW-000000000 PUBLIC_ADS_LABEL_WHATSAPP=prueba npm run build`.
-  Esas compilaciones de prueba no se suben: la publicación siempre compila en GitHub.
+- `src/layouts/BaseLayout.astro`: con `PUBLIC_GOOGLE_ADS_ID` y/o
+  `PUBLIC_GA4_ID` carga **una** etiqueta de Google (gtag.js) al principio del
+  `<head>` y hace un `gtag('config', …)` por ID, como indica
+  [la guía oficial](https://developers.google.com/tag-platform/gtagjs/install);
+  el `config` de GA4 envía el `page_view`. Con `PUBLIC_CLARITY_ID`, el código
+  oficial de Clarity
+  ([guía](https://learn.microsoft.com/clarity/setup-and-installation/clarity-setup)).
+  Los IDs se validan al compilar (`AW-` + números, `G-` + mayúsculas y números,
+  Clarity: 10 minúsculas y números): uno mal copiado hace fallar la compilación.
+- En todas las páginas hay un único escucha (delegado en `document`):
+  - en un clic a `wa.me` / `api.whatsapp.com`, en un `tel:` o en el evento
+    `document.dispatchEvent(new CustomEvent("dihyc:conversion", { detail: { tipo: "formulario" } }))`
+    deja `{ event: 'dihyc_conversion', tipo }` en `window.dataLayer` y, con
+    Ads, llama a `gtag('event', 'conversion', { send_to: 'AW-…/etiqueta', transport_type: 'beacon' })`;
+  - cada evento de la tabla «Qué se mide» queda en `dataLayer` como
+    `{ event: 'dihyc_<nombre>', …datos }` y, sólo con GA4, se envía con
+    `gtag('event', '<nombre>', { send_to: 'G-…', …datos })` (Ads no los recibe);
+  - `cotizar_marcado` escucha `change` en las casillas con `data-quote-id`,
+    `filtro_aplicado` en las de `[data-facet]` (sólo al marcar), y
+    `ficha_descargada` los clics a PDF de `/assets/fichas-tecnicas/` y
+    `/assets/panel/fichas/`;
+  - no retrasa ni cancela la navegación (la guía de
+    [conversiones por clic](https://support.google.com/google-ads/answer/6331304)
+    usa `event_callback` para retrasar el enlace; aquí se usa `beacon` para que
+    WhatsApp abra sin espera) y un doble clic en menos de 1 s cuenta una vez.
+- `src/components/ContactForm.astro`: con `PUBLIC_CLARITY_ID`, el `<form>` lleva
+  `data-clarity-mask="True"`
+  ([enmascarado de Clarity](https://learn.microsoft.com/clarity/setup-and-installation/clarity-masking)).
+- `scripts/csp-medicion.mjs` (se ejecuta dentro de `npm run build`): por cada ID
+  presente, añade a la CSP de `dist/.htaccess` los dominios de las guías
+  oficiales —[Google](https://developers.google.com/tag-platform/security/guides/csp)
+  (Ads y GA4; cada `google.<TLD>` va aparte, por eso `www.google.com.pe` y
+  `*.google.com.pe`) y
+  [Microsoft](https://learn.microsoft.com/clarity/setup-and-installation/clarity-csp)
+  (`*.clarity.ms` y `c.bing.com`)—. Sin IDs no toca nada; correrlo dos veces
+  deja el mismo archivo. `public/.htaccess` no cambia.
+- Para probar en local:
+  `PUBLIC_GOOGLE_ADS_ID=AW-000000000 PUBLIC_GA4_ID=G-TEST000000 PUBLIC_CLARITY_ID=abcde12345 npm run build`.
+  Esas compilaciones de prueba no se suben: la publicación siempre compila en
+  GitHub.
 
 ---
 
@@ -397,7 +615,7 @@ bash scripts/probar-htaccess.sh
 ```
 
 Levanta un Apache 2.4 temporal (sin sudo; en macOS ya viene instalado) y corre
-95 comprobaciones: las tres redirecciones a `https://www.dihyc.com.pe` en un
+131 comprobaciones: las tres redirecciones a `https://www.dihyc.com.pe` en un
 salto, la query conservada, PDFs con espacios y `°`, la 404 propia, `/admin` con
 su política, `.well-known` sin redirección, otro dominio intacto, caché,
 compresión, sin listado de carpetas, archivos ocultos bloqueados, SVG de
@@ -406,9 +624,10 @@ del sitio viejo (sus `.php` redirigen, la portada nueva gana al `index.php`
 viejo, y mientras sube la primera publicación la portada vieja sigue viva), y
 que el sitio **no** da 500 si al hosting le faltan `mod_headers`, `mod_deflate`
 o `mod_filter`. También prueba la CSP: `connect-src` con `formspree.io`, y la
-CSP sin Google Ads y con ella (`scripts/csp-google-ads.mjs` con un ID de
-prueba: dominios de la guía de Google, idempotente, sin tocar `/admin` ni los
-SVG). El servidor real es **LiteSpeed**, que lee el mismo `.htaccess`;
+CSP sin medición y con Google Ads, GA4, Clarity y las tres juntas
+(`scripts/csp-medicion.mjs` con IDs de prueba: IDs inválidos rechazados sin
+tocar nada, dominios de las guías de Google y Microsoft, idempotente, una sola
+CSP, sin tocar `/admin` ni los SVG). El servidor real es **LiteSpeed**, que lee el mismo `.htaccess`;
 la prueba en vivo del workflow confirma en el servidor lo esencial.
 
 ### Qué hace el `.htaccess`, en una línea por regla
@@ -418,9 +637,9 @@ la prueba en vivo del workflow confirma en el servidor lo esencial.
   nuevas (301), sin bucles aunque el `index.php` viejo siga en el servidor.
 - `/.well-known/` sin tocar (renovación automática del SSL de cPanel).
 - Cabeceras de seguridad y **Content-Security-Policy** aplicada (verificada en
-  navegador sin violaciones en todas las páginas). Los dominios de Google Ads
-  los añade la compilación sólo si hay `GOOGLE_ADS_ID` (sección 6); si se añade
-  Google Analytics, sumar sus dominios en `scripts/csp-google-ads.mjs`.
+  navegador sin violaciones en todas las páginas). Los dominios de Google Ads,
+  GA4 y Clarity los añade la compilación sólo si
+  hay su variable (sección 6, `scripts/csp-medicion.mjs`).
 - HSTS de 1 día, sin `includeSubDomains`: subirlo a un año tras un mes estable.
 - SVG de `/assets/`: CSP propia (`default-src 'none'; sandbox`) para que un SVG
   con `<script>` abierto directamente no se ejecute en el dominio del panel.

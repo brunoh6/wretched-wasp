@@ -100,6 +100,15 @@ const label = "mb-1.5 block text-sm font-medium text-gray-800";
 
 // Estilo único para los mensajes por campo: rojos y debajo del campo.
 const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
+
+// Microsoft Clarity (README-deploy.md, sección 6): con PUBLIC_CLARITY_ID el
+// formulario entero se enmascara con data-clarity-mask="True" (la API de
+// learn.microsoft.com/clarity/setup-and-installation/clarity-masking): lo
+// enmascarado nunca sale del navegador. Clarity ya oculta siempre lo escrito en
+// campos y listas; esto cubre además los textos del formulario que cambian con
+// lo escrito (avisos de error, prefijo, agradecimiento). Sin Clarity el
+// atributo no se emite y el HTML queda como siempre.
+const enmascararClarity = String(import.meta.env.PUBLIC_CLARITY_ID ?? "").trim() ? "True" : undefined;
 ---
 
 <form
@@ -107,6 +116,7 @@ const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
   method="POST"
   class="space-y-5"
   id="contactForm"
+  data-clarity-mask={enmascararClarity}
   novalidate
 >
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">

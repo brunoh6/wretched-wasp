@@ -156,12 +156,13 @@ AddDefaultCharset UTF-8
   #   - formspree.io: el formulario de contacto, en form-action (envío
   #     clásico) y en connect-src (envío con fetch, que permite medir la
   #     conversión sin salir del sitio).
-  # Google Ads: NO se edita aquí. Si el build lleva PUBLIC_GOOGLE_ADS_ID,
-  # scripts/csp-google-ads.mjs añade a ESTA línea, sólo en dist/.htaccess, los
-  # dominios que exige la guía oficial de Google para la etiqueta de conversión
-  # (script-src, img-src, connect-src y frame-src; ver README-deploy.md). Sin ID
-  # se publica tal cual. Google Analytics (GA4) pediría además sus propios
-  # dominios: añadirlos en ese script, no a mano.
+  # Medición (Google Ads, Google Analytics 4 y Microsoft Clarity): NO se edita
+  # aquí. Si el build lleva PUBLIC_GOOGLE_ADS_ID, PUBLIC_GA4_ID o
+  # PUBLIC_CLARITY_ID, scripts/csp-medicion.mjs añade a ESTA línea, sólo en
+  # dist/.htaccess, los dominios que piden las guías oficiales de Google y de
+  # Microsoft (ver README-deploy.md, sección 6). Sin IDs se publica tal cual.
+  # No escribir aquí esos dominios ni en comentarios: la validación de
+  # deploy.yml comprueba que sin IDs el .htaccess no los nombre.
   # /admin tiene su propia política en admin/.htaccess (el CMS la necesita).
   Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src https://www.google.com; connect-src 'self' https://formspree.io; form-action 'self' https://formspree.io; frame-ancestors 'self'; object-src 'none'; base-uri 'self'" env=DIHYC
 

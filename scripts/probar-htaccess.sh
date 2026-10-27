@@ -36,10 +36,11 @@ trap '"$HTTPD" -f "$T/full.conf" -k stop >/dev/null 2>&1; "$HTTPD" -f "$T/min.co
 command -v "$HTTPD" >/dev/null || { echo "No encuentro Apache en $HTTPD"; exit 2; }
 
 echo "Compilando el sitio…"
-# Siempre SIN Google Ads, aunque quien lo corre tenga las variables puestas: el
-# caso "con ID" se prueba más abajo (o) sobre una copia del .htaccess.
+# Siempre SIN medición (Google Ads, GA4, Clarity), aunque quien lo corre tenga
+# las variables puestas: los casos "con ID" se prueban más abajo (o) sobre una
+# copia del .htaccess.
 ( cd "$RAIZ" && unset PUBLIC_GOOGLE_ADS_ID PUBLIC_ADS_LABEL_WHATSAPP PUBLIC_ADS_LABEL_FORMULARIO PUBLIC_ADS_LABEL_LLAMADA \
-    && npm run build >/dev/null 2>&1 ) || { echo "Falló npm run build"; exit 2; }
+    PUBLIC_GA4_ID PUBLIC_CLARITY_ID && npm run build >/dev/null 2>&1 ) || { echo "Falló npm run build"; exit 2; }
 cp -R "$RAIZ/dist" "$T/www"
 mkdir -p "$T/www/.well-known/acme-challenge" "$T/logs"
 echo "token-de-prueba" > "$T/www/.well-known/acme-challenge/prueba.txt"
@@ -237,38 +238,116 @@ for s in /assets/panel/fichas/especificaciones-brida-loca-pvc-georg-fischer.pdf 
   r=$(hdr https www.dihyc.com.pe "$s"); [ "$(st "$r")" = 200 ] && ok "$s → 200" || ko "$s" "$(st "$r")"
 done
 
-echo "o) CSP: formulario por fetch y Google Ads (scripts/csp-google-ads.mjs)"
+echo "o) CSP: formulario por fetch y medición (scripts/csp-medicion.mjs)"
 csp_de(){ hdr https www.dihyc.com.pe "$1" | grep -i '^Content-Security-Policy:' | tr -d '\r'; }
 # ¿La directiva $2 de la CSP $1 permite exactamente la fuente $3? (los espacios
 # evitan que www.google.com se dé por bueno dentro de www.google.com.pe)
 permite(){ local d; d=" $(echo "$1" | sed 's/^[^:]*: *//' | tr ';' '\n' | sed 's/^ *//' | grep "^$2 ") "; [[ "$d" == *" $3 "* ]]; }
+# Corre el script con SÓLO las variables indicadas (las demás, vacías).
+medir_csp(){ env PUBLIC_GOOGLE_ADS_ID= PUBLIC_GA4_ID= PUBLIC_CLARITY_ID= "$@" node "$RAIZ/scripts/csp-medicion.mjs" "$T/www" >/dev/null 2>&1; }
+igual(){ cmp -s "$T/www/.htaccess" "$T/htaccess.original"; }
+# Dominios de las guías oficiales (ver el encabezado de scripts/csp-medicion.mjs).
 ADS_DOM="https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://www.google.com https://www.google.com.pe"
+GA4_DOM="https://www.googletagmanager.com https://*.google-analytics.com https://*.google.com https://*.google.com.pe https://*.g.doubleclick.net"
+CLA_DOM="https://*.clarity.ms https://c.bing.com"
+faltan_ads(){ local f="" d
+  for d in https://www.googletagmanager.com https://www.googleadservices.com https://www.google.com; do permite "$1" script-src "$d" || f+=" script-src:$d"; done
+  for d in $ADS_DOM; do permite "$1" img-src "$d" || f+=" img-src:$d"; done
+  for d in $ADS_DOM https://ad.doubleclick.net; do permite "$1" connect-src "$d" || f+=" connect-src:$d"; done
+  permite "$1" frame-src https://www.googletagmanager.com || f+=" frame-src:gtm"
+  echo "$f"; }
+faltan_ga4(){ local f="" d
+  permite "$1" script-src https://www.googletagmanager.com || f+=" script-src:gtm"
+  for d in $GA4_DOM; do permite "$1" img-src "$d" || f+=" img-src:$d"; done
+  for d in $GA4_DOM https://pagead2.googlesyndication.com; do permite "$1" connect-src "$d" || f+=" connect-src:$d"; done
+  permite "$1" frame-src https://www.googletagmanager.com || f+=" frame-src:gtm"
+  echo "$f"; }
+faltan_cla(){ local f="" x d
+  for x in script-src img-src connect-src; do for d in $CLA_DOM; do permite "$1" "$x" "$d" || f+=" $x:$d"; done; done
+  echo "$f"; }
+# Comprobaciones comunes a cada caso "con ID": Apache sin 500, una sola CSP, el
+# resto de la política intacto, SVG y /admin con lo suyo.
+con_id_comun(){ # $1 = nombre del caso
+  local r c
+  r=$(hdr https www.dihyc.com.pe '/productos/')
+  [ "$(st "$r")" = 200 ] && ok "$1: Apache responde 200 con la CSP ampliada (sin error 500)" || ko "$1: CSP ampliada" "$(st "$r")"
+  [ "$(echo "$r" | grep -ci '^Content-Security-Policy:')" = 1 ] && ok "$1: sigue habiendo UNA sola CSP" || ko "$1: CSP duplicada" ""
+  c=$(csp_de /productos/)
+  permite "$c" connect-src https://formspree.io && permite "$c" frame-src https://www.google.com && permite "$c" script-src "'unsafe-inline'" \
+    && [[ "$c" == *"default-src 'self';"* && "$c" == *"frame-ancestors 'self'"* && "$c" == *"object-src 'none'"* ]] \
+    && ok "$1: se conserva el resto de la política (formspree, mapa, frame-ancestors…)" || ko "$1: resto de la CSP" "$c"
+  r=$(hdr https www.dihyc.com.pe /assets/categories/conexiones-fm.svg)
+  echo "$r" | grep -i '^Content-Security-Policy:' | grep -q "default-src 'none'.*sandbox" && [[ "$r" != *googletagmanager* && "$r" != *clarity.ms* ]] \
+    && ok "$1: los SVG conservan su CSP inerte" || ko "$1: SVG" "$(echo "$r" | grep -i content-security)"
+  r=$(hdr https www.dihyc.com.pe '/admin/')
+  [ "$(echo "$r" | grep -ci '^Content-Security-Policy:')" = 1 ] && echo "$r" | grep -qi "frame-ancestors 'none'" && [[ "$r" != *googletagmanager* && "$r" != *clarity.ms* ]] \
+    && ok "$1: /admin/ conserva sólo su política" || ko "$1: admin" "$(echo "$r" | grep -i content-security)"
+}
 csp=$(csp_de /contacto/)
 permite "$csp" connect-src "'self'" && permite "$csp" connect-src https://formspree.io && ok "connect-src permite https://formspree.io (formulario con fetch)" || ko "connect-src formspree" "$csp"
 permite "$csp" form-action https://formspree.io && ok "form-action sigue permitiendo formspree.io" || ko "form-action" "$csp"
-[[ "$csp" != *googletagmanager* && "$csp" != *googleadservices* && "$csp" != *doubleclick* && "$csp" != *google.com.pe* ]] && ok "sin ID: la CSP no trae ningún dominio de Google Ads" || ko "CSP sin ID" "$csp"
+[[ "$csp" != *googletagmanager* && "$csp" != *googleadservices* && "$csp" != *doubleclick* && "$csp" != *google.com.pe* && "$csp" != *google-analytics* && "$csp" != *clarity.ms* && "$csp" != *bing.com* ]] \
+  && ok "sin IDs: la CSP no trae ningún dominio de Google Ads, GA4 ni Clarity" || ko "CSP sin ID" "$csp"
 bport=$(body https www.dihyc.com.pe '/')
-[[ "$bport" != *googletagmanager* && "$bport" != *"gtag/js"* ]] && ok "sin ID: el HTML no carga gtag.js" || ko "HTML sin ID" "trae gtag"
+[[ "$bport" != *googletagmanager* && "$bport" != *"gtag/js"* && "$bport" != *google-analytics* && "$bport" != *clarity.ms* && "$bport" != *data-clarity-mask* ]] \
+  && ok "sin IDs: el HTML no carga gtag.js ni Clarity (ni marca el formulario)" || ko "HTML sin ID" "trae gtag o Clarity"
 cp "$T/www/.htaccess" "$T/htaccess.original"
-PUBLIC_GOOGLE_ADS_ID= node "$RAIZ/scripts/csp-google-ads.mjs" "$T/www" >/dev/null 2>&1 && cmp -s "$T/www/.htaccess" "$T/htaccess.original" && ok "sin ID el script no toca el .htaccess" || ko "script sin ID" "cambió el archivo"
-PUBLIC_GOOGLE_ADS_ID=G-123 node "$RAIZ/scripts/csp-google-ads.mjs" "$T/www" >/dev/null 2>&1 && ko "ID inválido" "el script no falló" || { cmp -s "$T/www/.htaccess" "$T/htaccess.original" && ok "ID con forma inválida: el script falla y no toca nada" || ko "ID inválido" "cambió el archivo"; }
-PUBLIC_GOOGLE_ADS_ID=AW-000000000 node "$RAIZ/scripts/csp-google-ads.mjs" "$T/www" >/dev/null 2>&1 && ok "con ID el script amplía la CSP" || ko "script con ID" "falló"
+medir_csp && igual && ok "sin IDs el script no toca el .htaccess" || ko "script sin ID" "cambió el archivo"
+for malo in PUBLIC_GOOGLE_ADS_ID=G-123 PUBLIC_GA4_ID=UA-12345-1 PUBLIC_GA4_ID=g-test000000 PUBLIC_GA4_ID=123456789 \
+            PUBLIC_CLARITY_ID=ABCDEFGHIJ PUBLIC_CLARITY_ID=abc123 "PUBLIC_CLARITY_ID=<script>xx"; do
+  medir_csp "$malo" && ko "ID inválido $malo" "el script no falló" \
+    || { igual && ok "ID con forma inválida ($malo): el script falla y no toca nada" || ko "ID inválido $malo" "cambió el archivo"; }
+done
+medir_csp PUBLIC_GA4_ID=G-TEST000000 PUBLIC_CLARITY_ID=MAL && ko "GA4 válido + Clarity inválido" "no falló" \
+  || { igual && ok "GA4 válido + Clarity inválido: falla sin escribir nada" || ko "GA4 + Clarity inválido" "cambió el archivo"; }
+
+#   Google Ads sólo.
+medir_csp PUBLIC_GOOGLE_ADS_ID=AW-000000000 && ok "Ads: el script amplía la CSP" || ko "script Ads" "falló"
 cp "$T/www/.htaccess" "$T/htaccess.ads"
-PUBLIC_GOOGLE_ADS_ID=AW-000000000 node "$RAIZ/scripts/csp-google-ads.mjs" "$T/www" >/dev/null 2>&1 && cmp -s "$T/www/.htaccess" "$T/htaccess.ads" && ok "idempotente: una segunda pasada deja el mismo archivo" || ko "idempotencia" "cambió en la segunda pasada"
-r=$(hdr https www.dihyc.com.pe '/productos/'); [ "$(st "$r")" = 200 ] && ok "con la CSP ampliada Apache responde 200 (sin error 500)" || ko "CSP ampliada" "$(st "$r")"
-csp=$(csp_de /productos/)
-faltan=""
-for d in https://www.googletagmanager.com https://www.googleadservices.com https://www.google.com; do permite "$csp" script-src "$d" || faltan+=" script-src:$d"; done
-for d in $ADS_DOM; do permite "$csp" img-src "$d" || faltan+=" img-src:$d"; done
-for d in $ADS_DOM https://ad.doubleclick.net; do permite "$csp" connect-src "$d" || faltan+=" connect-src:$d"; done
-permite "$csp" frame-src https://www.googletagmanager.com || faltan+=" frame-src:gtm"
-[ -z "$faltan" ] && ok "con ID: script-src, img-src, connect-src y frame-src con los dominios de la guía de Google (incl. www.google.com.pe)" || ko "dominios de Google Ads" "$faltan"
-permite "$csp" connect-src https://formspree.io && permite "$csp" frame-src https://www.google.com && permite "$csp" script-src "'unsafe-inline'" \
-  && [[ "$csp" == *"frame-ancestors 'self'"* && "$csp" == *"object-src 'none'"* ]] && ok "con ID se conserva el resto de la política (formspree, mapa, frame-ancestors…)" || ko "resto de la CSP" "$csp"
-[ "$(hdr https www.dihyc.com.pe '/productos/' | grep -ci '^Content-Security-Policy:')" = 1 ] && ok "con ID sigue habiendo UNA sola CSP" || ko "CSP duplicada con ID" ""
-r=$(hdr https www.dihyc.com.pe /assets/categories/conexiones-fm.svg)
-echo "$r" | grep -i '^Content-Security-Policy:' | grep -q "default-src 'none'.*sandbox" && [[ "$r" != *googletagmanager* ]] && ok "con ID los SVG conservan su CSP inerte" || ko "SVG con ID" "$(echo "$r" | grep -i content-security)"
-r=$(hdr https www.dihyc.com.pe '/admin/'); [ "$(echo "$r" | grep -ci '^Content-Security-Policy:')" = 1 ] && echo "$r" | grep -qi "frame-ancestors 'none'" && ok "con ID /admin/ conserva sólo su política" || ko "admin con ID" "$(echo "$r" | grep -i content-security)"
+medir_csp PUBLIC_GOOGLE_ADS_ID=AW-000000000 && cmp -s "$T/www/.htaccess" "$T/htaccess.ads" && ok "Ads: idempotente (segunda pasada, mismo archivo)" || ko "idempotencia Ads" "cambió"
+csp=$(csp_de /productos/); f=$(faltan_ads "$csp")
+[ -z "$f" ] && ok "Ads: script-src, img-src, connect-src y frame-src con los dominios de la guía de Google (incl. www.google.com.pe)" || ko "dominios de Google Ads" "$f"
+[[ "$csp" != *google-analytics* && "$csp" != *clarity.ms* ]] && ok "Ads: sin dominios de GA4 ni de Clarity" || ko "Ads trae de más" "$csp"
+con_id_comun "Ads"
+cp "$T/htaccess.original" "$T/www/.htaccess"
+
+#   GA4 sólo.
+medir_csp PUBLIC_GA4_ID=G-TEST000000 && ok "GA4: el script amplía la CSP" || ko "script GA4" "falló"
+cp "$T/www/.htaccess" "$T/htaccess.ga4"
+medir_csp PUBLIC_GA4_ID=G-TEST000000 && cmp -s "$T/www/.htaccess" "$T/htaccess.ga4" && ok "GA4: idempotente" || ko "idempotencia GA4" "cambió"
+csp=$(csp_de /productos/); f=$(faltan_ga4 "$csp")
+[ -z "$f" ] && ok "GA4: googletagmanager, *.google-analytics.com, *.google.com, *.google.com.pe y *.g.doubleclick.net (guía de Google)" || ko "dominios de GA4" "$f"
+[[ "$csp" != *googleadservices* && "$csp" != *clarity.ms* ]] && ok "GA4: sin dominios propios de Ads ni de Clarity" || ko "GA4 trae de más" "$csp"
+con_id_comun "GA4"
+cp "$T/htaccess.original" "$T/www/.htaccess"
+
+#   Clarity sólo.
+medir_csp PUBLIC_CLARITY_ID=dihyctest0 && ok "Clarity: el script amplía la CSP" || ko "script Clarity" "falló"
+cp "$T/www/.htaccess" "$T/htaccess.clarity"
+medir_csp PUBLIC_CLARITY_ID=dihyctest0 && cmp -s "$T/www/.htaccess" "$T/htaccess.clarity" && ok "Clarity: idempotente" || ko "idempotencia Clarity" "cambió"
+csp=$(csp_de /productos/); f=$(faltan_cla "$csp")
+[ -z "$f" ] && ok "Clarity: *.clarity.ms y c.bing.com en script-src, img-src y connect-src (guía de Microsoft)" || ko "dominios de Clarity" "$f"
+[[ "$csp" != *googletagmanager* && "$csp" != *google-analytics* && "$csp" != *googleadservices* ]] && ok "Clarity: sin dominios de Google" || ko "Clarity trae de más" "$csp"
+con_id_comun "Clarity"
+cp "$T/htaccess.original" "$T/www/.htaccess"
+
+#   Las tres juntas; idempotente, y si una pasada anterior ya añadió GA4 el
+#   resultado permite exactamente lo mismo (sólo cambia el orden).
+medir_csp PUBLIC_GOOGLE_ADS_ID=AW-000000000 PUBLIC_GA4_ID=G-TEST000000 PUBLIC_CLARITY_ID=dihyctest0 && ok "Ads + GA4 + Clarity: el script amplía la CSP" || ko "script las tres" "falló"
+cp "$T/www/.htaccess" "$T/htaccess.todas"
+medir_csp PUBLIC_GOOGLE_ADS_ID=AW-000000000 PUBLIC_GA4_ID=G-TEST000000 PUBLIC_CLARITY_ID=dihyctest0 && cmp -s "$T/www/.htaccess" "$T/htaccess.todas" \
+  && ok "las tres: idempotente (segunda pasada, mismo archivo)" || ko "idempotencia las tres" "cambió"
+# Fuentes de cada directiva, ordenadas: "directiva fuente" por línea.
+fuentes(){ grep "Content-Security-Policy \"default-src 'self';" "$1" | sed 's/.*Content-Security-Policy "//; s/" env=DIHYC.*//' | tr ';' '\n' \
+  | while read -r dir fs; do for x in $fs; do echo "$dir $x"; done; done | sort; }
+cp "$T/htaccess.original" "$T/www/.htaccess"
+medir_csp PUBLIC_GA4_ID=G-TEST000000 && medir_csp PUBLIC_GOOGLE_ADS_ID=AW-000000000 PUBLIC_GA4_ID=G-TEST000000 PUBLIC_CLARITY_ID=dihyctest0 \
+  && [ "$(fuentes "$T/www/.htaccess")" = "$(fuentes "$T/htaccess.todas")" ] && ok "las tres: sobre una CSP que ya tenía GA4 se llega a la misma política" || ko "GA4 y luego las tres" "otra política"
+csp=$(csp_de /productos/); f="$(faltan_ads "$csp")$(faltan_ga4 "$csp")$(faltan_cla "$csp")"
+[ -z "$f" ] && ok "las tres: todos los dominios de Ads, GA4 y Clarity" || ko "dominios las tres" "$f"
+dups=$(echo "$csp" | sed 's/^[^:]*: *//' | tr ';' '\n' | while read -r dir; do echo "$dir" | tr ' ' '\n' | sort | uniq -d; done)
+[ -z "$dups" ] && ok "las tres: ningún dominio repetido dentro de una directiva" || ko "repetidos" "$dups"
+con_id_comun "Las tres"
 cp "$T/htaccess.original" "$T/www/.htaccess"
 
 echo

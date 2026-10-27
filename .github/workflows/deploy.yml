@@ -75,15 +75,18 @@ jobs:
           # commit. La prueba final la usa para confirmar que lo que se ve en
           # vivo es ESTA versión y no una copia vieja en caché.
           PUBLIC_BUILD_ID: ${{ github.sha }}
-          # Medición de Google Ads (README-deploy.md, «Activar la medición de
-          # Google Ads»). Sin GOOGLE_ADS_ID no se carga nada de Google; con él,
-          # el HTML lleva la etiqueta y "npm run build" amplía la CSP de
-          # dist/.htaccess (scripts/csp-google-ads.mjs). Son variables, no
-          # secrets: el ID y las etiquetas se ven en el HTML publicado.
+          # Medición (README-deploy.md, sección 6): Google Ads, Google
+          # Analytics 4 y Microsoft Clarity. Sin sus variables no se carga nada
+          # de Google ni de Microsoft; con cada ID, el HTML lleva su etiqueta y
+          # "npm run build" amplía la CSP de dist/.htaccess
+          # (scripts/csp-medicion.mjs). Son variables, no secrets: los IDs y
+          # las etiquetas se ven en el HTML publicado.
           PUBLIC_GOOGLE_ADS_ID: ${{ vars.GOOGLE_ADS_ID }}
           PUBLIC_ADS_LABEL_WHATSAPP: ${{ vars.ADS_LABEL_WHATSAPP }}
           PUBLIC_ADS_LABEL_FORMULARIO: ${{ vars.ADS_LABEL_FORMULARIO }}
           PUBLIC_ADS_LABEL_LLAMADA: ${{ vars.ADS_LABEL_LLAMADA }}
+          PUBLIC_GA4_ID: ${{ vars.GA4_ID }}
+          PUBLIC_CLARITY_ID: ${{ vars.CLARITY_ID }}
         run: npm run build
 
       - name: Validar el sitio compilado
@@ -93,6 +96,8 @@ jobs:
           ADS_LABEL_WHATSAPP: ${{ vars.ADS_LABEL_WHATSAPP }}
           ADS_LABEL_FORMULARIO: ${{ vars.ADS_LABEL_FORMULARIO }}
           ADS_LABEL_LLAMADA: ${{ vars.ADS_LABEL_LLAMADA }}
+          GA4_ID: ${{ vars.GA4_ID }}
+          CLARITY_ID: ${{ vars.CLARITY_ID }}
         run: |
           set -euo pipefail
           falta=0
@@ -109,45 +114,96 @@ jobs:
           grep -q "name=\"dihyc-build\" content=\"${GITHUB_SHA}\"" dist/index.html \
             || { echo "::error::La marca de versión no lleva el commit ${GITHUB_SHA}"; exit 1; }
 
-          # Google Ads: con ID, cada página del sitio (no /admin) lleva la
-          # etiqueta y la CSP de dist/.htaccess deja pasar sus dominios; si no,
-          # el navegador la bloquearía en silencio y la campaña no mediría.
-          # Sin ID, nada de Google Ads en el HTML ni en la CSP.
-          ADS_ID="$(echo "$ADS_ID" | tr -d '[:space:]')"
-          if [ -n "$ADS_ID" ]; then
-            sin_etiqueta=$(grep -rL --include='*.html' "googletagmanager.com/gtag/js?id=${ADS_ID}\"" dist | grep -v '^dist/admin/' || true)
-            if [ -n "$sin_etiqueta" ]; then
-              echo "::error::Páginas sin la etiqueta de Google Ads ${ADS_ID}:"; echo "$sin_etiqueta"; exit 1
-            fi
-            python3 - <<'PY'
-          import re, sys
-          texto = open("dist/.htaccess", encoding="utf-8").read()
+          # Medición (Google Ads, GA4, Clarity). Con cada ID, cada página del
+          # sitio (no /admin) lleva su etiqueta UNA vez y la CSP de
+          # dist/.htaccess deja pasar sus dominios; si no, el navegador la
+          # bloquearía en silencio y no se mediría nada. Sin un ID, ni rastro
+          # de esa herramienta en el HTML ni en la CSP. Los dominios son los de
+          # scripts/csp-medicion.mjs (guías oficiales de Google y Microsoft).
+          python3 - <<'PY'
+          import json, os, pathlib, re, sys
+          ids = {k: "".join(os.environ.get(k, "").split()) for k in ("ADS_ID", "GA4_ID", "CLARITY_ID")}
+          ads, ga4, cla = ids["ADS_ID"], ids["GA4_ID"], ids["CLARITY_ID"]
+          errores = []
+          def error(m): errores.append(m); print(f"::error::{m}")
+
+          GTM = "https://www.googletagmanager.com"
+          ADS = [GTM, "https://www.googleadservices.com", "https://googleads.g.doubleclick.net",
+                 "https://pagead2.googlesyndication.com", "https://www.google.com", "https://www.google.com.pe"]
+          GA4 = [GTM, "https://*.google-analytics.com", "https://*.google.com", "https://*.google.com.pe", "https://*.g.doubleclick.net"]
+          CLA = ["https://*.clarity.ms", "https://c.bing.com"]
+          pide = {}
+          def pedir(d, xs): pide.setdefault(d, []).extend(xs)
+          if ads:
+              pedir("script-src", [GTM, "https://www.googleadservices.com", "https://www.google.com"]); pedir("img-src", ADS)
+              pedir("connect-src", ADS + ["https://ad.doubleclick.net"]); pedir("frame-src", [GTM])
+          if ga4:
+              pedir("script-src", [GTM]); pedir("img-src", GA4)
+              pedir("connect-src", GA4 + ["https://pagead2.googlesyndication.com"]); pedir("frame-src", [GTM])
+          if cla:
+              for d in ("script-src", "img-src", "connect-src"): pedir(d, CLA)
+
+          # 1) CSP de páginas en dist/.htaccess.
+          texto = pathlib.Path("dist/.htaccess").read_text(encoding="utf-8")
           m = re.findall(r"""Header always set Content-Security-Policy "(default-src 'self';[^"]*)" env=DIHYC""", texto)
           if len(m) != 1:
-              print(f"::error::dist/.htaccess debería tener UNA CSP de páginas y tiene {len(m)}"); sys.exit(1)
+              error(f"dist/.htaccess debería tener UNA CSP de páginas y tiene {len(m)}"); sys.exit(1)
           csp = {d.split()[0]: d.split()[1:] for d in (x.strip() for x in m[0].split(";")) if d}
-          ads = ["https://www.googletagmanager.com", "https://www.googleadservices.com", "https://googleads.g.doubleclick.net",
-                 "https://pagead2.googlesyndication.com", "https://www.google.com", "https://www.google.com.pe"]
-          pide = {"script-src": ads[:2] + ["https://www.google.com"], "img-src": ads,
-                  "connect-src": ads + ["https://ad.doubleclick.net"], "frame-src": ["https://www.googletagmanager.com"]}
-          faltan = [f"{d} {x}" for d, xs in pide.items() for x in xs if x not in csp.get(d, [])]
-          for f in faltan: print(f"::error::La CSP de dist/.htaccess no permite {f} (¿falló scripts/csp-google-ads.mjs?)")
-          sys.exit(1 if faltan else 0)
+          for d, xs in pide.items():
+              for x in dict.fromkeys(xs):
+                  if x not in csp.get(d, []): error(f"La CSP de dist/.htaccess no permite {d} {x} (¿falló scripts/csp-medicion.mjs?)")
+          prohibidos = []
+          if not (ads or ga4): prohibidos += ["googletagmanager.com", "google-analytics.com", "googleadservices.com", "doubleclick.net", "googlesyndication.com"]
+          if not ads: prohibidos += ["googleadservices.com"]
+          if not ga4: prohibidos += ["google-analytics.com"]
+          if not cla: prohibidos += ["clarity.ms", "bing.com"]
+          for p in dict.fromkeys(prohibidos):
+              if p in texto: error(f"dist/.htaccess menciona {p} sin la variable que lo activa")
+
+          # 2) HTML de cada página del sitio (/admin no lleva medición).
+          paginas = [f for f in pathlib.Path("dist").rglob("*.html") if not f.as_posix().startswith("dist/admin/")]
+          gtag_ids = [x for x in (ads, ga4) if x]
+          for f in paginas:
+              h = f.read_text(encoding="utf-8")
+              n_gtag = h.count('src="https://www.googletagmanager.com/gtag/js?id=')
+              if gtag_ids:
+                  if n_gtag != 1 or f'gtag/js?id={gtag_ids[0]}"' not in h:
+                      error(f"{f}: gtag.js debería cargarse UNA vez con {gtag_ids[0]} (hay {n_gtag})")
+                  c = re.findall(r"const gtagIds = (\[[^\]]*\]);", h)
+                  if len(c) != 1 or json.loads(c[0]) != gtag_ids:
+                      error(f"{f}: los config de gtag deberían ser {gtag_ids} y son {c}")
+              elif re.search(r"googletagmanager\.com|google-analytics\.com|googleadservices\.com", h):
+                  error(f"{f}: sin GOOGLE_ADS_ID ni GA4_ID el HTML no debería cargar nada de Google")
+              med = re.findall(r"const medicion = (\{.*?\});\n", h)
+              if len(med) != 1 or json.loads(med[0]).get("id") != ads or json.loads(med[0]).get("ga4") != ga4:
+                  error(f"{f}: el escucha de medición no lleva los IDs esperados ({med[:1]})")
+              n_cla = h.count('"https://www.clarity.ms/tag/"')
+              if cla:
+                  if n_cla != 1 or h.count(f'const clarityId = "{cla}";') != 1:
+                      error(f"{f}: el código de Clarity debería estar UNA vez con {cla} (hay {n_cla})")
+                  if 'id="contactForm"' in h and 'data-clarity-mask="True"' not in h:
+                      error(f"{f}: el formulario debería ir enmascarado para Clarity (data-clarity-mask)")
+              elif "clarity.ms" in h or "data-clarity-mask" in h:
+                  error(f"{f}: sin CLARITY_ID el HTML no debería traer nada de Clarity")
+          if errores: sys.exit(1)
+          print(f"Medición revisada en {len(paginas)} páginas y en la CSP.")
           PY
+          ADS_ID="$(echo "$ADS_ID" | tr -d '[:space:]')"
+          GA4_ID="$(echo "$GA4_ID" | tr -d '[:space:]')"
+          CLARITY_ID="$(echo "$CLARITY_ID" | tr -d '[:space:]')"
+          if [ -n "$ADS_ID" ]; then
             for tipo in WHATSAPP FORMULARIO LLAMADA; do
               var="ADS_LABEL_${tipo}"
               [ -n "${!var}" ] || echo "::warning::Sin la variable ${var}: esa conversión NO se cuenta en Google Ads (sólo queda en dataLayer)."
             done
             echo "Google Ads ${ADS_ID}: etiqueta en el HTML y CSP ampliada."
           else
-            if grep -rlE --include='*.html' 'googletagmanager\.com|googleadservices\.com' dist | grep -q .; then
-              echo "::error::Sin GOOGLE_ADS_ID el HTML no debería cargar nada de Google Ads"; exit 1
-            fi
-            if grep -qE 'googletagmanager\.com|googleadservices\.com' dist/.htaccess; then
-              echo "::error::Sin GOOGLE_ADS_ID la CSP no debería incluir dominios de Google Ads"; exit 1
-            fi
             echo "Google Ads: sin GOOGLE_ADS_ID, medición apagada (sólo dataLayer)."
           fi
+          if [ -n "$GA4_ID" ]; then echo "Google Analytics 4 ${GA4_ID}: etiqueta en el HTML y CSP ampliada."
+          else echo "Google Analytics 4: sin GA4_ID, apagado (los eventos quedan sólo en dataLayer)."; fi
+          if [ -n "$CLARITY_ID" ]; then echo "Clarity ${CLARITY_ID}: código en el HTML, formulario enmascarado y CSP ampliada."
+          else echo "Clarity: sin CLARITY_ID, apagado."; fi
 
           if grep -rl "localhost" dist --include='*.html' | grep -q .; then
             echo "::error::Hay enlaces a localhost en el HTML compilado:"
@@ -364,6 +420,8 @@ jobs:
       - name: Comprobar páginas, redirecciones y versión publicada
         env:
           ADS_ID: ${{ vars.GOOGLE_ADS_ID }}
+          GA4_ID: ${{ vars.GA4_ID }}
+          CLARITY_ID: ${{ vars.CLARITY_ID }}
         run: |
           # Sin -e a propósito: cada comprobación anota su fallo en $fallos y la
           # prueba sigue, para ver TODOS los problemas de una vez. GitHub lanza
@@ -434,14 +492,39 @@ jobs:
             if grep -qi "^$h:" <<<"$cab"; then echo "✅ cabecera $h"
             else echo "::warning::El sitio en vivo no envía $h (¿mod_headers desactivado en el hosting?)"; fi
           done
-          #    Con Google Ads activo, la CSP en vivo debe dejar pasar su etiqueta.
-          #    Error (no aviso): si el servidor manda una CSP vieja, la etiqueta
-          #    queda bloqueada y la campaña no mide nada.
+          #    Con medición activa, la CSP en vivo debe dejar pasar cada
+          #    etiqueta. Error (no aviso): si el servidor manda una CSP vieja, la
+          #    etiqueta queda bloqueada y no se mide nada.
           csp=$(grep -i '^content-security-policy:' <<<"$cab" | head -1)
+          ADS_ID="$(echo "$ADS_ID" | tr -d '[:space:]')"
+          GA4_ID="$(echo "$GA4_ID" | tr -d '[:space:]')"
+          CLARITY_ID="$(echo "$CLARITY_ID" | tr -d '[:space:]')"
           if [ -n "$ADS_ID" ] && [ -n "$csp" ]; then
             if [[ "$csp" == *"https://www.googletagmanager.com"* && "$csp" == *"https://www.google.com.pe"* && "$csp" == *"https://googleads.g.doubleclick.net"* ]]; then
               echo "✅ la CSP en vivo permite la etiqueta de Google Ads"
             else echo "::error::La CSP en vivo no incluye los dominios de Google Ads: la etiqueta quedaría bloqueada"; fallos=1; fi
+          fi
+          if [ -n "$GA4_ID" ] && [ -n "$csp" ]; then
+            if [[ "$csp" == *"https://www.googletagmanager.com"* && "$csp" == *"https://*.google-analytics.com"* && "$csp" == *"https://*.google.com "* ]]; then
+              echo "✅ la CSP en vivo permite Google Analytics 4"
+            else echo "::error::La CSP en vivo no incluye los dominios de GA4: Analytics quedaría bloqueado"; fallos=1; fi
+          fi
+          if [ -n "$CLARITY_ID" ] && [ -n "$csp" ]; then
+            if [[ "$csp" == *"https://*.clarity.ms"* && "$csp" == *"https://c.bing.com"* ]]; then
+              echo "✅ la CSP en vivo permite Clarity"
+            else echo "::error::La CSP en vivo no incluye los dominios de Clarity: quedaría bloqueado"; fallos=1; fi
+          fi
+          #    Y la portada en vivo (ya de este commit) lleva cada etiqueta.
+          if [ -n "$ADS_ID$GA4_ID" ]; then
+            gids=$(echo $ADS_ID $GA4_ID)
+            if [[ "$portada" == *"googletagmanager.com/gtag/js?id="* && "$portada" == *"\"${ADS_ID:-$GA4_ID}\""* && "$portada" == *"\"${GA4_ID:-$ADS_ID}\""* ]]; then
+              echo "✅ la portada en vivo carga gtag.js con ${gids}"
+            else echo "::error::La portada en vivo no trae gtag.js con ${gids}"; fallos=1; fi
+          fi
+          if [ -n "$CLARITY_ID" ]; then
+            if [[ "$portada" == *"https://www.clarity.ms/tag/"* && "$portada" == *"\"${CLARITY_ID}\""* ]]; then
+              echo "✅ la portada en vivo trae el código de Clarity ${CLARITY_ID}"
+            else echo "::error::La portada en vivo no trae el código de Clarity ${CLARITY_ID}"; fallos=1; fi
           fi
 
           # 7) /admin debe recibir SÓLO su política (admin/.htaccess). Si el

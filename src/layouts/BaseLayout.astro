@@ -57,22 +57,24 @@ const ogImage = site ? new URL(ogImageAsset.src, site).href : ogImageAsset.src;
 // emite "local". Es pública a propósito: un SHA de commit no es un secreto.
 const buildId = import.meta.env.PUBLIC_BUILD_ID ?? "local";
 
-// Medición de Google Ads (README-deploy.md, «Activar la medición de Google
-// Ads»). Se activa SÓLO con variables del build; sin PUBLIC_GOOGLE_ADS_ID no se
-// carga nada de Google y la página sólo lleva el escucha de abajo, que deja los
-// eventos en window.dataLayer. El mismo ID amplía la CSP de dist/.htaccess
-// (scripts/csp-google-ads.mjs): si se cambia la validación aquí, cambiarla allí.
-// Acceso estático a cada variable: Vite sólo sustituye `import.meta.env.X`
-// escrito tal cual.
+// Medición: Google Ads, Google Analytics 4 y Microsoft Clarity (README-deploy.md,
+// sección 6). Cada una se activa SÓLO con su variable del build; sin ninguna no
+// se carga nada de Google ni de Microsoft y la página sólo lleva el escucha de
+// abajo, que deja los eventos en window.dataLayer. Los mismos IDs amplían la
+// CSP de dist/.htaccess (scripts/csp-medicion.mjs): si se cambia una
+// validación aquí, cambiarla allí. Acceso estático a cada variable: Vite sólo
+// sustituye `import.meta.env.X` escrito tal cual.
 const limpiar = (valor: unknown) => String(valor ?? "").trim();
 const adsId = limpiar(import.meta.env.PUBLIC_GOOGLE_ADS_ID);
+const ga4Id = limpiar(import.meta.env.PUBLIC_GA4_ID);
+const clarityId = limpiar(import.meta.env.PUBLIC_CLARITY_ID);
 const adsEtiquetas = {
   whatsapp: limpiar(import.meta.env.PUBLIC_ADS_LABEL_WHATSAPP),
   formulario: limpiar(import.meta.env.PUBLIC_ADS_LABEL_FORMULARIO),
   llamada: limpiar(import.meta.env.PUBLIC_ADS_LABEL_LLAMADA)
 };
 // Un valor mal copiado debe parar el build: si no, la campaña arrancaría sin
-// medir y nadie lo notaría hasta ver cero conversiones.
+// medir y nadie lo notaría hasta ver cero conversiones o cero visitas.
 if (adsId && !/^AW-\d+$/.test(adsId)) {
   throw new Error(`PUBLIC_GOOGLE_ADS_ID="${adsId}" no tiene la forma AW-123456789`);
 }
@@ -81,7 +83,22 @@ for (const [tipo, etiqueta] of Object.entries(adsEtiquetas)) {
     throw new Error(`La etiqueta de conversión de ${tipo} ("${etiqueta}") sólo puede llevar letras, números, - y _`);
   }
 }
-const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {} };
+// GA4: el «ID de medición» del flujo web (G- y mayúsculas/números). El ID de
+// la propiedad o del flujo (sólo números) NO sirve.
+if (ga4Id && !/^G-[A-Z0-9]+$/.test(ga4Id)) {
+  throw new Error(`PUBLIC_GA4_ID="${ga4Id}" no tiene la forma G-XXXXXXXXXX (el «ID de medición» del flujo web)`);
+}
+// Clarity: el «ID del proyecto», 10 letras minúsculas y números (p. ej. el
+// proyecto de demostración de la documentación de Microsoft, 3t0wlogvdz).
+if (clarityId && !/^[a-z0-9]{10}$/.test(clarityId)) {
+  throw new Error(`PUBLIC_CLARITY_ID="${clarityId}" no tiene la forma de un ID de proyecto de Clarity (10 letras minúsculas y números)`);
+}
+// Una sola etiqueta de Google (gtag.js) para Ads y GA4: se carga con el primer
+// ID y cada producto se configura con su propio "config"
+// (developers.google.com/tag-platform/gtagjs/install). Ads va primero para que
+// una compilación sólo con Ads siga cargando gtag.js?id=AW-….
+const gtagIds = [adsId, ga4Id].filter(Boolean);
+const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id };
 ---
 
 <!DOCTYPE html>
@@ -90,40 +107,109 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {} };
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    {adsId && (
+    {gtagIds.length > 0 && (
       <>
-        {/* Etiqueta de Google (gtag.js) para Google Ads, según la guía oficial
-            developers.google.com/tag-platform/gtagjs/install: al principio del
-            <head> de cada página. define:vars envuelve el código en una función,
-            por eso gtag se asigna a window en vez de declararse con "function". */}
-        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${adsId}`}></script>
-        <script is:inline define:vars={{ adsId }}>
+        {/* Etiqueta de Google (gtag.js) para Google Ads y/o GA4, según la guía
+            oficial developers.google.com/tag-platform/gtagjs/install: al
+            principio del <head> de cada página, cargada UNA vez y con un
+            "config" por ID. El "config" de GA4 envía por sí solo el page_view de cada
+            página. define:vars envuelve el código en una función, por eso gtag
+            se asigna a window en vez de declararse con "function". */}
+        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gtagIds[0]}`}></script>
+        <script is:inline define:vars={{ gtagIds }}>
           window.dataLayer = window.dataLayer || [];
           window.gtag = function () { window.dataLayer.push(arguments); };
           window.gtag("js", new Date());
-          window.gtag("config", adsId);
+          gtagIds.forEach(function (id) { window.gtag("config", id); });
         </script>
       </>
     )}
 
-    {/* Escucha único de conversiones (WhatsApp, llamada y el evento
-        "dihyc:conversion" del formulario). Delegado en document para cubrir
-        también los enlaces creados después, como el botón de cotización del
-        catálogo. No llama a preventDefault: la navegación sigue sola y
-        transport_type "beacon" hace que el aviso a Google sobreviva a la salida
-        de la página (Google sugiere retrasar el enlace con event_callback; aquí
-        no, para no frenar nunca el paso a WhatsApp). La espera de 1 s por tipo
-        evita que un doble clic cuente dos conversiones; auxclick cuenta sólo
-        la rueda (abrir en otra pestaña), no el botón derecho. Los comentarios van
-        aquí fuera para no repetirlos en el HTML de cada página. */}
+    {clarityId && (
+      /* Microsoft Clarity: el código de seguimiento oficial, en el <head>
+         (learn.microsoft.com/clarity/setup-and-installation/clarity-setup).
+         Carga asíncrona: no frena la página. Los campos de texto y las listas
+         se enmascaran siempre en Clarity, y el formulario de contacto además
+         lleva data-clarity-mask (ContactForm.astro). */
+      <script is:inline define:vars={{ clarityId }}>
+        (function (c, l, a, r, i, t, y) {
+          c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments); };
+          t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
+          y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+        })(window, document, "clarity", "script", clarityId);
+      </script>
+    )}
+
+    {/* Escucha único de la medición. Delegado en document para cubrir también
+        lo que el catálogo pinta después (casillas «Cotizar», fichas, botón de
+        cotización).
+        - Conversiones (WhatsApp, llamada y el evento "dihyc:conversion" del
+          formulario): { event: "dihyc_conversion", tipo } en dataLayer, como
+          siempre, y la conversión de Google Ads si hay etiqueta.
+        - Embudo de cotización: cada evento queda SIEMPRE en dataLayer como
+          { event: "dihyc_<nombre>", …parámetros } y, sólo si hay GA4, se envía
+          a GA4 con gtag("event", nombre, …) y send_to = el ID de GA4 (Ads no
+          recibe estos eventos). Nombres y parámetros en README-deploy.md,
+          sección 6. Nunca se envían valores del formulario ni datos de
+          contacto: sólo de dónde vino el clic y qué producto, filtro o ficha.
+        - formulario_enviado va acompañado de generate_lead, el evento
+          recomendado de Google para un contacto (sin valor: la empresa no
+          asigna un monto a cada consulta).
+        - cotizar_marcado lleva el nombre visible de la fila del catálogo
+          (producto · material · marca); si el catálogo cambiara su HTML, queda el
+          código de la casilla. Cotizar y filtros cuentan sólo al MARCAR: lo
+          que el catálogo marca o desmarca por código (filtros de la URL,
+          opciones imposibles) no dispara "change".
+        - La búsqueda NO se envía: con ?q= en la URL, la medición mejorada de
+          GA4 ya registra view_search_results (parámetro q por defecto).
+        No llama a preventDefault: la navegación sigue sola y transport_type
+        "beacon" hace que el aviso a Google sobreviva a la salida de la página
+        (Google sugiere retrasar el enlace con event_callback; aquí no, para no
+        frenar nunca el paso a WhatsApp). La espera de 1 s evita que un doble
+        clic cuente dos veces; auxclick cuenta sólo la rueda (abrir en otra
+        pestaña), no el botón derecho. Los comentarios van aquí fuera para no
+        repetirlos en el HTML de cada página. */}
     <script is:inline define:vars={{ medicion }}>
       window.dataLayer = window.dataLayer || [];
       var ultimo = {};
+      var PAGINAS = { inicio: "inicio", productos: "catalogo", contacto: "contacto", servicios: "servicios", empresa: "empresa", certificaciones: "certificaciones" };
 
-      function registrar(tipo) {
+      function primeraVez(clave) {
         var ahora = Date.now();
-        if (ahora - (ultimo[tipo] || 0) < 1000) return;
-        ultimo[tipo] = ahora;
+        if (ahora - (ultimo[clave] || 0) < 1000) return false;
+        ultimo[clave] = ahora;
+        return true;
+      }
+
+      function corto(texto) {
+        return String(texto || "").replace(/\s+/g, " ").trim().slice(0, 100);
+      }
+
+      function medir(nombre, parametros, salida) {
+        var datos = { event: "dihyc_" + nombre };
+        var ga4 = { send_to: medicion.ga4 };
+        for (var clave in parametros) datos[clave] = ga4[clave] = parametros[clave];
+        window.dataLayer.push(datos);
+        if (medicion.ga4 && typeof window.gtag === "function") {
+          if (salida) ga4.transport_type = "beacon";
+          window.gtag("event", nombre, ga4);
+        }
+      }
+
+      function origenDePagina() {
+        return PAGINAS[location.pathname.split("/")[1] || "inicio"] || "otra";
+      }
+
+      function origenDe(enlace) {
+        if (enlace.id === "quoteWhatsapp") return "cotizacion";
+        if (enlace.matches("body > a.fixed")) return "boton_flotante";
+        if (enlace.closest("footer")) return "pie";
+        if (enlace.closest("header")) return "cabecera";
+        return origenDePagina();
+      }
+
+      function registrar(tipo, origen) {
+        if (!primeraVez(tipo)) return;
         window.dataLayer.push({ event: "dihyc_conversion", tipo: tipo });
         var etiqueta = medicion.id && Object.prototype.hasOwnProperty.call(medicion.etiquetas, tipo) && medicion.etiquetas[tipo];
         if (etiqueta && typeof window.gtag === "function") {
@@ -132,15 +218,25 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {} };
             transport_type: "beacon"
           });
         }
+        if (tipo === "whatsapp") medir("clic_whatsapp", { origen: origen }, true);
+        else if (tipo === "llamada") medir("clic_telefono", { origen: origen }, true);
+        else if (tipo === "formulario") {
+          medir("formulario_enviado", { origen: origen });
+          if (medicion.ga4 && typeof window.gtag === "function") {
+            window.gtag("event", "generate_lead", { send_to: medicion.ga4, lead_source: "formulario_web" });
+          }
+        }
       }
 
-      function tipoDeEnlace(enlace) {
-        var url;
+      function urlDe(enlace) {
         try {
-          url = new URL(enlace.getAttribute("href"), location.href);
+          return new URL(enlace.getAttribute("href"), location.href);
         } catch (error) {
           return null;
         }
+      }
+
+      function tipoDeEnlace(url) {
         if (url.protocol === "tel:") return "llamada";
         if (/^https?:$/.test(url.protocol) && (url.hostname === "wa.me" || url.hostname === "api.whatsapp.com")) {
           return "whatsapp";
@@ -148,19 +244,51 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {} };
         return null;
       }
 
+      function fichaDe(url) {
+        if (url.host !== location.host || !/^\/assets\/(fichas-tecnicas|panel\/fichas)\/[^/]+\.pdf$/i.test(url.pathname)) return null;
+        var nombre = url.pathname.split("/").pop();
+        try {
+          nombre = decodeURIComponent(nombre);
+        } catch (error) {}
+        return corto(nombre);
+      }
+
       function alClic(evento) {
         if (evento.defaultPrevented) return;
         if (evento.type === "auxclick" && evento.button !== 1) return;
         var enlace = evento.target instanceof Element ? evento.target.closest("a[href]") : null;
-        var tipo = enlace && tipoDeEnlace(enlace);
-        if (tipo) registrar(tipo);
+        var url = enlace && urlDe(enlace);
+        if (!url) return;
+        var tipo = tipoDeEnlace(url);
+        if (tipo) return registrar(tipo, origenDe(enlace));
+        var archivo = fichaDe(url);
+        if (archivo && primeraVez("ficha:" + archivo)) medir("ficha_descargada", { archivo: archivo }, true);
+      }
+
+      function productoDe(casilla) {
+        var fila = casilla.closest("tr") || casilla.closest(".rounded-lg");
+        var nombre = fila && fila.querySelector(".capitalize");
+        var material = fila && fila.querySelector(".text-xs.uppercase");
+        var bloque = casilla.closest(".rounded-xl");
+        var marca = bloque && bloque.querySelector("h2");
+        var texto = [nombre, material, marca].filter(Boolean).map(function (el) { return corto(el.textContent); }).filter(Boolean).join(" · ");
+        return corto(texto || casilla.closest("[data-quote-id]").getAttribute("data-quote-id"));
+      }
+
+      function alCambiar(evento) {
+        var casilla = evento.target;
+        if (!(casilla instanceof HTMLInputElement) || casilla.type !== "checkbox" || !casilla.checked) return;
+        if (casilla.closest("[data-quote-id]")) return medir("cotizar_marcado", { producto: productoDe(casilla) });
+        var faceta = casilla.closest("[data-facet]");
+        if (faceta) medir("filtro_aplicado", { faceta: faceta.getAttribute("data-facet"), valor: corto(casilla.value) });
       }
 
       document.addEventListener("click", alClic);
       document.addEventListener("auxclick", alClic);
+      document.addEventListener("change", alCambiar);
       document.addEventListener("dihyc:conversion", function (evento) {
         var tipo = evento.detail && evento.detail.tipo;
-        if (typeof tipo === "string" && tipo) registrar(tipo);
+        if (typeof tipo === "string" && tipo) registrar(tipo, origenDePagina());
       });
     </script>
 
