@@ -3,60 +3,23 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import Hero from "../components/Hero.astro";
 import ServiceBlock from "../components/ServiceBlock.astro";
 import { contactInfo } from "../data/contactInfo";
-import fotoTermofusion from "../assets/services/termofusion.png";
-import fotoElectrofusion from "../assets/services/electrofusion.png";
-import fotoCarpinteria from "../assets/services/carpinteria-plastica.jpeg";
+// Fotos y textos de los servicios: se editan desde el panel (services.json).
+import { services as serviceList, getServiceImage } from "../data/services";
 
 const phone = contactInfo.whatsapp[0].replace(/\D/g, "");
 
 const waLink = (text: string) =>
   `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 
-const specialistLink = (service: string) => `
-<span class="mt-4 block">
-  <a
-    href="${waLink(`Hola, quisiera información sobre el servicio de ${service}.`)}"
-    target="_blank"
-    rel="noopener noreferrer"
-    class="font-medium text-[#003595] hover:underline"
-  >
-    Quiero hablar con un especialista →
-  </a>
-</span>`;
-
-const services = [
-  {
-    id: "termofusion",
-    label: "Termofusión",
-    title: "Soldadura por Termofusión",
-    description: `Servicio especializado para la unión de tuberías plásticas mediante calor controlado, garantizando una conexión homogénea, resistente y de larga duración.${specialistLink("termofusión")}`,
-    image: fotoTermofusion
-  },
-  {
-    id: "electrofusion",
-    label: "Electrofusión",
-    title: "Soldadura por Electrofusión",
-    description: `Técnica precisa que utiliza accesorios con resistencias eléctricas integradas, permitiendo una unión segura y eficiente. Recomendada para instalaciones industriales donde se requiere control y precisión en cada conexión.${specialistLink("electrofusión")}`,
-    image: fotoElectrofusion
-  },
-  {
-    id: "carpinteria-plastica",
-    label: "Carpintería Plástica",
-    title: "Carpintería Plástica",
-    description: `Fabricación y desarrollo de elementos industriales a medida en materiales plásticos de ingeniería. Ideal para aplicaciones industriales, químicas y proyectos que requieren resistencia a la corrosión, durabilidad y precisión en la fabricación.${specialistLink("carpintería plástica")}`,
-    image: fotoCarpinteria
-  },
-  {
-    id: "alquiler-maquinas",
-    label: "Alquiler de Máquinas",
-    title: "Alquiler de Máquinas",
-    description: `Alquiler de equipos especializados para trabajos de termofusión y electrofusión, ideal para proyectos que requieren maquinaria confiable sin necesidad de adquisición permanente.${specialistLink("alquiler de máquinas")}`,
-    // Foto pendiente: va como ruta de texto para que ServiceBlock muestre el
-    // marcador "Imagen próximamente" mientras no exista. Cuando llegue,
-    // guardarla en src/assets/services/ e importarla como las demás.
-    image: "/assets/services/alquiler-maquinas.png"
-  }
-];
+const services = await Promise.all(
+  serviceList.map(async (service) => ({
+    ...service,
+    photo: await getServiceImage(service),
+    // El nombre corto tal cual lo escribe el gerente: pasarlo a minúsculas
+    // estropeaba siglas y marcas ("HDPE" -> "hdpe").
+    contactHref: waLink(`Hola, quisiera información sobre el servicio de ${service.label}.`)
+  }))
+);
 ---
 
 <BaseLayout
@@ -97,8 +60,9 @@ const services = [
     >
       <ServiceBlock
         title={service.title}
-        description={service.description}
-        image={service.image}
+        paragraphs={service.paragraphs}
+        image={service.photo}
+        contactHref={service.contactHref}
         reverse={index % 2 === 1}
       />
     </section>

@@ -15,6 +15,10 @@ const searchPayload = {
   synonyms: SEARCH_SYNONYMS,
   popular: popularSearches
 };
+// Va dentro de un <script>: un "</script>" en un texto lo cerraría antes de
+// tiempo, y los títulos de los servicios los escribe el panel. "<" como
+// < es el mismo JSON para JSON.parse.
+const searchPayloadJson = JSON.stringify(searchPayload).replace(/</g, "\\u003c");
 
 const {
   title = "H & C | DIHYC",
@@ -347,7 +351,7 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
       Saltar al contenido
     </a>
 
-    <script class="search-data" type="application/json" set:html={JSON.stringify(searchPayload)}></script>
+    <script class="search-data" type="application/json" set:html={searchPayloadJson}></script>
 
     <Header />
 

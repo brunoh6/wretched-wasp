@@ -215,8 +215,9 @@ jobs:
           # (en un Mac "Ñ" y "N+~" son el mismo archivo; aquí no).
           # ERROR (no se publica) si falta una ficha, una foto de catálogo o algo
           # del panel: la biblioteca del panel deja borrar archivos y el sitio
-          # publicado quedaría con enlaces rotos. El resto (p. ej. /assets/services/,
-          # cuya foto de alquiler falta a propósito) sigue siendo sólo aviso.
+          # publicado quedaría con enlaces rotos. El resto sigue siendo sólo
+          # aviso. (Una foto de servicio que falte no llega aquí: la quita
+          # src/data/services.ts con su propio ::warning::.)
           # Mientras falte un archivo crítico NINGUNA publicación sale, tampoco
           # los guardados posteriores del panel: hay que restaurarlo o quitar la cita.
           python3 - <<'PY'

@@ -13,8 +13,7 @@ import heroHome from "../assets/hero/home.png";
 import heroNuestraEmpresa from "../assets/hero/nuestraempresa.png";
 import heroSlide3 from "../assets/hero/slide3.png";
 import heroSlide4 from "../assets/hero/slide4.png";
-import fotoTermofusion from "../assets/services/termofusion.png";
-import fotoElectrofusion from "../assets/services/electrofusion.png";
+import { services, getServiceImage } from "../data/services";
 
 // La portada destaca el catálogo FM publicado (tuberías y conexiones).
 const featuredProducts = getFeaturedFmProducts(8);
@@ -25,6 +24,27 @@ const featuredProducts = getFeaturedFmProducts(8);
 // marca.
 const productHref = (product: (typeof featuredProducts)[number]) =>
   catalogLineHref(product.category, "fm", `producto=${slugify(product.productName)}`);
+
+// Servicios destacados: los que tienen "Texto corto para la portada" en el
+// panel, con ese texto debajo del título. Sin ninguno, la sección no sale.
+const homeServices = await Promise.all(
+  services
+    .filter((service) => service.homeSummary)
+    .map(async (service) => ({ ...service, photo: await getServiceImage(service) }))
+);
+
+// El título de siempre habla de soldadura: sólo vale si los que salen son los
+// de soldadura. Si el panel suma Carpintería o Alquiler, uno general.
+const onlyWelding = homeServices.every(({ id }) => id === "termofusion" || id === "electrofusion");
+const homeServicesHeading = onlyWelding
+  ? {
+      title: "Servicios especializados en soldadura industrial",
+      subtitle: "Ejecución técnica para uniones seguras y duraderas en obra."
+    }
+  : {
+      title: "Servicios especializados",
+      subtitle: "Soluciones técnicas para proyectos industriales seguros y duraderos."
+    };
 
 const brands = [
   { name: "+GF+", logo: "/assets/brands/gf.png" },
@@ -150,32 +170,30 @@ const brands = [
   </Section>
 
   <!-- SERVICIOS DESTACADOS -->
-  <Section
-    title="Servicios especializados en soldadura industrial"
-    subtitle="Ejecución técnica para uniones seguras y duraderas en obra."
-    class="bg-gray-50"
-  >
-    <div class="grid gap-6 md:grid-cols-2 md:gap-8" data-animate>
-      <ServiceCard
-        title="Soldadura por Termofusión"
-        description="Unión de tuberías plásticas con máxima resistencia y seguridad."
-        image={fotoTermofusion}
-      />
-
-      <ServiceCard
-        title="Soldadura por Electrofusión"
-        description="Instalaciones industriales con alta precisión y confiabilidad."
-        image={fotoElectrofusion}
-      />
-    </div>
-
-    <a
-      href="/servicios/"
-      class="mt-8 inline-block rounded border border-gray-300 px-6 py-3 text-sm font-medium transition hover:border-gray-900 hover:bg-gray-900 hover:text-white"
+  {homeServices.length > 0 && (
+    <Section
+      title={homeServicesHeading.title}
+      subtitle={homeServicesHeading.subtitle}
+      class="bg-gray-50"
     >
-      Ver todos los servicios
-    </a>
-  </Section>
+      <div class="grid gap-6 md:grid-cols-2 md:gap-8" data-animate>
+        {homeServices.map((service) => (
+          <ServiceCard
+            title={service.title}
+            description={service.homeSummary}
+            image={service.photo}
+          />
+        ))}
+      </div>
+
+      <a
+        href="/servicios/"
+        class="mt-8 inline-block rounded border border-gray-300 px-6 py-3 text-sm font-medium transition hover:border-gray-900 hover:bg-gray-900 hover:text-white"
+      >
+        Ver todos los servicios
+      </a>
+    </Section>
+  )}
 
   <!-- MARCAS -->
   <Section title="Distribuimos las mejores marcas" tight>

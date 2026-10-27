@@ -22,12 +22,16 @@ Desde el panel usted puede, sin ayuda:
 - **Ocultar o volver a mostrar** un producto en la web.
 - **Cambiar las 4 tarjetas** de la página Productos: foto, título, subtítulo,
   si se ven y en qué orden.
+- **Cambiar las fotos y los textos de los 4 servicios** (página Servicios,
+  menú y portada).
 
 Lo que **no** se cambia desde el panel (llame al equipo técnico):
 
 - Las medidas, códigos y materiales: vienen del Excel de productos (y, en la
   FM, del código de la web).
 - Las categorías nuevas y las certificaciones.
+- Añadir o quitar un servicio, y las fotos del carrusel de la portada y de la
+  página Empresa.
 
 Un **grupo de producto** son todas las medidas de un mismo producto. Por
 ejemplo, «Codo 90° PVC · Agua fría» es un grupo con sus 20 medidas. La ficha,
@@ -53,15 +57,16 @@ saliendo en inglés.
 
 *(Captura 1.)*
 
-- A la izquierda, bajo **Colecciones**, hay tres secciones:
+- A la izquierda, bajo **Colecciones**, hay cuatro secciones:
   - **Grupos de producto** (32): los productos de agua, PVC y CPVC.
   - **Línea contra incendio (FM)** (15): tuberías y conexiones HDPE FM, una
     por producto y marca (punto 9).
   - **Tarjetas de portada**: las 4 tarjetas de la página Productos.
+  - **Servicios**: fotos y textos de los 4 servicios (punto 10).
 - Arriba, en el centro, la casilla **Buscar contenido…** busca un producto por
   su nombre.
 - Arriba a la izquierda, el icono de la foto abre **Recursos** (todos los
-  archivos subidos desde el panel). No hace falta usarlo; vea el punto 11.
+  archivos subidos desde el panel). No hace falta usarlo; vea el punto 12.
 
 ## 4. Encontrar un producto
 
@@ -203,7 +208,39 @@ cuando quiera. Si oculta **una marca entera** (por ejemplo la tubería
 Extrucol), el texto de presentación de la página FM puede seguir
 nombrándola: avise al equipo técnico para que lo corrija.
 
-## 10. Cuándo se ve el cambio en la web
+## 10. Servicios
+
+A la izquierda, pulse **Servicios** y luego **Los 4 servicios**. Salen los
+cuatro en el mismo orden que en la web: Termofusión, Electrofusión,
+Carpintería Plástica y Alquiler de Máquinas. Cada uno tiene:
+
+- **Nombre corto** (máximo 30 letras): el que sale en el menú **Servicios** de
+  arriba, en los botones de la página Servicios y en el mensaje de WhatsApp
+  que envía el cliente («…sobre el servicio de Termofusión.»).
+- **Título** (máximo 60): el título grande del servicio.
+- **Descripción** (máximo 800): el texto del servicio. Para empezar otro
+  párrafo, deje una línea en blanco. El enlace «Quiero hablar con un
+  especialista» lo pone la web sola, debajo: no hace falta escribirlo.
+- **Texto corto para la portada** (máximo 90): si lo escribe, el servicio sale
+  también en la portada, con su foto, su título y este texto. Si lo deja
+  vacío, no sale en la portada (sí en la página Servicios). Hoy salen
+  Termofusión y Electrofusión. Lo ideal son 2 o 4, para que queden parejos.
+  Si suma otro, el título de esa parte de la portada pasa solo de «…en
+  soldadura industrial» a «Servicios especializados».
+- **Foto**: **Explorar** (o **Reemplazar** si ya tiene una) y elija la foto.
+  Sirve la del celular: el panel la achica sola. Mejor apaisada (más ancha
+  que alta). En la página Servicios se ve entera; en la portada se recorta
+  por el centro. Si la deja vacía (**Quitar**), la web muestra «Imagen
+  próximamente», como hoy en Alquiler de Máquinas.
+
+Pulse **Guardar**. Los servicios no se pueden añadir, borrar ni cambiar de
+orden: para eso, avise al equipo técnico.
+
+Debajo de cada texto hay un contador (por ejemplo «25 / 60»). Si se pasa del
+máximo, el número se pone rojo y el panel **no guarda** hasta que lo acorte
+(vea el punto 13).
+
+## 11. Cuándo se ve el cambio en la web
 
 - Después de **Guardar**, la web se actualiza **en unos 5 minutos**. Si guarda
   varias veces seguidas, cuente desde el último guardado.
@@ -213,10 +250,10 @@ nombrándola: avise al equipo técnico para que lo corrija.
 - Si a los **15 minutos** sigue sin verse, avise al equipo técnico con el
   nombre del producto y la hora a la que guardó.
 
-## 11. Si se equivoca
+## 12. Si se equivoca
 
-- **Un interruptor, un título o una posición:** vuelva a ponerlo como estaba y
-  pulse **Guardar**.
+- **Un interruptor, un título, un texto o una posición:** vuelva a ponerlo
+  como estaba y pulse **Guardar**.
 - **Una ficha o una foto equivocada:** use **Reemplazar** en el mismo
   producto y guarde.
 - **Antes de guardar** puede deshacer todo lo que cambió: botón de los tres
@@ -227,7 +264,7 @@ nombrándola: avise al equipo técnico para que lo corrija.
 - Si borró algo por error, avise al equipo técnico con la fecha y la hora: se
   puede recuperar.
 
-## 12. Palabras que verá en pantalla
+## 13. Palabras que verá en pantalla
 
 | En pantalla | Qué hace |
 |---|---|
@@ -240,12 +277,13 @@ nombrándola: avise al equipo técnico para que lo corrija.
 | **Filtrar** / **Agrupar** / **Ordenar** | Ordena la lista para encontrar lo que busca. |
 | **Ver en el sitio en vivo** | Abre esa página de la web. |
 | «Entrada guardada.» | El cambio se guardó. La web lo mostrará en unos 5 minutos. |
-| **Expandir todo** / **Contraer todo** | Abre o pliega las 4 tarjetas. |
+| **Expandir todo** / **Contraer todo** | Abre o pliega las 4 tarjetas o los 4 servicios. |
 | **Recursos** | Los archivos subidos desde el panel. |
 | **Ajustes** / **Cerrar sesión** | En el botón redondo de arriba a la derecha. |
 | «El administrador ha deshabilitado la creación de nuevas entradas…» | Normal: los grupos salen del Excel y los productos FM del código de la web; no se crean aquí. |
 | **Para qué medidas** (recuadro gris) | A qué presión o medidas corresponde esa ficha FM. No se cambia. |
 | **Página de la tabla en el PDF** | Página donde se abre la ficha FM. Vacío = primera página. |
+| «No puedes ingresar más de 30 caracteres.» / «2 campos tienen errores. Corrígelos para guardar la entrada.» | Un texto pasa del máximo (el contador está en rojo). Acórtelo y vuelva a pulsar **Guardar**. El botón en inglés **Show Errors** lleva al campo que hay que corregir. |
 
 ---
 
@@ -260,6 +298,7 @@ nombrándola: avise al equipo técnico para que lo corrija.
 | `src/data/catalog/overrides.json` | Una entrada por grupo de agua (lista en la raíz). La edita el panel y la mantiene el importador (`README-catalogo.md`). |
 | `src/data/catalog/fm.json` | Línea FM: una entrada por producto × marca (15) con foto, visibilidad y sus fichas por variante (ruta + página). La lee `src/data/fmProducts.ts`. |
 | `src/data/catalog/cards.json` | Las 4 tarjetas de `/productos`. Formateado exactamente como lo escribe el panel, para que el primer guardado no reformatee el archivo. |
+| `src/data/services.json` | Los 4 servicios: nombre corto, título, descripción, texto de portada y foto. Lo lee `src/data/services.ts`, que lo valida y alimenta `/servicios`, la portada, el menú y el buscador. |
 | `public/assets/panel/` | Todo lo que sube el panel. El `.htaccess` sólo sirve de aquí PDF e imágenes (403 para el resto). |
 | `public/admin/logo-panel.png` | Logo cuadrado del panel. Fuera de la biblioteca para que no se pueda borrar desde Recursos. |
 
@@ -343,6 +382,43 @@ para que no se puedan cambiar. Desde v0.223.0 Sveltia no muestra `comment`;
 las explicaciones van en `hint` (en los campos `hidden` o `readonly` tampoco se
 ve el `hint`).
 
+**Servicios** (`name: servicios`, archivo `servicios`, sobre
+`src/data/services.json`) es el mismo montaje que las tarjetas: una lista
+bloqueada (`allow_add/remove/duplicate/reorder: false`) de 4 servicios, en el
+orden de la página.
+
+- `id` es el ancla (`/servicios/#termofusion`) a la que enlazan el menú, el
+  buscador y los anuncios: `hidden`.
+- `label` (nombre corto, 30), `title` (60), `description` (`text`, 800) y
+  `homeSummary` (90, opcional): con `maxlength` para que nada rompa el diseño.
+  La descripción es **texto plano**: Astro la escapa (no admite HTML) y una
+  línea en blanco separa párrafos. Títulos y textos llevan `wrap-anywhere`:
+  una URL larga se parte en vez de dar scroll lateral en el celular. El
+  enlace a WhatsApp lo añade `servicios.astro` con el nombre corto tal cual
+  (sin pasarlo a minúsculas, para no estropear siglas como HDPE).
+- La portada muestra los servicios con `homeSummary`; si no hay ninguno, la
+  sección no sale. Su título es el de soldadura mientras sólo salgan
+  Termofusión y Electrofusión, y uno general si sale otro (`index.astro`).
+- `image`: sin SVG, WebP 82, máximo 1600×1200, 1 MB, en
+  `public/assets/panel/servicios/`. Vacía = marcador gris (un SVG en `data:`,
+  en el HTML; sin petición rota): con el texto «Imagen próximamente» en
+  `/servicios` y sólo el icono en la tarjeta de portada, donde el texto se
+  mezclaba con el título.
+- `services.ts` nunca bloquea la publicación por lo que guarda el panel: un
+  `id` inválido o repetido, un servicio sin nombre ni título, una foto que no
+  existe en `public/`, con `#` o `?` en la ruta, o que no es JPEG, PNG, WebP,
+  GIF ni AVIF (lo comprueba `sharp`) dejan un `::warning title=Servicios
+  (panel)::` y se omiten o se publican con el marcador. `sharp` también da el
+  ancho y alto de cada foto para el `<img>` (evita que el texto salte al
+  cargar). Un JSON con error de sintaxis (editado a mano en GitHub) sí rompe
+  el build, como en los demás JSON del panel.
+- El buscador toma el título y el nombre corto del panel; la descripción y las
+  palabras clave de cada servicio siguen en `src/data/searchIndex.ts`
+  (`SERVICE_SEARCH`, por `id`).
+- Las fotos de partida son las que ya servía la web (los WebP que Astro
+  generaba de `src/assets/services/`, copiados tal cual); esos originales se
+  quitaron del repositorio.
+
 `editor.preview: false`: la vista previa genérica de Sveltia no se parece a la
 web y le quitaba medio ancho al formulario.
 
@@ -354,6 +430,7 @@ web y le quitaba medio ancho al formulario.
 | Fichas de grupo y FM | `public/assets/panel/fichas/` | `/assets/panel/fichas/` |
 | Fotos de grupo y FM | `public/assets/panel/fotos/` | `/assets/panel/fotos/` |
 | Fotos de tarjeta | `public/assets/panel/tarjetas/` | `/assets/panel/tarjetas/` |
+| Fotos de servicio | `public/assets/panel/servicios/` | `/assets/panel/servicios/` |
 
 **Por qué una carpeta propia:** la biblioteca deja borrar, renombrar y
 reemplazar todo lo que hay bajo `media_folder` y sólo corrige las rutas de los
@@ -369,10 +446,11 @@ Los archivos que las tarjetas y la Brida loca PVC usaban se **copiaron** aquí
 
 ## D. Subidas: conversión, límites y nombres
 
-- **Fotos** (grupos y tarjetas): `accept` JPG, PNG, WebP, HEIC y HEIF (sin
-  SVG: un SVG es código servido desde el dominio). Se convierten a WebP en el
-  navegador: fotos de grupo **calidad 80, máximo 800×800** (el catálogo las
-  muestra a 40–64 px, una por fila); tarjetas **calidad 82, máximo 1600×1200**.
+- **Fotos** (grupos, FM, tarjetas y servicios): `accept` JPG, PNG, WebP, HEIC
+  y HEIF (sin SVG: un SVG es código servido desde el dominio). Se convierten a
+  WebP en el navegador: fotos de grupo y FM **calidad 80, máximo 800×800** (el
+  catálogo las muestra a 40–64 px, una por fila); tarjetas y servicios
+  **calidad 82, máximo 1600×1200**.
   Sin «Fotos de stock» (`stock_assets: false`).
   Límite **1 MB** medido después de convertir. El HEIC se decodifica con
   `@discourse/heic`, que Sveltia descarga de unpkg la primera vez (salvo en
@@ -426,9 +504,10 @@ Sveltia de la misma versión.
 - **Al publicar** (`deploy.yml`, paso «Validar el sitio compilado»): si el HTML
   cita un archivo que no existe bajo `/assets/fichas-tecnicas/`, `hero/`,
   `categories/`, `products/`, `materiales/` o `panel/`, la publicación **falla**
-  (`::error::`). Lo demás que falte (hoy `/assets/services/alquiler-maquinas.png`,
-  a propósito) es sólo aviso. Mientras falte un archivo crítico no sale ninguna
-  publicación, tampoco los guardados del panel.
+  (`::error::`). Lo demás que falte es sólo aviso. Mientras falte un archivo
+  crítico no sale ninguna publicación, tampoco los guardados del panel. (Las
+  fotos de servicio que falten no llegan a este paso: `services.ts` ya las
+  quita del HTML con un aviso.)
 - **`.htaccess`:** los SVG de `/assets/` llevan su propia CSP
   (`default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox`):
   un SVG con `<script>` abierto directamente no se ejecuta en el dominio donde
@@ -473,6 +552,13 @@ en esto. Opciones técnicas:
   código TypeScript.
 - **Medidas, SKU, materiales:** `products.json` y `groups.json`, que el
   importador reescribe enteros (`README-catalogo.md`).
+- **Añadir, quitar o reordenar servicios:** a mano en `src/data/services.json`
+  (un `id` nuevo en minúsculas y con guiones; `services.ts` no necesita
+  cambios). Para que el buscador lo encuentre por más palabras que su nombre,
+  añadir su entrada en `SERVICE_SEARCH` (`src/data/searchIndex.ts`).
+- **Fotos del carrusel de portada y de la página Empresa:** siguen en
+  `src/assets/hero/` (Astro genera cada una en varios tamaños; pasarlas al
+  panel perdería eso).
 
 ## I. Problemas conocidos
 
@@ -534,6 +620,31 @@ en esto. Opciones técnicas:
   en la portada y en las páginas de conexiones, y la validación de archivos
   citados de `deploy.yml` da 0 críticos. Único aviso: el texto de la página
   de tuberías FM sigue nombrando a Extrucol.
+
+**Servicios (27/10/2026, mismo arnés, `services.json` real sembrado):**
+
+- Sale «Servicios» → «Los 4 servicios», en el orden de la web, con su nombre
+  y miniatura. Sin botones para añadir, borrar, duplicar ni arrastrar, y sin
+  el `id` a la vista. Las 42 etiquetas y ayudas salen como en `config.yml`.
+- Pasarse de un máximo (31/30, 801/800) pone el contador en rojo y **no
+  guarda** («No puedes ingresar más de 30 caracteres.»).
+- Guardar (título nuevo, descripción en 2 párrafos, texto de portada, foto
+  subida y foto quitada) cambia **sólo** esos 5 valores, conserva `id` y el
+  orden de claves; «Quitar» guarda `""`. Un JPG de 3000×2250 queda como WebP
+  de 1600×1200 (139 KB) en `/assets/panel/servicios/`; uno que pasa de 1 MB
+  y un SVG se rechazan. «Ver en el sitio en vivo» abre `/servicios/`.
+- Con lo guardado, el build pasa sin avisos y la web muestra los cambios en
+  `/servicios`, la portada (3 tarjetas), el menú y el buscador; la validación
+  de `deploy.yml` da 0 archivos faltantes.
+- Datos raros (editando el JSON a mano): `<script>` en los textos sale como
+  texto y el JSON del buscador sigue intacto; rutas con `..`, `//`, `http`,
+  `#` o a un archivo que no es imagen, ids repetidos o inválidos, raíz `null`
+  o lista vacía: el build pasa con `::warning::` y la web pone el marcador u
+  omite el servicio. Una URL larga en la descripción ya no da scroll lateral
+  en el celular.
+- Con los datos de hoy, `/servicios` y la sección de servicios de la portada
+  son idénticas píxel a píxel a la versión publicada antes del cambio
+  (celular y escritorio).
 
 **No comprobado:** guardar contra GitHub de verdad (hace falta una cuenta con
 acceso) y la conversión de fotos grandes en Safari del iPhone.

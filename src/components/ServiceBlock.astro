@@ -1,21 +1,21 @@
 ---
-import { Image } from "astro:assets";
+import { IMAGE_PLACEHOLDER } from "../data/imagePlaceholder";
+import type { ServiceImage } from "../data/services";
 
-const {
-  title,
-  description,
-  /**
-   * Foto importada de src/assets (Astro la convierte a WebP con width/height)
-   * o ruta de texto de public/, que se sirve tal cual. La ruta de texto es la
-   * que admite una foto pendiente: si el archivo no existe, el script de abajo
-   * pone el marcador "Imagen próximamente". Una importada que no existe
-   * rompería la compilación.
-   */
-  image,
-  reverse = false
-} = Astro.props;
+interface Props {
+  title: string;
+  /** Texto plano del panel: Astro lo escapa, así que no admite HTML. */
+  paragraphs: string[];
+  /** null = foto pendiente: sale el marcador "Imagen próximamente". */
+  image: ServiceImage | null;
+  /** Enlace "Quiero hablar con un especialista →" (WhatsApp). */
+  contactHref?: string;
+  reverse?: boolean;
+}
 
-const imageClass = "img-bright max-h-[400px] w-full rounded-xl object-contain";
+const { title, paragraphs, image, contactHref, reverse = false } = Astro.props;
+
+const imageClass = "max-h-[400px] w-full rounded-xl object-contain";
 ---
 
 <section class="py-12 md:py-16">
@@ -26,54 +26,57 @@ const imageClass = "img-bright max-h-[400px] w-full rounded-xl object-contain";
     ]}
   >
     <div class:list={["relative", reverse && "md:order-2"]}>
-      {typeof image === "string" ? (
+      {image ? (
         <img
-          src={image}
+          src={image.src}
+          width={image.width}
+          height={image.height}
           alt={title}
-          loading="lazy"
-          data-fallback-image
-          class={imageClass}
-        />
-      ) : (
-        <Image
-          src={image}
-          alt={title}
-          format="webp"
-          quality={80}
           loading="lazy"
           decoding="async"
           data-fallback-image
-          class={imageClass}
+          class:list={["img-bright", imageClass]}
         />
+      ) : (
+        <img src={IMAGE_PLACEHOLDER} width="640" height="400" alt="" class:list={["bg-gray-50", imageClass]} />
       )}
     </div>
 
+    <!-- wrap-anywhere: un texto del panel sin espacios (una URL) se parte en
+         vez de ensanchar la columna y dar scroll lateral en el celular. -->
     <div class:list={[reverse && "md:order-1"]}>
-      <h2 class="text-2xl font-bold sm:text-3xl">{title}</h2>
+      <h2 class="text-2xl font-bold wrap-anywhere sm:text-3xl">{title}</h2>
 
-      <p class="mt-4 max-w-xl leading-relaxed text-gray-700" set:html={description}></p>
+      {paragraphs.map((paragraph, index) => (
+        <p class:list={["max-w-xl leading-relaxed text-gray-700 wrap-anywhere", index === 0 ? "mt-4" : "mt-3"]}>
+          {paragraph}
+        </p>
+      ))}
+
+      {contactHref && (
+        <p class="mt-4 leading-relaxed">
+          <a
+            href={contactHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-medium text-[#003595] hover:underline"
+          >
+            Quiero hablar con un especialista →
+          </a>
+        </p>
+      )}
     </div>
   </div>
 </section>
 
 <script>
-  // Si una foto todavía no existe, se sustituye por un marcador neutro
-  // en lugar de dejar el icono de imagen rota.
-  const PLACEHOLDER =
-    "data:image/svg+xml;charset=UTF-8," +
-    encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
-        <rect width="640" height="400" fill="#eef2f8"/>
-        <circle cx="320" cy="176" r="46" fill="none" stroke="#003595" stroke-width="7" opacity="0.45"/>
-        <path d="M298 176h44M320 154v44" stroke="#003595" stroke-width="7" stroke-linecap="round" opacity="0.45"/>
-        <text x="320" y="268" text-anchor="middle" fill="#5b6b85"
-          font-family="Poppins, sans-serif" font-size="21">Imagen próximamente</text>
-      </svg>
-    `);
+  import { IMAGE_PLACEHOLDER } from "../data/imagePlaceholder";
 
+  // La compilación ya comprueba que la foto existe y se puede mostrar; esto
+  // cubre lo que pase después (una subida a medias al servidor).
   document.querySelectorAll<HTMLImageElement>("[data-fallback-image]").forEach((img) => {
     const applyFallback = () => {
-      img.src = PLACEHOLDER;
+      img.src = IMAGE_PLACEHOLDER;
       img.classList.remove("img-bright");
       img.classList.add("bg-gray-50");
     };

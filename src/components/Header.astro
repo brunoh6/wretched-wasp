@@ -4,18 +4,15 @@ import { visibleCategories } from "../data/categories";
 // El enlace a Certificaciones sólo se renderiza si la sección está publicada:
 // mientras el flag esté en `false` la ruta no existe y un enlace daría 404.
 import { CERTIFICATIONS_ENABLED } from "../data/certifications";
+// Los nombres del menú Servicios se editan desde el panel (services.json).
+import { services as serviceList } from "../data/services";
 
 const pathname = Astro.url.pathname.replace(/\/+$/, "") || "/";
 
 const isActive = (href: string) =>
   href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
-const services = [
-  { href: "/servicios/#termofusion", label: "Termofusión" },
-  { href: "/servicios/#electrofusion", label: "Electrofusión" },
-  { href: "/servicios/#carpinteria-plastica", label: "Carpintería Plástica" },
-  { href: "/servicios/#alquiler-maquinas", label: "Alquiler de máquinas" }
-];
+const services = serviceList.map(({ href, label }) => ({ href, label }));
 ---
 
 <header

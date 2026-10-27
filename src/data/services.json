@@ -1,0 +1,36 @@
+{
+  "services": [
+    {
+      "id": "termofusion",
+      "label": "Termofusión",
+      "title": "Soldadura por Termofusión",
+      "description": "Servicio especializado para la unión de tuberías plásticas mediante calor controlado, garantizando una conexión homogénea, resistente y de larga duración.",
+      "homeSummary": "Unión de tuberías plásticas con máxima resistencia y seguridad.",
+      "image": "/assets/panel/servicios/termofusion.webp"
+    },
+    {
+      "id": "electrofusion",
+      "label": "Electrofusión",
+      "title": "Soldadura por Electrofusión",
+      "description": "Técnica precisa que utiliza accesorios con resistencias eléctricas integradas, permitiendo una unión segura y eficiente. Recomendada para instalaciones industriales donde se requiere control y precisión en cada conexión.",
+      "homeSummary": "Instalaciones industriales con alta precisión y confiabilidad.",
+      "image": "/assets/panel/servicios/electrofusion.webp"
+    },
+    {
+      "id": "carpinteria-plastica",
+      "label": "Carpintería Plástica",
+      "title": "Carpintería Plástica",
+      "description": "Fabricación y desarrollo de elementos industriales a medida en materiales plásticos de ingeniería. Ideal para aplicaciones industriales, químicas y proyectos que requieren resistencia a la corrosión, durabilidad y precisión en la fabricación.",
+      "homeSummary": "",
+      "image": "/assets/panel/servicios/carpinteria-plastica.webp"
+    },
+    {
+      "id": "alquiler-maquinas",
+      "label": "Alquiler de Máquinas",
+      "title": "Alquiler de Máquinas",
+      "description": "Alquiler de equipos especializados para trabajos de termofusión y electrofusión, ideal para proyectos que requieren maquinaria confiable sin necesidad de adquisición permanente.",
+      "homeSummary": "",
+      "image": ""
+    }
+  ]
+}

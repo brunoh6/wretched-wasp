@@ -128,8 +128,10 @@ scope"*:
      Si el HTML cita una ficha, una foto del catálogo o un archivo del panel
      (`/assets/fichas-tecnicas/`, `hero/`, `categories/`, `products/`,
      `materiales/`, `panel/`) que no existe, **falla y no publica** (línea roja
-     `::error::` con la ruta y la página). Lo demás que falte (hoy la foto de
-     alquiler de `/assets/services/`) sólo avisa en amarillo.
+     `::error::` con la ruta y la página). Lo demás que falte sólo avisa en
+     amarillo, igual que los datos raros del panel en los servicios
+     (`::warning title=Servicios (panel)::`), que se publican sin esa foto o
+     sin ese servicio.
    - **Publicar por FTPS** — los archivos se subieron a `public_html`.
    - **Probar el sitio en vivo** — entra a www.dihyc.com.pe y comprueba:
      que se ve **esta** versión, que las páginas principales responden, que una

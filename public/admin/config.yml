@@ -14,12 +14,13 @@
 # página que habla directamente con GitHub: cuando el cliente pulsa Guardar, el
 # CMS hace un commit en este mismo repositorio y el sitio se vuelve a construir.
 # Por eso todo lo que el cliente puede tocar tiene que estar en un archivo del
-# repositorio. Hoy son tres:
+# repositorio. Hoy son cuatro:
 #   · src/data/catalog/overrides.json -> ficha, foto y visibilidad de cada grupo
 #                                        de agua
 #   · src/data/catalog/fm.json        -> ficha (y su página), foto y
 #                                        visibilidad de la línea FM
 #   · src/data/catalog/cards.json     -> las 4 tarjetas de la página /productos
+#   · src/data/services.json          -> fotos y textos de los 4 servicios
 #
 # QUÉ NO ESTÁ AQUÍ Y POR QUÉ (explicado también en README-admin.md):
 #   · Las medidas, SKU y materiales viven en products.json / groups.json, que
@@ -494,3 +495,117 @@ collections:
                 hint: >-
                   De izquierda a derecha: 1 es la primera. No repetir el mismo
                   número en dos tarjetas.
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # SERVICIOS
+  #
+  # Los 4 servicios de /servicios, sobre services.json. El mismo archivo da
+  # los nombres del menú «Servicios», las tarjetas de la portada (las de los
+  # servicios con texto corto) y los títulos del buscador (src/data/
+  # services.ts, que valida todo y nunca bloquea la publicación).
+  #
+  # `id` es el ancla de cada servicio (/servicios/#termofusion), a la que
+  # enlazan el menú, el buscador y los anuncios: va `hidden`. La lista no
+  # deja añadir, quitar ni arrastrar: el orden de la lista es el de la página.
+  # El orden de los campos es el de las claves del JSON, para que un guardado
+  # no reordene el archivo.
+  #
+  # La descripción es texto plano (Astro lo escapa): el enlace «Quiero hablar
+  # con un especialista» lo añade la página.
+  # ═════════════════════════════════════════════════════════════════════════
+  - name: servicios
+    label: Servicios
+    icon: handyman
+    files:
+      - name: servicios
+        label: Los 4 servicios
+        icon: handyman
+        file: src/data/services.json
+        preview_path: /servicios/
+        fields:
+          - name: services
+            label: Servicios
+            label_singular: Servicio
+            widget: list
+            allow_add: false
+            allow_remove: false
+            allow_duplicate: false
+            allow_reorder: false
+            collapsed: false
+            summary: '{{label}}'
+            thumbnail: image
+            hint: >-
+              Son 4 servicios fijos, en el mismo orden que en la web: no se
+              añaden, no se borran ni se cambian de orden.
+            fields:
+              - name: id
+                label: Identificador
+                widget: hidden
+              - name: label
+                label: Nombre corto
+                widget: string
+                required: true
+                maxlength: 30
+                hint: >-
+                  Sale en el menú «Servicios» de arriba, en los botones de la
+                  página Servicios y en el mensaje de WhatsApp «Quiero hablar
+                  con un especialista». Por ejemplo "Termofusión".
+              - name: title
+                label: Título
+                widget: string
+                required: true
+                maxlength: 60
+                hint: >-
+                  El título grande del servicio en la página Servicios (y en la
+                  portada, si sale allí). Por ejemplo "Soldadura por
+                  Termofusión".
+              - name: description
+                label: Descripción
+                widget: text
+                required: true
+                maxlength: 800
+                hint: >-
+                  El texto del servicio en la página Servicios. Para empezar
+                  otro párrafo, deje una línea en blanco. El enlace «Quiero
+                  hablar con un especialista» lo pone la web sola, debajo.
+              - name: homeSummary
+                label: Texto corto para la portada
+                widget: string
+                required: false
+                default: ''
+                maxlength: 90
+                hint: >-
+                  Si lo escribe, el servicio sale también en la portada, con su
+                  foto, su título y este texto. Si lo deja vacío, no sale en la
+                  portada (sí en la página Servicios). Lo ideal son 2 o 4
+                  servicios en la portada, para que las tarjetas queden parejas.
+              - name: image
+                label: Foto
+                widget: image
+                required: false
+                default: ''
+                # Sin SVG por lo mismo que en los grupos.
+                accept: image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif
+                choose_url: false
+                media_folder: /public/assets/panel/servicios
+                public_folder: /assets/panel/servicios
+                # Máximo 1600×1200: la página la muestra a unos 650×400 px
+                # (el doble en pantallas de alta densidad).
+                media_libraries:
+                  stock_assets: false
+                  default:
+                    config:
+                      max_file_size: 1000000
+                      transformations:
+                        raster_image:
+                          format: webp
+                          quality: 82
+                          width: 1600
+                          height: 1200
+                hint: >-
+                  Se ve entera, sin recortes, en la página Servicios; en la
+                  portada se recorta por el centro. Mejor apaisada (más ancha
+                  que alta). Sirve cualquier foto, también la del celular: al
+                  subirla se reduce y se convierte sola. Si la deja vacía, la
+                  web muestra «Imagen próximamente». Al guardar, la web se
+                  actualiza en unos 5 minutos.

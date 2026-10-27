@@ -2,6 +2,7 @@ import { allGroups, allProducts } from "./catalog";
 import { fmProducts } from "./fmProducts";
 import { visibleCategories } from "./categories";
 import { catalogLineHref } from "./catalogLines";
+import { services } from "./services";
 // Se reutiliza el slug del buscador para que el enlace que genera el índice y
 // el que genera parseQuery() sean byte a byte el mismo contrato de URL.
 import { slugify } from "./searchQuery";
@@ -376,55 +377,52 @@ const categorySearchItems: SearchItem[] = visibleCategories.map(category => {
 
 /* ================= SERVICIOS, MARCAS Y PÁGINAS ================= */
 
-const staticSearchItems: SearchItem[] = [
-  {
-    title: "Soldadura por Termofusión",
-    href: "/servicios/#termofusion",
-    category: "Servicios",
+/**
+ * Lo que el buscador sabe de cada servicio además de su título y su nombre
+ * corto, que vienen del panel (services.json): si el gerente los cambia, el
+ * buscador encuentra el nombre nuevo sin perder las palabras de siempre.
+ */
+const SERVICE_SEARCH: Record<string, { description: string; keywords: string[]; terms: string[] }> = {
+  termofusion: {
     description: "Unión de tuberías plásticas mediante calor controlado.",
-    badge: "Servicio",
-    meta: "Servicios",
-    resultType: "service",
-    weight: 5,
     keywords: ["termofusion", "soldadura", "union", "servicio"],
-    terms: buildTerms(["soldadura por termofusion", "termofusion", "soldadura", "servicio"])
+    terms: ["termofusion", "soldadura", "servicio"]
   },
-  {
-    title: "Soldadura por Electrofusión",
-    href: "/servicios/#electrofusion",
-    category: "Servicios",
+  electrofusion: {
     description: "Unión con accesorios de resistencia eléctrica integrada.",
-    badge: "Servicio",
-    meta: "Servicios",
-    resultType: "service",
-    weight: 5,
     keywords: ["electrofusion", "soldadura", "servicio"],
-    terms: buildTerms(["soldadura por electrofusion", "electrofusion", "soldadura", "servicio"])
+    terms: ["electrofusion", "soldadura", "servicio"]
   },
-  {
-    title: "Carpintería Plástica",
-    href: "/servicios/#carpinteria-plastica",
-    category: "Servicios",
+  "carpinteria-plastica": {
     description: "Fabricación de elementos industriales a medida.",
-    badge: "Servicio",
-    meta: "Servicios",
-    resultType: "service",
-    weight: 5,
     keywords: ["carpinteria plastica", "fabricacion", "a medida", "servicio"],
-    terms: buildTerms(["carpinteria plastica", "fabricacion a medida", "servicio"])
+    terms: ["fabricacion a medida", "servicio"]
   },
-  {
-    title: "Alquiler de Máquinas",
-    href: "/servicios/#alquiler-maquinas",
-    category: "Servicios",
+  "alquiler-maquinas": {
     description: "Equipos de termofusión y electrofusión en alquiler.",
+    keywords: ["alquiler de maquinas", "maquinas", "equipos", "servicio"],
+    terms: ["maquinas", "equipos", "servicio"]
+  }
+};
+
+const serviceSearchItems: SearchItem[] = services.map((service) => {
+  const extra = SERVICE_SEARCH[service.id];
+  return {
+    title: service.title,
+    href: service.href,
+    category: "Servicios",
+    description: extra?.description ?? (service.homeSummary || undefined),
     badge: "Servicio",
     meta: "Servicios",
     resultType: "service",
     weight: 5,
-    keywords: ["alquiler de maquinas", "maquinas", "equipos", "servicio"],
-    terms: buildTerms(["alquiler de maquinas", "maquinas", "equipos", "servicio"])
-  },
+    keywords: extra?.keywords ?? unique([normalizeText(service.label), "servicio"]),
+    terms: buildTerms([service.title, service.label, ...(extra?.terms ?? ["servicio"])])
+  };
+});
+
+const staticSearchItems: SearchItem[] = [
+  ...serviceSearchItems,
   {
     title: "Sistemas contra incendio FM",
     // Misma página que la tarjeta "Tuberías FM" de /productos: la de la línea
