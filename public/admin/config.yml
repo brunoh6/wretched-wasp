@@ -30,6 +30,10 @@ backend:
   repo: brunoh6/wretched-wasp
   # Se escribe directamente en main porque el sitio se publica desde main.
   branch: main
+  # Sólo token mientras no exista el servicio de entrada (base_url): sin él,
+  # "Iniciar sesión con GitHub" abre una ventana con "Not Found". Al montar la
+  # entrada por correo (README-admin, parte 2 G) se cambia a [oauth].
+  auth_methods: [token]
 
 # Título de la pestaña y de la pantalla de entrada. Los botones del programa
 # salen en español si el navegador está en español (Sveltia elige es-CO solo).
