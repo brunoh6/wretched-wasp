@@ -305,7 +305,7 @@ function toMaterial(value) {
 
 /**
  * Convierte una medida a número. Es la misma lógica que ya usa
- * `src/pages/productos/[category].astro` para ordenar tallas, replicada aquí
+ * `src/pages/productos/[category]/[...linea].astro` para ordenar tallas, replicada aquí
  * para que el JSON llegue pre-ordenado y la página no tenga que reordenar.
  * Entiende 1/2, 2.1/2 y 2 1/2.
  */

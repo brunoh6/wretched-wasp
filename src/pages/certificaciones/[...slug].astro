@@ -21,7 +21,7 @@ import {
  * tiempo de build si existen o no, mediante `getStaticPaths()`. Una página
  * plana (`certificaciones.astro`) se emite siempre y su `getStaticPaths()` se
  * ignora. Convirtiéndola en ruta dinámica con parámetro rest y devolviendo un
- * array vacío conseguimos el mismo patrón que usa `productos/[category].astro`
+ * array vacío conseguimos el mismo patrón que usa `productos/[category]/[...linea].astro`
  * con las categorías ocultas: con el flag en `false` no se emite
  * `dist/certificaciones/` en absoluto.
  *

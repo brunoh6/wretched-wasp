@@ -147,7 +147,7 @@ function expandFmItems(): CatalogDisplayItem[] {
 // ─────────────────────────────────────────────────────────────────────────────
 // Estas funciones son el gemelo en tiempo de build de las que el catálogo ya usa
 // en el navegador (`compareSizes` / `normalizeSizeLabel` en
-// src/pages/productos/[category].astro). Tienen que dar EXACTAMENTE el mismo
+// src/pages/productos/[category]/[...linea].astro). Tienen que dar EXACTAMENTE el mismo
 // orden: aquí se calcula el rango que se pinta en la columna "Medidas
 // disponibles" y el navegador reordena esa misma lista al desplegar
 // "Ver medidas". Si divergieran, el rango anunciaría una medida mínima que

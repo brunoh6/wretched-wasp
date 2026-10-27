@@ -149,7 +149,7 @@ collections:
         pattern: Agua (fría|caliente)
     # Botón "ver en la web" de cada grupo. Lleva al catálogo de su familia
     # filtrado a agua; no indica si la publicación ya terminó.
-    preview_path: /productos/{{family}}/?linea=agua
+    preview_path: /productos/{{family}}/agua-pvc-cpvc/
     fields:
       - name: label
         label: Producto

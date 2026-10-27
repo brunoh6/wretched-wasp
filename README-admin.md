@@ -365,7 +365,7 @@ en esto. Opciones técnicas:
 - **«Hay un error en la configuración del CMS»:** `config.yml` inválido.
   Validarlo contra el esquema (punto F).
 - **Las fotos de grupo ya se suben, pero la miniatura por fila del catálogo
-  de agua la pinta `src/pages/productos/[category].astro`;** si ese cambio no
+  de agua la pinta `src/pages/productos/[category]/[...linea].astro`;** si ese cambio no
   está publicado, la foto sólo se ve en el bloque de marca.
 
 ## J. Qué se comprobó (26/10/2026, arnés con Sveltia 0.252.0 y Chrome en es-PE)

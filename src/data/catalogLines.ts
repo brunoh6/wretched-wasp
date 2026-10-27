@@ -72,9 +72,9 @@ export type CatalogLanding = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Nombran lo que se anuncia (HDPE FM Approved contra incendio; PVC y CPVC
 // SCH-80 para agua) y SÓLO lo que el catálogo publica: cada marca, clase,
-// producto o medida que aparece en el texto lleva su `claims`, y el build se
-// detiene si alguna deja de existir (ver verifyClaims). Así un cambio en
-// fmProducts.ts, un Excel nuevo o un grupo ocultado desde el panel no dejan una
+// producto o medida que aparece en el texto lleva su `claims`, y el build avisa
+// si alguna deja de existir (ver verifyClaims). Así un cambio en fmProducts.ts,
+// un Excel nuevo o un grupo ocultado desde el panel no dejan sin saberlo una
 // página de anuncio prometiendo algo que ya no está: Google Ads penaliza la
 // página de destino que no cumple lo que anuncia.
 
@@ -253,18 +253,16 @@ export const publishedCatalogLandings: CatalogLanding[] = landings.filter(
     rowsOf(landing).length > 0
 );
 
-// Se detiene el build (igual que contactInfo.telHref con un teléfono sin código
-// de área): publicar una página de anuncio con un texto que el catálogo ya no
-// respalda es peor que no publicar el cambio.
+// Aviso y no error: ocultar productos desde el panel es una acción normal del
+// gerente y no debe bloquear su publicación por un texto de marketing. Las
+// líneas "::warning::" las convierte GitHub Actions en avisos amarillos del run.
 const unbackedClaims = publishedCatalogLandings.flatMap((landing) =>
   verifyClaims(landing, rowsOf(landing))
 );
 
-if (unbackedClaims.length) {
-  throw new Error(
-    "catalogLines: el texto de estas páginas por línea nombra algo que el catálogo ya no publica:\n  - " +
-      unbackedClaims.join("\n  - ") +
-      "\nCorrige el texto (h1, seoTitle, seoDescription, intro) y su `claims` en src/data/catalogLines.ts."
+for (const claim of unbackedClaims) {
+  console.log(
+    `::warning title=Texto de página por línea::${claim}. Corrige el texto y su \`claims\` en src/data/catalogLines.ts.`
   );
 }
 
