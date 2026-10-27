@@ -5,8 +5,8 @@ const formAction = "https://formspree.io/f/xpqlyqok";
    MODELO DE AMENAZAS (honesto)
 
    Este sitio es ESTÁTICO: no hay backend propio ni base de datos.
-   El formulario hace POST directo a Formspree, que es quien recibe,
-   persiste y notifica. Por lo tanto:
+   El formulario envía a Formspree, que es quien recibe, persiste y
+   notifica. Por lo tanto:
 
    QUÉ CUBRE esta validación de cliente:
      - UX: el usuario ve el error antes de perder el envío.
@@ -39,6 +39,53 @@ const formAction = "https://formspree.io/f/xpqlyqok";
    No hay secretos ni claves en este archivo: la URL de Formspree es
    pública por diseño. Tampoco hay enlaces externos; si algún día se
    añade uno, debe llevar rel="noopener noreferrer".
+   ========================================================= */
+
+/* =========================================================
+   ENVÍO SIN SALIR DEL SITIO (fetch) Y RED DE SEGURIDAD
+
+   El agradecimiento se muestra aquí y no en la página de Formspree porque
+   la conversión de Google Ads ("dihyc:conversion") sólo se puede medir en
+   nuestro dominio, y la redirección a una página de gracias propia NO está
+   en el plan gratuito de Formspree; el envío por AJAX sí ("Available on:
+   All plans", help.formspree.io/hc/en-us/articles/360013470814).
+
+   Lo que dice Formspree y condiciona este código:
+     - Con `Accept: application/json` responde JSON en vez de redirigir.
+       Éxito: 2xx con un objeto que trae "next" (así lo reconoce su
+       librería oficial) u "ok": true; error: {"error":"…",
+       "errors":[{"code","field","message"}]} (tipos y códigos en
+       github.com/formspree/formspree-js,
+       packages/formspree-core/src/submission.ts; ejemplo con fetch y
+       FormData en formspree.io/blog/formspree-ajax/).
+     - Límite de 20 envíos por minuto por formulario: por AJAX devuelve 429
+       y pide mostrar al visitante que espere y reintente
+       (help.formspree.io/articles/form-and-project-settings/system-limits).
+     - reCAPTCHA: la página intermedia de reCAPTCHA de Formspree "isn't
+       appropriate for JavaScript forms that use AJAX"
+       (formspree.io/blog/recaptcha-methods/); en todos los planes se puede
+       desactivar por formulario o usar una clave propia
+       (help.formspree.io/articles/form-and-project-settings/recaptcha-settings/).
+       Turnstile por AJAX exige mandar el token a mano
+       (help.formspree.io/articles/form-and-project-settings/protecting-your-forms-with-cloudflare-turnstile).
+       Este formulario no lleva widget, así que si la cuenta tuviera la
+       página de reCAPTCHA activa, el fetch no recibiría el JSON de éxito.
+
+   Por eso el diseño es a prueba de fallos: SÓLO se muestra un resultado
+   dentro del sitio cuando Formspree contesta algo que entendemos (éxito,
+   errores de validación con códigos conocidos, o 429). Cualquier otra cosa
+   —red caída, CSP o CORS que bloquean el fetch, captcha, HTML, más de 15 s—
+   repite el envío normal de siempre (navegación POST a Formspree), que
+   resuelve el captcha o muestra su propio error. Sin JavaScript, o en
+   navegadores sin fetch/AbortController, el formulario es el de siempre.
+   Si Formspree sí recibió el fetch pero tardó más de 15 s, el envío normal
+   puede llegar como un segundo correo: se acepta, perder una cotización
+   es peor que recibirla dos veces.
+
+   Requisito de despliegue: la CSP del .htaccess debe incluir
+   https://formspree.io en connect-src. Sin eso el navegador bloquea el
+   fetch y TODOS los envíos caen al envío normal (funcionan, pero sin
+   agradecimiento propio ni conversión).
    ========================================================= */
 
 // `grid-cols-1` explícito + `min-w-0`: sin ellos, el ancho mínimo del
@@ -233,18 +280,26 @@ const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
     Por favor revisa los campos marcados.
   </p>
 
-  <button
-    id="cf-submit"
-    type="submit"
-    class="cta w-full rounded bg-[#003595] px-6 py-3 text-sm font-semibold text-white hover:bg-[#002a75] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-  >
-    Enviar mensaje
-  </button>
+  <div>
+    <button
+      id="cf-submit"
+      type="submit"
+      class="cta w-full rounded bg-[#003595] px-6 py-3 text-sm font-semibold text-white hover:bg-[#002a75] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+    >
+      Enviar mensaje
+    </button>
+
+    {/* La región viva existe vacía desde la carga: si se creara al mostrar
+        el agradecimiento, varios lectores de pantalla no lo anunciarían.
+        Vacía no ocupa sitio; el margen lo lleva el mensaje de dentro. */}
+    <div id="cf-status" role="status" aria-live="polite" aria-atomic="true"></div>
+  </div>
 </form>
 
 <script>
   const form = document.getElementById("contactForm") as HTMLFormElement | null;
   const summary = document.getElementById("formError");
+  const statusBox = document.getElementById("cf-status");
   const submitBtn = document.getElementById("cf-submit") as HTMLButtonElement | null;
   const honeypot = document.getElementById("cf-gotcha") as HTMLInputElement | null;
   const countrySelect = document.getElementById("country") as HTMLSelectElement | null;
@@ -252,8 +307,11 @@ const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
 
   type Campo = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
+  const campos: Campo[] = form ? Array.from(form.querySelectorAll<Campo>("[data-validate]")) : [];
+
   const SUMMARY_DEFAULT = "Por favor revisa los campos marcados.";
   const SUBMIT_LABEL = submitBtn?.textContent?.trim() || "Enviar mensaje";
+  const SUBMIT_SENDING = "Enviando…";
 
   // Letras aceptadas en nombres y razones sociales: castellano + apóstrofes
   // (D'Onofrio) y guiones (García-Pérez). Los dígitos quedan fuera a propósito.
@@ -464,9 +522,242 @@ const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
     summary.classList.remove("hidden");
   };
 
-  if (form) {
-    const campos = Array.from(form.querySelectorAll<Campo>("[data-validate]"));
+  /* ---------- Envío por fetch (el porqué está en la cabecera del archivo) ---------- */
 
+  const TIEMPO_MAXIMO = 15_000;
+
+  // Sin AbortController no se puede cortar a los 15 s: esos navegadores
+  // siguen con el envío normal de siempre.
+  const hayFetch =
+    typeof window.fetch === "function" &&
+    typeof window.FormData === "function" &&
+    typeof window.AbortController === "function";
+
+  let enviando = false;
+
+  type ErrorFormspree = { code?: string; field?: string; message: string };
+
+  type Resultado =
+    | { tipo: "ok" }
+    | { tipo: "validacion"; errores: ErrorFormspree[] }
+    | { tipo: "limite" }
+    | { tipo: "otro" };
+
+  // Códigos de la librería oficial de Formspree que tiene sentido mostrar aquí.
+  // Un error con otro código y sin campo nuestro (p. ej. de captcha) NO se
+  // muestra: va al envío normal, que es donde Formspree sabe resolverlo.
+  const CODIGOS_CONOCIDOS = new Set([
+    "REQUIRED_FIELD_EMPTY",
+    "REQUIRED_FIELD_MISSING",
+    "TYPE_EMAIL",
+    "TYPE_NUMERIC",
+    "TYPE_TEXT",
+    "EMPTY",
+    "BLOCKED",
+    "FORM_NOT_FOUND",
+    "PROJECT_NOT_FOUND",
+    "INACTIVE",
+  ]);
+
+  const esObjeto = (x: unknown): x is Record<string, unknown> =>
+    typeof x === "object" && x !== null && !Array.isArray(x);
+
+  const esErrorFormspree = (x: unknown): x is ErrorFormspree =>
+    esObjeto(x) &&
+    typeof x.message === "string" &&
+    (x.code === undefined || typeof x.code === "string") &&
+    (x.field === undefined || typeof x.field === "string");
+
+  const campoPorNombre = (nombre: string | undefined): Campo | null =>
+    nombre ? campos.find((c) => c.name === nombre) ?? null : null;
+
+  const clasificar = (status: number, ok: boolean, datos: unknown): Resultado => {
+    if (ok && esObjeto(datos) && !("errors" in datos) && (datos.ok === true || typeof datos.next === "string")) {
+      return { tipo: "ok" };
+    }
+    if (status === 429) return { tipo: "limite" };
+    if ((status === 400 || status === 422) && esObjeto(datos) && Array.isArray(datos.errors)) {
+      const lista: unknown[] = datos.errors;
+      const errores = lista.filter(esErrorFormspree);
+      const entendidos =
+        errores.length > 0 &&
+        errores.length === lista.length &&
+        errores.every((e) => campoPorNombre(e.field) !== null || CODIGOS_CONOCIDOS.has(e.code ?? ""));
+      if (entendidos) return { tipo: "validacion", errores };
+    }
+    return { tipo: "otro" };
+  };
+
+  const enviarPorFetch = async (formulario: HTMLFormElement): Promise<Resultado> => {
+    const control = new AbortController();
+    const reloj = window.setTimeout(() => control.abort(), TIEMPO_MAXIMO);
+    try {
+      // Sólo Accept (cabecera segura para CORS) y FormData sin Content-Type a
+      // mano: así es una petición "simple" y el navegador no hace preflight.
+      const respuesta = await fetch(formulario.action, {
+        method: "POST",
+        body: new FormData(formulario),
+        headers: { Accept: "application/json" },
+        signal: control.signal,
+      });
+      // Leer el cuerpo también entra en los 15 s: el abort lo corta.
+      const texto = await respuesta.text();
+      let datos: unknown = null;
+      try {
+        datos = JSON.parse(texto);
+      } catch {
+        datos = null; // HTML (p. ej. la página de reCAPTCHA): no es nuestro caso
+      }
+      return clasificar(respuesta.status, respuesta.ok, datos);
+    } catch {
+      // Red caída, CSP o CORS que bloquean, o tiempo agotado.
+      return { tipo: "otro" };
+    } finally {
+      window.clearTimeout(reloj);
+    }
+  };
+
+  const bloquear = () => {
+    enviando = true;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = SUBMIT_SENDING;
+    }
+    // El texto del botón no se anuncia si el foco no está en él.
+    if (statusBox) {
+      const aviso = document.createElement("span");
+      aviso.id = "cf-sending";
+      aviso.className = "sr-only";
+      aviso.textContent = "Enviando tu mensaje…";
+      statusBox.textContent = "";
+      statusBox.append(aviso);
+    }
+  };
+
+  const desbloquear = () => {
+    enviando = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = SUBMIT_LABEL;
+    }
+    document.getElementById("cf-sending")?.remove();
+  };
+
+  const PREFERENCIA: Record<string, string> = {
+    WhatsApp: " por WhatsApp",
+    Llamada: " por teléfono",
+    Correo: " por correo electrónico",
+  };
+
+  const mostrarGracias = (preferencia: string) => {
+    if (!statusBox) return;
+    const caja = document.createElement("div");
+    caja.tabIndex = -1;
+    caja.className = "mt-4 rounded border border-green-700/30 bg-green-50 p-4 text-sm leading-relaxed text-green-900";
+    const titulo = document.createElement("p");
+    titulo.className = "font-semibold";
+    titulo.textContent = "¡Gracias! Recibimos tu mensaje.";
+    const detalle = document.createElement("p");
+    detalle.textContent = `Un especialista te contactará pronto${PREFERENCIA[preferencia] ?? ""}.`;
+    caja.append(titulo, detalle);
+    statusBox.textContent = "";
+    statusBox.append(caja);
+    caja.focus();
+  };
+
+  const textoDeCampo = (e: ErrorFormspree): string => {
+    switch (e.code) {
+      case "REQUIRED_FIELD_EMPTY":
+      case "REQUIRED_FIELD_MISSING":
+        return "Este dato es obligatorio.";
+      case "TYPE_EMAIL":
+        return "Ingresa un correo válido, por ejemplo nombre@empresa.com";
+      case "TYPE_NUMERIC":
+        return "Este dato sólo admite números.";
+      default:
+        return e.message.slice(0, 200);
+    }
+  };
+
+  const textoGeneral = (e: ErrorFormspree): string => {
+    switch (e.code) {
+      case "EMPTY":
+        return "el formulario llegó vacío.";
+      case "BLOCKED":
+        return "el filtro antispam lo bloqueó.";
+      case "FORM_NOT_FOUND":
+      case "PROJECT_NOT_FOUND":
+      case "INACTIVE":
+        return "el formulario no está disponible en este momento.";
+      default:
+        return e.message.slice(0, 200);
+    }
+  };
+
+  const mostrarErroresDelServidor = (errores: ErrorFormspree[]) => {
+    let primero: Campo | null = null;
+    const generales: string[] = [];
+    for (const e of errores) {
+      const campo = campoPorNombre(e.field);
+      if (campo) {
+        mostrarError(campo, textoDeCampo(e));
+        if (!primero) primero = campo;
+      } else {
+        generales.push(textoGeneral(e));
+      }
+    }
+    mostrarResumen(
+      generales.length > 0
+        ? `No pudimos enviar tu mensaje: ${generales.join(" ")} Lo que escribiste sigue aquí; inténtalo de nuevo o escríbenos por WhatsApp.`
+        : "Revisa los campos marcados: no se aceptaron esos datos. Lo que escribiste sigue aquí."
+    );
+    (primero ?? submitBtn)?.focus();
+  };
+
+  const enviar = async (formulario: HTMLFormElement) => {
+    const resultado = await enviarPorFetch(formulario);
+
+    if (resultado.tipo === "otro") {
+      try {
+        // Desde el prototipo: no vuelve a disparar "submit" (ni el freno de
+        // frecuencia ni este listener) y un campo name="submit" no lo tapa.
+        // El botón sigue en «Enviando…» porque la página navega.
+        HTMLFormElement.prototype.submit.call(formulario);
+      } catch {
+        desbloquear();
+        mostrarResumen(
+          "No pudimos enviar tu mensaje. Lo que escribiste sigue aquí: inténtalo de nuevo o escríbenos por WhatsApp."
+        );
+      }
+      return;
+    }
+
+    desbloquear();
+
+    if (resultado.tipo === "ok") {
+      const preferencia = (formulario.elements.namedItem("contact_preference") as HTMLSelectElement | null)?.value ?? "";
+      formulario.reset();
+      campos.forEach((c) => mostrarError(c, null));
+      summary?.classList.add("hidden");
+      actualizarPrefijo();
+      mostrarGracias(preferencia);
+      // Contrato con la medición (Google Ads): sólo con el envío confirmado.
+      document.dispatchEvent(new CustomEvent("dihyc:conversion", { detail: { tipo: "formulario" } }));
+      return;
+    }
+
+    if (resultado.tipo === "validacion") {
+      mostrarErroresDelServidor(resultado.errores);
+      return;
+    }
+
+    mostrarResumen(
+      "Recibimos demasiados mensajes en este momento. Espera un minuto y vuelve a intentarlo, o escríbenos por WhatsApp. Lo que escribiste sigue aquí."
+    );
+    submitBtn?.focus();
+  };
+
+  if (form) {
     actualizarPrefijo();
 
     campos.forEach((el) => {
@@ -520,6 +811,12 @@ const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
     form.addEventListener("keydown", desarmarTrampa);
 
     form.addEventListener("submit", (event) => {
+      // 0) Ya hay un envío en curso (Enter o clic repetidos): nunca dos.
+      if (enviando) {
+        event.preventDefault();
+        return;
+      }
+
       // 1) Honeypot relleno => bot. Se cancela en silencio, sin pistas.
       if (honeypot && honeypot.value !== "") {
         event.preventDefault();
@@ -527,6 +824,7 @@ const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
       }
 
       summary?.classList.add("hidden");
+      if (statusBox) statusBox.textContent = "";
 
       // 2) Freno de frecuencia antes de gastar un envío.
       const previos = intentosRecientes();
@@ -557,19 +855,17 @@ const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
       // 4) Envío real: se anota el intento y se bloquea el botón para
       //    que un doble clic no genere dos correos idénticos.
       registrarIntento(previos);
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Enviando...";
-      }
+      bloquear();
+
+      // Sin fetch el navegador sigue con el POST normal de siempre.
+      if (!hayFetch) return;
+
+      event.preventDefault();
+      void enviar(form);
     });
 
-    // Si el usuario vuelve con el botón "atrás" (bfcache), el botón debe
-    // quedar utilizable otra vez.
-    window.addEventListener("pageshow", () => {
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = SUBMIT_LABEL;
-      }
-    });
+    // Si el usuario vuelve con el botón "atrás" (bfcache) tras el envío
+    // normal, el botón debe quedar utilizable otra vez.
+    window.addEventListener("pageshow", desbloquear);
   }
 </script>
