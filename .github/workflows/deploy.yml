@@ -75,15 +75,32 @@ jobs:
           # commit. La prueba final la usa para confirmar que lo que se ve en
           # vivo es ESTA versión y no una copia vieja en caché.
           PUBLIC_BUILD_ID: ${{ github.sha }}
+          # Medición de Google Ads (README-deploy.md, «Activar la medición de
+          # Google Ads»). Sin GOOGLE_ADS_ID no se carga nada de Google; con él,
+          # el HTML lleva la etiqueta y "npm run build" amplía la CSP de
+          # dist/.htaccess (scripts/csp-google-ads.mjs). Son variables, no
+          # secrets: el ID y las etiquetas se ven en el HTML publicado.
+          PUBLIC_GOOGLE_ADS_ID: ${{ vars.GOOGLE_ADS_ID }}
+          PUBLIC_ADS_LABEL_WHATSAPP: ${{ vars.ADS_LABEL_WHATSAPP }}
+          PUBLIC_ADS_LABEL_FORMULARIO: ${{ vars.ADS_LABEL_FORMULARIO }}
+          PUBLIC_ADS_LABEL_LLAMADA: ${{ vars.ADS_LABEL_LLAMADA }}
         run: npm run build
 
       - name: Validar el sitio compilado
         # Si falta algo de esto, mejor fallar aquí que publicar un sitio roto.
+        env:
+          ADS_ID: ${{ vars.GOOGLE_ADS_ID }}
+          ADS_LABEL_WHATSAPP: ${{ vars.ADS_LABEL_WHATSAPP }}
+          ADS_LABEL_FORMULARIO: ${{ vars.ADS_LABEL_FORMULARIO }}
+          ADS_LABEL_LLAMADA: ${{ vars.ADS_LABEL_LLAMADA }}
         run: |
           set -euo pipefail
           falta=0
+          # Las cuatro páginas por línea son las URL finales de los anuncios.
           for f in index.html 404.html .htaccess robots.txt sitemap-index.xml \
                    productos/index.html productos/tuberias/index.html productos/conexiones/index.html \
+                   productos/tuberias/contra-incendio-fm/index.html productos/conexiones/contra-incendio-fm/index.html \
+                   productos/tuberias/agua-pvc-cpvc/index.html productos/conexiones/agua-pvc-cpvc/index.html \
                    admin/index.html admin/config.yml admin/.htaccess; do
             if [ ! -f "dist/$f" ]; then echo "::error::Falta dist/$f"; falta=1; fi
           done
@@ -91,6 +108,46 @@ jobs:
 
           grep -q "name=\"dihyc-build\" content=\"${GITHUB_SHA}\"" dist/index.html \
             || { echo "::error::La marca de versión no lleva el commit ${GITHUB_SHA}"; exit 1; }
+
+          # Google Ads: con ID, cada página del sitio (no /admin) lleva la
+          # etiqueta y la CSP de dist/.htaccess deja pasar sus dominios; si no,
+          # el navegador la bloquearía en silencio y la campaña no mediría.
+          # Sin ID, nada de Google Ads en el HTML ni en la CSP.
+          ADS_ID="$(echo "$ADS_ID" | tr -d '[:space:]')"
+          if [ -n "$ADS_ID" ]; then
+            sin_etiqueta=$(grep -rL --include='*.html' "googletagmanager.com/gtag/js?id=${ADS_ID}\"" dist | grep -v '^dist/admin/' || true)
+            if [ -n "$sin_etiqueta" ]; then
+              echo "::error::Páginas sin la etiqueta de Google Ads ${ADS_ID}:"; echo "$sin_etiqueta"; exit 1
+            fi
+            python3 - <<'PY'
+          import re, sys
+          texto = open("dist/.htaccess", encoding="utf-8").read()
+          m = re.findall(r"""Header always set Content-Security-Policy "(default-src 'self';[^"]*)" env=DIHYC""", texto)
+          if len(m) != 1:
+              print(f"::error::dist/.htaccess debería tener UNA CSP de páginas y tiene {len(m)}"); sys.exit(1)
+          csp = {d.split()[0]: d.split()[1:] for d in (x.strip() for x in m[0].split(";")) if d}
+          ads = ["https://www.googletagmanager.com", "https://www.googleadservices.com", "https://googleads.g.doubleclick.net",
+                 "https://pagead2.googlesyndication.com", "https://www.google.com", "https://www.google.com.pe"]
+          pide = {"script-src": ads[:2] + ["https://www.google.com"], "img-src": ads,
+                  "connect-src": ads + ["https://ad.doubleclick.net"], "frame-src": ["https://www.googletagmanager.com"]}
+          faltan = [f"{d} {x}" for d, xs in pide.items() for x in xs if x not in csp.get(d, [])]
+          for f in faltan: print(f"::error::La CSP de dist/.htaccess no permite {f} (¿falló scripts/csp-google-ads.mjs?)")
+          sys.exit(1 if faltan else 0)
+          PY
+            for tipo in WHATSAPP FORMULARIO LLAMADA; do
+              var="ADS_LABEL_${tipo}"
+              [ -n "${!var}" ] || echo "::warning::Sin la variable ${var}: esa conversión NO se cuenta en Google Ads (sólo queda en dataLayer)."
+            done
+            echo "Google Ads ${ADS_ID}: etiqueta en el HTML y CSP ampliada."
+          else
+            if grep -rlE --include='*.html' 'googletagmanager\.com|googleadservices\.com' dist | grep -q .; then
+              echo "::error::Sin GOOGLE_ADS_ID el HTML no debería cargar nada de Google Ads"; exit 1
+            fi
+            if grep -qE 'googletagmanager\.com|googleadservices\.com' dist/.htaccess; then
+              echo "::error::Sin GOOGLE_ADS_ID la CSP no debería incluir dominios de Google Ads"; exit 1
+            fi
+            echo "Google Ads: sin GOOGLE_ADS_ID, medición apagada (sólo dataLayer)."
+          fi
 
           if grep -rl "localhost" dist --include='*.html' | grep -q .; then
             echo "::error::Hay enlaces a localhost en el HTML compilado:"
@@ -305,6 +362,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Comprobar páginas, redirecciones y versión publicada
+        env:
+          ADS_ID: ${{ vars.GOOGLE_ADS_ID }}
         run: |
           # Sin -e a propósito: cada comprobación anota su fallo en $fallos y la
           # prueba sigue, para ver TODOS los problemas de una vez. GitHub lanza
@@ -333,7 +392,11 @@ jobs:
           done
 
           # 2) Páginas que deben responder 200.
+          #    Incluye las cuatro páginas por línea: son las URL finales de los
+          #    anuncios y un 404 ahí es dinero perdido (y anuncio rechazado).
           for ruta in / /productos/ /productos/tuberias/ /productos/conexiones/ \
+                      /productos/tuberias/contra-incendio-fm/ /productos/conexiones/contra-incendio-fm/ \
+                      /productos/tuberias/agua-pvc-cpvc/ /productos/conexiones/agua-pvc-cpvc/ \
                       /servicios/ /empresa/ /contacto/ /admin/ /robots.txt /sitemap-index.xml; do
             c=$(codigo "$SITIO$ruta")
             if [ "$c" = 200 ]; then echo "✅ $c $ruta"; else echo "::error::$ruta respondió $c (esperado 200)"; fallos=1; fi
@@ -371,6 +434,15 @@ jobs:
             if grep -qi "^$h:" <<<"$cab"; then echo "✅ cabecera $h"
             else echo "::warning::El sitio en vivo no envía $h (¿mod_headers desactivado en el hosting?)"; fi
           done
+          #    Con Google Ads activo, la CSP en vivo debe dejar pasar su etiqueta.
+          #    Error (no aviso): si el servidor manda una CSP vieja, la etiqueta
+          #    queda bloqueada y la campaña no mide nada.
+          csp=$(grep -i '^content-security-policy:' <<<"$cab" | head -1)
+          if [ -n "$ADS_ID" ] && [ -n "$csp" ]; then
+            if [[ "$csp" == *"https://www.googletagmanager.com"* && "$csp" == *"https://www.google.com.pe"* && "$csp" == *"https://googleads.g.doubleclick.net"* ]]; then
+              echo "✅ la CSP en vivo permite la etiqueta de Google Ads"
+            else echo "::error::La CSP en vivo no incluye los dominios de Google Ads: la etiqueta quedaría bloqueada"; fallos=1; fi
+          fi
 
           # 7) /admin debe recibir SÓLO su política (admin/.htaccess). Si el
           #    servidor sumara la del sitio, el panel no cargaría.

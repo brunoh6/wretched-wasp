@@ -36,7 +36,10 @@ trap '"$HTTPD" -f "$T/full.conf" -k stop >/dev/null 2>&1; "$HTTPD" -f "$T/min.co
 command -v "$HTTPD" >/dev/null || { echo "No encuentro Apache en $HTTPD"; exit 2; }
 
 echo "Compilando el sitio…"
-( cd "$RAIZ" && npm run build >/dev/null 2>&1 ) || { echo "Falló npm run build"; exit 2; }
+# Siempre SIN Google Ads, aunque quien lo corre tenga las variables puestas: el
+# caso "con ID" se prueba más abajo (o) sobre una copia del .htaccess.
+( cd "$RAIZ" && unset PUBLIC_GOOGLE_ADS_ID PUBLIC_ADS_LABEL_WHATSAPP PUBLIC_ADS_LABEL_FORMULARIO PUBLIC_ADS_LABEL_LLAMADA \
+    && npm run build >/dev/null 2>&1 ) || { echo "Falló npm run build"; exit 2; }
 cp -R "$RAIZ/dist" "$T/www"
 mkdir -p "$T/www/.well-known/acme-challenge" "$T/logs"
 echo "token-de-prueba" > "$T/www/.well-known/acme-challenge/prueba.txt"
@@ -234,6 +237,39 @@ for s in /assets/panel/fichas/especificaciones-brida-loca-pvc-georg-fischer.pdf 
   r=$(hdr https www.dihyc.com.pe "$s"); [ "$(st "$r")" = 200 ] && ok "$s → 200" || ko "$s" "$(st "$r")"
 done
 
+echo "o) CSP: formulario por fetch y Google Ads (scripts/csp-google-ads.mjs)"
+csp_de(){ hdr https www.dihyc.com.pe "$1" | grep -i '^Content-Security-Policy:' | tr -d '\r'; }
+# ¿La directiva $2 de la CSP $1 permite exactamente la fuente $3? (los espacios
+# evitan que www.google.com se dé por bueno dentro de www.google.com.pe)
+permite(){ local d; d=" $(echo "$1" | sed 's/^[^:]*: *//' | tr ';' '\n' | sed 's/^ *//' | grep "^$2 ") "; [[ "$d" == *" $3 "* ]]; }
+ADS_DOM="https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://www.google.com https://www.google.com.pe"
+csp=$(csp_de /contacto/)
+permite "$csp" connect-src "'self'" && permite "$csp" connect-src https://formspree.io && ok "connect-src permite https://formspree.io (formulario con fetch)" || ko "connect-src formspree" "$csp"
+permite "$csp" form-action https://formspree.io && ok "form-action sigue permitiendo formspree.io" || ko "form-action" "$csp"
+[[ "$csp" != *googletagmanager* && "$csp" != *googleadservices* && "$csp" != *doubleclick* && "$csp" != *google.com.pe* ]] && ok "sin ID: la CSP no trae ningún dominio de Google Ads" || ko "CSP sin ID" "$csp"
+bport=$(body https www.dihyc.com.pe '/')
+[[ "$bport" != *googletagmanager* && "$bport" != *"gtag/js"* ]] && ok "sin ID: el HTML no carga gtag.js" || ko "HTML sin ID" "trae gtag"
+cp "$T/www/.htaccess" "$T/htaccess.original"
+PUBLIC_GOOGLE_ADS_ID= node "$RAIZ/scripts/csp-google-ads.mjs" "$T/www" >/dev/null 2>&1 && cmp -s "$T/www/.htaccess" "$T/htaccess.original" && ok "sin ID el script no toca el .htaccess" || ko "script sin ID" "cambió el archivo"
+PUBLIC_GOOGLE_ADS_ID=G-123 node "$RAIZ/scripts/csp-google-ads.mjs" "$T/www" >/dev/null 2>&1 && ko "ID inválido" "el script no falló" || { cmp -s "$T/www/.htaccess" "$T/htaccess.original" && ok "ID con forma inválida: el script falla y no toca nada" || ko "ID inválido" "cambió el archivo"; }
+PUBLIC_GOOGLE_ADS_ID=AW-000000000 node "$RAIZ/scripts/csp-google-ads.mjs" "$T/www" >/dev/null 2>&1 && ok "con ID el script amplía la CSP" || ko "script con ID" "falló"
+cp "$T/www/.htaccess" "$T/htaccess.ads"
+PUBLIC_GOOGLE_ADS_ID=AW-000000000 node "$RAIZ/scripts/csp-google-ads.mjs" "$T/www" >/dev/null 2>&1 && cmp -s "$T/www/.htaccess" "$T/htaccess.ads" && ok "idempotente: una segunda pasada deja el mismo archivo" || ko "idempotencia" "cambió en la segunda pasada"
+r=$(hdr https www.dihyc.com.pe '/productos/'); [ "$(st "$r")" = 200 ] && ok "con la CSP ampliada Apache responde 200 (sin error 500)" || ko "CSP ampliada" "$(st "$r")"
+csp=$(csp_de /productos/)
+faltan=""
+for d in https://www.googletagmanager.com https://www.googleadservices.com https://www.google.com; do permite "$csp" script-src "$d" || faltan+=" script-src:$d"; done
+for d in $ADS_DOM; do permite "$csp" img-src "$d" || faltan+=" img-src:$d"; done
+for d in $ADS_DOM https://ad.doubleclick.net; do permite "$csp" connect-src "$d" || faltan+=" connect-src:$d"; done
+permite "$csp" frame-src https://www.googletagmanager.com || faltan+=" frame-src:gtm"
+[ -z "$faltan" ] && ok "con ID: script-src, img-src, connect-src y frame-src con los dominios de la guía de Google (incl. www.google.com.pe)" || ko "dominios de Google Ads" "$faltan"
+permite "$csp" connect-src https://formspree.io && permite "$csp" frame-src https://www.google.com && permite "$csp" script-src "'unsafe-inline'" \
+  && [[ "$csp" == *"frame-ancestors 'self'"* && "$csp" == *"object-src 'none'"* ]] && ok "con ID se conserva el resto de la política (formspree, mapa, frame-ancestors…)" || ko "resto de la CSP" "$csp"
+[ "$(hdr https www.dihyc.com.pe '/productos/' | grep -ci '^Content-Security-Policy:')" = 1 ] && ok "con ID sigue habiendo UNA sola CSP" || ko "CSP duplicada con ID" ""
+r=$(hdr https www.dihyc.com.pe /assets/categories/conexiones-fm.svg)
+echo "$r" | grep -i '^Content-Security-Policy:' | grep -q "default-src 'none'.*sandbox" && [[ "$r" != *googletagmanager* ]] && ok "con ID los SVG conservan su CSP inerte" || ko "SVG con ID" "$(echo "$r" | grep -i content-security)"
+r=$(hdr https www.dihyc.com.pe '/admin/'); [ "$(echo "$r" | grep -ci '^Content-Security-Policy:')" = 1 ] && echo "$r" | grep -qi "frame-ancestors 'none'" && ok "con ID /admin/ conserva sólo su política" || ko "admin con ID" "$(echo "$r" | grep -i content-security)"
+cp "$T/htaccess.original" "$T/www/.htaccess"
 
 echo
 echo "k) Sin mod_headers, mod_deflate ni mod_filter el sitio NO da error 500"

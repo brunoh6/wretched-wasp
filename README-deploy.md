@@ -251,10 +251,139 @@ concreta como `public_html/`.
 | *Probar el sitio en vivo* avisa (en amarillo) que **faltan cabeceras de seguridad** | El sitio funciona; el hosting no tiene activo `mod_headers`. Consultar al proveedor si lo puede activar. |
 | *Compilar y validar* falla con `::error::/assets/... no existe en el sitio` | Alguien borró o renombró un archivo que la web cita (p. ej. desde la biblioteca del panel). Mientras siga así **no se publica ningún cambio**, tampoco los guardados del panel. Restaurar el archivo (está en el historial de GitHub) o quitar la cita, y volver a publicar. |
 | El push falla por **workflow scope** | Ver 1.5. |
+| *Compilar* falla con `PUBLIC_GOOGLE_ADS_ID=… no tiene la forma AW-123456789` (o con una etiqueta de conversión) | La variable `GOOGLE_ADS_ID` (o `ADS_LABEL_…`) está mal copiada: sin espacios, sin comillas, el ID empieza por `AW-`. Corregirla y **Run workflow** (sección 6). |
 
 ---
 
-## 6. Para quien toque el código
+## 6. Activar la medición de Google Ads
+
+El sitio ya está preparado para medir qué anuncios traen contactos. Mientras
+no se active, **no carga nada de Google**: los clics sólo quedan anotados
+dentro del navegador del visitante (para un futuro Google Analytics). Activarlo
+es crear unas variables en GitHub; no hay que tocar código.
+
+Se miden tres cosas, cada una como una «acción de conversión» de Google Ads:
+
+| Conversión | Cuándo cuenta | Variable de GitHub |
+|---|---|---|
+| **Clic en WhatsApp** | Al tocar cualquier botón o enlace de WhatsApp, incluido «Solicitar cotización» del catálogo. | `ADS_LABEL_WHATSAPP` |
+| **Formulario enviado** | Sólo cuando Formspree confirma que el mensaje llegó (no al pulsar el botón). | `ADS_LABEL_FORMULARIO` |
+| **Clic en un teléfono** | Al tocar un número de teléfono (llamada desde el celular). | `ADS_LABEL_LLAMADA` |
+
+> ⚠ **Antes de activarlo** tiene que estar publicada en el sitio la
+> **Política de privacidad**, y debe decir que el sitio usa cookies y la
+> etiqueta de Google Ads para medir los resultados de la publicidad. Google
+> pide informar de ello a los visitantes y la ley peruana de datos personales
+> (Ley 29733) exige el aviso de privacidad. Hoy el sitio no tiene esa página:
+> sin ella, no activar.
+
+### Paso 1. Crear las acciones de conversión en Google Ads
+
+Lo hace quien administra la cuenta de Google Ads. Los menús de Google cambian de
+nombre a veces; la ruta suele ser esta:
+
+1. **Objetivos** → **Conversiones** → **Resumen** → **+ Crear acción de
+   conversión** → **Sitio web**. Escribir `www.dihyc.com.pe` y continuar.
+2. Elegir **añadir una acción de conversión manualmente** y crear tres, una por
+   fila de la tabla de arriba:
+   - **Nombre**: «Clic WhatsApp», «Formulario enviado», «Clic teléfono».
+   - **Categoría**: «Contacto» para WhatsApp y teléfono; «Enviar formulario de
+     clientes potenciales» para el formulario.
+   - **Recuento**: **Una** (un mismo cliente que escribe dos veces por el mismo
+     anuncio es un solo contacto).
+   - La que se use para que Google puje (la empresa decide cuál: WhatsApp o
+     formulario) debe quedar como acción **principal**.
+3. Al terminar cada una, en **Configuración de la etiqueta** elegir **Usar
+   Google Tag Manager** o **Instalar la etiqueta tú mismo**: en ambas se ve el
+   **ID de conversión** y la **etiqueta de conversión**. Si se ve el código, está
+   en la línea `'send_to': 'AW-123456789/AbC-dEfGhIj'`:
+   - lo de **antes** de la barra (`AW-123456789`) es el **ID**: es el mismo
+     para las tres acciones;
+   - lo de **después** de la barra (`AbC-dEfGhIj`) es la **etiqueta**: distinta
+     en cada acción.
+
+   **No** hay que pegar ese código en ningún sitio: el sitio ya lo trae.
+
+### Paso 2. Crear las variables en GitHub
+
+Repositorio → **Settings** → **Secrets and variables** → **Actions** →
+pestaña **Variables** → *New repository variable*, una por una:
+
+| Nombre | Valor (ejemplo) |
+|---|---|
+| `GOOGLE_ADS_ID` | `AW-123456789` |
+| `ADS_LABEL_WHATSAPP` | la etiqueta de «Clic WhatsApp» |
+| `ADS_LABEL_FORMULARIO` | la etiqueta de «Formulario enviado» |
+| `ADS_LABEL_LLAMADA` | la etiqueta de «Clic teléfono» |
+
+- Son **Variables**, no *Secrets*: el ID y las etiquetas no son secretos (se
+  ven en el código de cualquier página publicada).
+- Copiarlos sin espacios ni comillas. Si el ID no tiene la forma
+  `AW-` + números, o una etiqueta lleva caracteres raros, la compilación
+  **falla a propósito** con un mensaje que lo dice, en vez de publicar un sitio
+  que no mide.
+- Si falta alguna etiqueta, el sitio se publica igual y esa conversión
+  simplemente no se cuenta (la compilación lo avisa en amarillo).
+
+### Paso 3. Volver a publicar
+
+Las variables sólo se leen al compilar: **Actions** → **Construir y publicar**
+→ **Run workflow**. Al terminar, comprobar en la ejecución:
+
+- *Compilar y validar*: `Google Ads AW-…: etiqueta en el HTML y CSP ampliada.`
+- *Probar el sitio en vivo*: `✅ la CSP en vivo permite la etiqueta de Google Ads`.
+
+La «CSP» es la lista de dominios externos que el navegador deja usar a la web.
+La compilación añade sola los de Google Ads; sin ellos, el navegador bloquearía
+la etiqueta sin avisar y la campaña no mediría nada.
+
+### Paso 4. Comprobarlo con Tag Assistant
+
+1. Abrir [tagassistant.google.com](https://tagassistant.google.com), **Add
+   domain** → `https://www.dihyc.com.pe` → **Connect**. Se abre el sitio en otra
+   ventana.
+2. En esa ventana: tocar el botón de WhatsApp, tocar un teléfono y, si se
+   quiere probar el formulario, enviarlo **avisando antes a ventas** (llega un
+   correo de verdad) y con «PRUEBA» en el mensaje.
+3. En Tag Assistant debe aparecer la etiqueta `AW-…` y, por cada acción, un
+   evento **conversion** con la etiqueta correcta (`send_to`).
+4. Opcional, en una computadora: tecla **F12** → pestaña **Console**. No debe
+   haber errores en rojo que digan *Content Security Policy*.
+
+En Google Ads, el estado de cada acción pasa de «Sin verificar» a «Registrando
+conversiones» en unas horas, cuando llegue la primera conversión real.
+
+### Desactivarlo
+
+Borrar la variable `GOOGLE_ADS_ID` y volver a publicar (paso 3). El sitio queda
+como antes: sin nada de Google Ads en las páginas ni en la CSP.
+
+### Para quien toque el código
+
+- `src/layouts/BaseLayout.astro`: con `PUBLIC_GOOGLE_ADS_ID` carga la etiqueta
+  de Google (gtag.js) al principio del `<head>`, como indica
+  [la guía oficial](https://developers.google.com/tag-platform/gtagjs/install).
+  Además, en todas las páginas hay un único escucha que, en un clic a `wa.me` /
+  `api.whatsapp.com`, en un `tel:` o en el evento
+  `document.dispatchEvent(new CustomEvent("dihyc:conversion", { detail: { tipo: "formulario" } }))`,
+  llama a `gtag('event', 'conversion', { send_to: 'AW-…/etiqueta', transport_type: 'beacon' })`
+  y siempre deja `{ event: 'dihyc_conversion', tipo }` en `window.dataLayer`.
+  No retrasa ni cancela la navegación (la guía de
+  [conversiones por clic](https://support.google.com/google-ads/answer/6331304)
+  usa `event_callback` para retrasar el enlace; aquí se usa `beacon` para que
+  WhatsApp abra sin espera).
+- `scripts/csp-google-ads.mjs` (se ejecuta dentro de `npm run build`): sólo
+  con ID, añade a la CSP de `dist/.htaccess` los dominios de la
+  [guía de CSP de Google](https://developers.google.com/tag-platform/security/guides/csp)
+  para Google Ads (`script-src`, `img-src`, `connect-src`, `frame-src`; cada
+  dominio `google.<TLD>` va aparte, por eso `www.google.com.pe`). Sin ID no toca
+  nada. `public/.htaccess` no cambia.
+- Para probar en local: `PUBLIC_GOOGLE_ADS_ID=AW-000000000 PUBLIC_ADS_LABEL_WHATSAPP=prueba npm run build`.
+  Esas compilaciones de prueba no se suben: la publicación siempre compila en GitHub.
+
+---
+
+## 7. Para quien toque el código
 
 ### Probar el `.htaccess` antes de publicarlo
 
@@ -267,7 +396,7 @@ bash scripts/probar-htaccess.sh
 ```
 
 Levanta un Apache 2.4 temporal (sin sudo; en macOS ya viene instalado) y corre
-76 comprobaciones: las tres redirecciones a `https://www.dihyc.com.pe` en un
+95 comprobaciones: las tres redirecciones a `https://www.dihyc.com.pe` en un
 salto, la query conservada, PDFs con espacios y `°`, la 404 propia, `/admin` con
 su política, `.well-known` sin redirección, otro dominio intacto, caché,
 compresión, sin listado de carpetas, archivos ocultos bloqueados, SVG de
@@ -275,7 +404,10 @@ compresión, sin listado de carpetas, archivos ocultos bloqueados, SVG de
 del sitio viejo (sus `.php` redirigen, la portada nueva gana al `index.php`
 viejo, y mientras sube la primera publicación la portada vieja sigue viva), y
 que el sitio **no** da 500 si al hosting le faltan `mod_headers`, `mod_deflate`
-o `mod_filter`. El servidor real es **LiteSpeed**, que lee el mismo `.htaccess`;
+o `mod_filter`. También prueba la CSP: `connect-src` con `formspree.io`, y la
+CSP sin Google Ads y con ella (`scripts/csp-google-ads.mjs` con un ID de
+prueba: dominios de la guía de Google, idempotente, sin tocar `/admin` ni los
+SVG). El servidor real es **LiteSpeed**, que lee el mismo `.htaccess`;
 la prueba en vivo del workflow confirma en el servidor lo esencial.
 
 ### Qué hace el `.htaccess`, en una línea por regla
@@ -285,8 +417,9 @@ la prueba en vivo del workflow confirma en el servidor lo esencial.
   nuevas (301), sin bucles aunque el `index.php` viejo siga en el servidor.
 - `/.well-known/` sin tocar (renovación automática del SSL de cPanel).
 - Cabeceras de seguridad y **Content-Security-Policy** aplicada (verificada en
-  navegador sin violaciones en todas las páginas). Si se añade Google Analytics,
-  hay que sumar sus dominios a la CSP.
+  navegador sin violaciones en todas las páginas). Los dominios de Google Ads
+  los añade la compilación sólo si hay `GOOGLE_ADS_ID` (sección 6); si se añade
+  Google Analytics, sumar sus dominios en `scripts/csp-google-ads.mjs`.
 - HSTS de 1 día, sin `includeSubDomains`: subirlo a un año tras un mes estable.
 - SVG de `/assets/`: CSP propia (`default-src 'none'; sandbox`) para que un SVG
   con `<script>` abierto directamente no se ejecute en el dominio del panel.

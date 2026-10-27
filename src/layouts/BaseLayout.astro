@@ -56,6 +56,32 @@ const ogImage = site ? new URL(ogImageAsset.src, site).href : ogImageAsset.src;
 // servidor o una caché sigue sirviendo la anterior". En local no hay SHA y se
 // emite "local". Es pública a propósito: un SHA de commit no es un secreto.
 const buildId = import.meta.env.PUBLIC_BUILD_ID ?? "local";
+
+// Medición de Google Ads (README-deploy.md, «Activar la medición de Google
+// Ads»). Se activa SÓLO con variables del build; sin PUBLIC_GOOGLE_ADS_ID no se
+// carga nada de Google y la página sólo lleva el escucha de abajo, que deja los
+// eventos en window.dataLayer. El mismo ID amplía la CSP de dist/.htaccess
+// (scripts/csp-google-ads.mjs): si se cambia la validación aquí, cambiarla allí.
+// Acceso estático a cada variable: Vite sólo sustituye `import.meta.env.X`
+// escrito tal cual.
+const limpiar = (valor: unknown) => String(valor ?? "").trim();
+const adsId = limpiar(import.meta.env.PUBLIC_GOOGLE_ADS_ID);
+const adsEtiquetas = {
+  whatsapp: limpiar(import.meta.env.PUBLIC_ADS_LABEL_WHATSAPP),
+  formulario: limpiar(import.meta.env.PUBLIC_ADS_LABEL_FORMULARIO),
+  llamada: limpiar(import.meta.env.PUBLIC_ADS_LABEL_LLAMADA)
+};
+// Un valor mal copiado debe parar el build: si no, la campaña arrancaría sin
+// medir y nadie lo notaría hasta ver cero conversiones.
+if (adsId && !/^AW-\d+$/.test(adsId)) {
+  throw new Error(`PUBLIC_GOOGLE_ADS_ID="${adsId}" no tiene la forma AW-123456789`);
+}
+for (const [tipo, etiqueta] of Object.entries(adsEtiquetas)) {
+  if (etiqueta && !/^[A-Za-z0-9_-]+$/.test(etiqueta)) {
+    throw new Error(`La etiqueta de conversión de ${tipo} ("${etiqueta}") sólo puede llevar letras, números, - y _`);
+  }
+}
+const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {} };
 ---
 
 <!DOCTYPE html>
@@ -63,6 +89,80 @@ const buildId = import.meta.env.PUBLIC_BUILD_ID ?? "local";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    {adsId && (
+      <>
+        {/* Etiqueta de Google (gtag.js) para Google Ads, según la guía oficial
+            developers.google.com/tag-platform/gtagjs/install: al principio del
+            <head> de cada página. define:vars envuelve el código en una función,
+            por eso gtag se asigna a window en vez de declararse con "function". */}
+        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${adsId}`}></script>
+        <script is:inline define:vars={{ adsId }}>
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function () { window.dataLayer.push(arguments); };
+          window.gtag("js", new Date());
+          window.gtag("config", adsId);
+        </script>
+      </>
+    )}
+
+    {/* Escucha único de conversiones (WhatsApp, llamada y el evento
+        "dihyc:conversion" del formulario). Delegado en document para cubrir
+        también los enlaces creados después, como el botón de cotización del
+        catálogo. No llama a preventDefault: la navegación sigue sola y
+        transport_type "beacon" hace que el aviso a Google sobreviva a la salida
+        de la página (Google sugiere retrasar el enlace con event_callback; aquí
+        no, para no frenar nunca el paso a WhatsApp). La espera de 1 s por tipo
+        evita que un doble clic cuente dos conversiones; auxclick cuenta sólo
+        la rueda (abrir en otra pestaña), no el botón derecho. Los comentarios van
+        aquí fuera para no repetirlos en el HTML de cada página. */}
+    <script is:inline define:vars={{ medicion }}>
+      window.dataLayer = window.dataLayer || [];
+      var ultimo = {};
+
+      function registrar(tipo) {
+        var ahora = Date.now();
+        if (ahora - (ultimo[tipo] || 0) < 1000) return;
+        ultimo[tipo] = ahora;
+        window.dataLayer.push({ event: "dihyc_conversion", tipo: tipo });
+        var etiqueta = medicion.id && Object.prototype.hasOwnProperty.call(medicion.etiquetas, tipo) && medicion.etiquetas[tipo];
+        if (etiqueta && typeof window.gtag === "function") {
+          window.gtag("event", "conversion", {
+            send_to: medicion.id + "/" + etiqueta,
+            transport_type: "beacon"
+          });
+        }
+      }
+
+      function tipoDeEnlace(enlace) {
+        var url;
+        try {
+          url = new URL(enlace.getAttribute("href"), location.href);
+        } catch (error) {
+          return null;
+        }
+        if (url.protocol === "tel:") return "llamada";
+        if (/^https?:$/.test(url.protocol) && (url.hostname === "wa.me" || url.hostname === "api.whatsapp.com")) {
+          return "whatsapp";
+        }
+        return null;
+      }
+
+      function alClic(evento) {
+        if (evento.defaultPrevented) return;
+        if (evento.type === "auxclick" && evento.button !== 1) return;
+        var enlace = evento.target instanceof Element ? evento.target.closest("a[href]") : null;
+        var tipo = enlace && tipoDeEnlace(enlace);
+        if (tipo) registrar(tipo);
+      }
+
+      document.addEventListener("click", alClic);
+      document.addEventListener("auxclick", alClic);
+      document.addEventListener("dihyc:conversion", function (evento) {
+        var tipo = evento.detail && evento.detail.tipo;
+        if (typeof tipo === "string" && tipo) registrar(tipo);
+      });
+    </script>
 
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
