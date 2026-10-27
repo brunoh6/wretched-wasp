@@ -8,7 +8,8 @@
 //   "fm"   -> src/data/fmProducts.ts  : 36 productos contra incendio, con
 //             certificación FM Approved y ficha técnica en PDF. Cada entrada es
 //             una COMBINACIÓN comercial (marca + material + SDR + presión) y
-//             lleva su rango de medidas ('2" - 16"').
+//             lleva su rango de medidas ('2" - 16"'). Ficha, foto y visibilidad
+//             las pone el panel en src/data/catalog/fm.json.
 //   "agua" -> src/data/catalog/*.json : la línea nueva de agua fría / caliente
 //             importada del Excel. Llega como 443 SKU (PD00879), uno por medida,
 //             y aquí se AGRUPA en combinaciones comerciales igual que la FM, con
@@ -37,7 +38,7 @@
 // fabricante y darle ficha técnica.
 
 import { allProducts, type CatalogProduct } from "./catalog";
-import { fmProducts } from "./fmProducts";
+import { allFmProducts } from "./fmProducts";
 
 /**
  * Origen de los datos de la fila. Hoy coincide 1:1 con `line` (cada línea
@@ -111,7 +112,7 @@ function aguaMaterialAliases(material: string) {
 }
 
 function expandFmItems(): CatalogDisplayItem[] {
-  return fmProducts.map(product => ({
+  return allFmProducts.map(product => ({
     source: "fm" as const,
     line: "fm" as const,
     category: product.productFamily,
@@ -138,7 +139,7 @@ function expandFmItems(): CatalogDisplayItem[] {
     technicalSheet: normalizeTechnicalSheet(product.technicalSheet),
     suggestedUrl: product.suggestedUrl,
     webSku: product.webSku,
-    visible: true
+    visible: product.visible !== false
   }));
 }
 

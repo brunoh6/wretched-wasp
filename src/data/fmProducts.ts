@@ -1,4 +1,13 @@
 // /src/data/fmProducts.ts
+//
+// Línea contra incendio FM. Aquí viven las ESPECIFICACIONES de cada fila
+// (marca, SDR, presión, medidas, norma...), que son datos de ingeniería y sólo
+// cambian en código. Lo que se edita desde el panel —ficha técnica, página de
+// la ficha, foto y si se ve en la web— vive en src/data/catalog/fm.json, una
+// entrada por producto × marca ("Tee HDPE FM · Integrity"), y se une aquí a
+// las filas en tiempo de build.
+
+import fmCatalogData from "./catalog/fm.json";
 
 export type FmProduct = {
   productFamily: "tuberias" | "conexiones" | "valvulas";
@@ -23,108 +32,57 @@ export type FmProduct = {
   mainUse: string;
   webSku: string;
   suggestedUrl: string;
+  /** Ruta del PDF con su ancla "#page=N", o "PENDIENTE". La pone fm.json. */
   technicalSheet?: string;
   productImage?: string;
   rawMaterial: string;
+  /** false = la entrada de fm.json está oculta desde el panel. */
+  visible?: boolean;
 };
 
-const TECH_SHEETS = {
-  tuberiaPavco:
-    "/assets/fichas-tecnicas/Ficha tecnica de tuberia HDPE PAVCO FM-sistema ACI.pdf#page=5",
+/** Una ficha de una entrada de fm.json. */
+export type FmCatalogSheet = {
+  /** Texto legible para el panel ("SDR11", "Todas las medidas"). */
+  variant: string;
+  /** Ruta del PDF SIN ancla. Vacío = «Ficha pendiente». */
+  technicalSheet: string;
+  /** Página del PDF que se abre. Vacío/null = la primera. */
+  page?: number | string | null;
+  /** Clave oculta: "todas", "sdr11", "sdr9", "sdr7", "clase-200", "clase-335". */
+  key: string;
+};
 
-  tuberiaWlPlastics:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES TUBO HDPE WL130-1018 FM Pipe WL PLASTICS EN ESPAÑOL.pdf",
+/** Una entrada de fm.json: un producto de una marca, con todas sus filas. */
+export type FmCatalogEntry = {
+  label: string;
+  family: string;
+  visible?: boolean;
+  /** Ruta de la foto. Vacío = foto compartida de respaldo (FALLBACK_IMAGES). */
+  image?: string;
+  sheets?: FmCatalogSheet[];
+  /** Clave oculta: slug de webCategory + "-" + slug de la marca (fmEntryKey). */
+  key: string;
+};
 
-  tuberiaExtrucol:
-    "/assets/fichas-tecnicas/tuberia-hdpe-fm-extrucol.pdf",
+// Anclas #page=N de fm.json (decisión D5): cada una se verificó renderizando
+// la página del PDF a imagen y mirándola (sept-2026). El texto extraíble de
+// estas fichas sale corrompido por fuentes propias, así que la extracción de
+// texto NO sirve como evidencia. Registro de lo verificado:
+//   · Pavco tubería: pág. 5.
+//   · Integrity (versión sept-2026) tienen portada y reparten SDR11 (200 PSI)
+//     y SDR9 (255 PSI) en páginas distintas: tee, codo 90°, codo 45° y tapón
+//     pág. 2 / 3; reducción y flange adapter pág. 3 / 4 (la pág. 2 de la
+//     reducción es SDR17, que no se vende aquí). Backing rings: pág. 2.
+//   · Georg Fischer conexiones HDPE: fichas de una sola página, sin ancla.
+//   · Backing ring GF: el cliente mandó el catálogo COMPLETO (13 págs.):
+//     pág. 2 = Class 200, pág. 4 = Class 335 (la 3 es Class 250 y de la 5 en
+//     adelante van epoxy/galvanizado/inoxidable). Los PDF antiguos de CLASE 200
+//     y CLASE 335 se quedan en la carpeta porque hay enlaces viejos circulando.
+// Si el panel cambia un PDF, la página guardada puede dejar de corresponder:
+// el campo página se revisa a la vez que el PDF.
 
-  // Anclas #page=N (decisión D5): cada ancla de abajo se verificó renderizando
-  // la página del PDF a imagen y mirándola (sept-2026). El texto extraíble de
-  // estas fichas sale corrompido por fuentes propias, así que la extracción de
-  // texto NO sirve como evidencia. Las fichas Integrity (versión sept-2026)
-  // tienen portada y reparten las tablas SDR11/SDR9 en páginas distintas, por
-  // eso hay una entrada por variante. Las fichas GF de conexiones son de una
-  // sola página: sin ancla.
-
-  // Tee Integrity: pág. 2 = tabla SDR11 (200 PSI), pág. 3 = tabla SDR9 (255 PSI).
-  teeIntegritySdr11:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES TEE HDPE FM INTEGRITY.pdf#page=2",
-
-  teeIntegritySdr9:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES TEE HDPE FM INTEGRITY.pdf#page=3",
-
-  teeGeorgFischer:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES TECNICAS TEE HDPE FM GEORG FISCHER.pdf",
-
-  // Reducción Integrity: pág. 3 = SDR11 (200 PSI), pág. 4 = SDR9 (255 PSI);
-  // la pág. 2 es SDR17, que no se vende aquí.
-  reduccionIntegritySdr11:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES REDUCCION HDPE FM INTEGRITY.pdf#page=3",
-
-  reduccionIntegritySdr9:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES REDUCCION HDPE FM INTEGRITY.pdf#page=4",
-
-  reduccionGeorgFischer:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES TECNICAS REDUCCION HDPE FM GEORG FISCHER.pdf",
-
-  // Flange adapter Integrity: pág. 3 = SDR11 (200 PSI), pág. 4 = SDR9 (255 PSI).
-  flangeAdapterIntegritySdr11:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES FLANGE ADAPTER HDPE FM INTEGRITY.pdf#page=3",
-
-  flangeAdapterIntegritySdr9:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES FLANGE ADAPTER HDPE FM INTEGRITY.pdf#page=4",
-
-  flangeAdapterGeorgFischer:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES TECNICAS FLANGE ADAPTER HDPE FM GEORG FISCHER.pdf",
-
-  // Codo 90° Integrity: pág. 2 = SDR11 (200 PSI), pág. 3 = SDR9 (255 PSI).
-  codo90IntegritySdr11:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES CODO HDPE 90° FM INTEGRITY.pdf#page=2",
-
-  codo90IntegritySdr9:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES CODO HDPE 90° FM INTEGRITY.pdf#page=3",
-
-  codo90GeorgFischer:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES CODO 90° SDR11 - SDR9 HDPE FM GEORG FISCHER.pdf",
-
-  // Codo 45° Integrity: pág. 2 = SDR11 (200 PSI), pág. 3 = SDR9 (255 PSI).
-  codo45IntegritySdr11:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES CODO HDPE 45° FM INTEGRITY.pdf#page=2",
-
-  codo45IntegritySdr9:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES CODO HDPE 45° FM INTEGRITY.pdf#page=3",
-
-  codo45GeorgFischer:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES CODO 45° SDR11 - SDR9 HDPE FM GEORG FISCHER.pdf",
-
-  // Tapón Integrity (ficha nueva sept-2026): pág. 2 = SDR11 (200 PSI),
-  // pág. 3 = SDR9 (255 PSI, "FM 250").
-  taponIntegritySdr11:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES TAPON HDPE FM INTEGRITY.pdf#page=2",
-
-  taponIntegritySdr9:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES TAPON HDPE FM INTEGRITY.pdf#page=3",
-
-  // Backing rings Integrity: pág. 1 es portada, la tabla vive en la pág. 2.
-  backingRingIntegritySdr11:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES BACKING Rings-SDR11 FM -Sell-Sheet-041320 INTEGRITY.pdf#page=2",
-
-  backingRingIntegritySdr7:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES BACKING RING FM SDR7-Sell-Sheet-041320 INTEGRITY.pdf#page=2",
-
-  // Backing rings GF: el cliente mandó el catálogo COMPLETO (13 págs.), que
-  // contiene las tablas de hierro dúctil de ambas clases: pág. 2 = Class 200
-  // (IPS y DIPS), pág. 4 = Class 335 (la pág. 3 es Class 250 y de la 5 en
-  // adelante van epoxy/galvanizado/inoxidable). Los PDFs antiguos de CLASE 200
-  // y CLASE 335 se quedan en la carpeta porque hay enlaces viejos circulando.
-  backingRingGeorgFischerClase200:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES BACKING RING FM COMPLETO GEORG FISCHER.pdf#page=2",
-
-  backingRingGeorgFischerClase335:
-    "/assets/fichas-tecnicas/ESPECIFICACIONES BACKING RING FM COMPLETO GEORG FISCHER.pdf#page=4"
-} as const;
-
-const PRODUCT_IMAGES = {
+/** Fotos compartidas que se usan mientras la entrada no tenga foto propia. */
+const FALLBACK_IMAGES = {
   tuboPavco: "/assets/products/tubo_pavco.jpg",
   conexionIntegrity: "/assets/products/codo_integrity.jpg",
   conexionGeorgFischer: "/assets/products/codo_gf.jpg"
@@ -134,131 +92,83 @@ function normalize(value: string) {
   return value
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/[°]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function resolveTechnicalSheet(product: FmProduct): string | undefined {
-  const brand = normalize(product.brand);
-  const webCategory = normalize(product.webCategory);
+function slugify(value: string) {
+  return normalize(value)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Entrada de fm.json a la que pertenece la fila: "tee-integrity", "tubo-pavco"... */
+export function fmEntryKey(product: FmProduct): string {
+  return `${slugify(product.webCategory)}-${slugify(product.brand)}`;
+}
+
+/**
+ * Variante de ficha de la fila. Las fichas Integrity reparten cada SDR en una
+ * página distinta, así que la variante es el SDR. Las bridas / backing ring GF
+ * son la excepción: su catálogo se organiza por clase de presión, no por SDR.
+ */
+function fmVariantKey(product: FmProduct): string {
+  const isGfBackingRing =
+    normalize(product.webCategory).includes("backing ring") &&
+    normalize(product.brand) === "georg fischer";
+
+  if (isGfBackingRing) {
+    const pressure = product.pressureClass.match(/\d+/)?.[0] ?? "";
+    return `clase-${pressure}`;
+  }
+
+  return slugify(product.sdrRde);
+}
+
+function fallbackImage(product: FmProduct): string | undefined {
   const family = product.productFamily;
-  const sdr = normalize(product.sdrRde);
-  const pressure = normalize(product.pressureClass);
+  const brand = normalize(product.brand);
 
-  if (family === "tuberias" && brand === "pavco") {
-    return TECH_SHEETS.tuberiaPavco;
-  }
-
-  if (family === "tuberias" && brand === "wl plastics") {
-    return TECH_SHEETS.tuberiaWlPlastics;
-  }
-
-  if (family === "tuberias" && brand === "extrucol") {
-    return TECH_SHEETS.tuberiaExtrucol;
-  }
-
-  // Las fichas Integrity de conexiones son compartidas entre SDR11 y SDR9,
-  // pero cada variante tiene su tabla en una página distinta (ver TECH_SHEETS),
-  // así que aquí se distingue por el campo sdrRde del producto. El orden de
-  // los chequeos da igual porque "sdr11" no contiene "sdr9" ni al revés; si apareciera
-  // un SDR nuevo sin ancla verificada, se devuelve undefined y el producto
-  // queda como "PENDIENTE" en vez de enlazar a una página equivocada.
-  if (webCategory.includes("tee") && brand === "integrity") {
-    if (sdr.includes("sdr11")) return TECH_SHEETS.teeIntegritySdr11;
-    if (sdr.includes("sdr9")) return TECH_SHEETS.teeIntegritySdr9;
-    return undefined;
-  }
-
-  if (webCategory.includes("tee") && brand === "georg fischer") {
-    return TECH_SHEETS.teeGeorgFischer;
-  }
-
-  if (webCategory.includes("reduccion") && brand === "integrity") {
-    if (sdr.includes("sdr11")) return TECH_SHEETS.reduccionIntegritySdr11;
-    if (sdr.includes("sdr9")) return TECH_SHEETS.reduccionIntegritySdr9;
-    return undefined;
-  }
-
-  if (webCategory.includes("reduccion") && brand === "georg fischer") {
-    return TECH_SHEETS.reduccionGeorgFischer;
-  }
-
-  if (webCategory.includes("flange adapter") && brand === "integrity") {
-    if (sdr.includes("sdr11")) return TECH_SHEETS.flangeAdapterIntegritySdr11;
-    if (sdr.includes("sdr9")) return TECH_SHEETS.flangeAdapterIntegritySdr9;
-    return undefined;
-  }
-
-  if (webCategory.includes("flange adapter") && brand === "georg fischer") {
-    return TECH_SHEETS.flangeAdapterGeorgFischer;
-  }
-
-  if (webCategory.includes("codo 90") && brand === "integrity") {
-    if (sdr.includes("sdr11")) return TECH_SHEETS.codo90IntegritySdr11;
-    if (sdr.includes("sdr9")) return TECH_SHEETS.codo90IntegritySdr9;
-    return undefined;
-  }
-
-  if (webCategory.includes("codo 90") && brand === "georg fischer") {
-    return TECH_SHEETS.codo90GeorgFischer;
-  }
-
-  if (webCategory.includes("codo 45") && brand === "integrity") {
-    if (sdr.includes("sdr11")) return TECH_SHEETS.codo45IntegritySdr11;
-    if (sdr.includes("sdr9")) return TECH_SHEETS.codo45IntegritySdr9;
-    return undefined;
-  }
-
-  if (webCategory.includes("codo 45") && brand === "georg fischer") {
-    return TECH_SHEETS.codo45GeorgFischer;
-  }
-
-  // normalize() quita tildes: "Tapón" llega aquí como "tapon".
-  if (webCategory.includes("tapon") && brand === "integrity") {
-    if (sdr.includes("sdr11")) return TECH_SHEETS.taponIntegritySdr11;
-    if (sdr.includes("sdr9")) return TECH_SHEETS.taponIntegritySdr9;
-    return undefined;
-  }
-
-  if (webCategory.includes("backing ring") && brand === "integrity" && sdr.includes("sdr11")) {
-    return TECH_SHEETS.backingRingIntegritySdr11;
-  }
-
-  if (webCategory.includes("backing ring") && brand === "integrity" && sdr.includes("sdr7")) {
-    return TECH_SHEETS.backingRingIntegritySdr7;
-  }
-
-  if (webCategory.includes("backing ring") && brand === "georg fischer" && pressure.includes("200")) {
-    return TECH_SHEETS.backingRingGeorgFischerClase200;
-  }
-
-  if (webCategory.includes("backing ring") && brand === "georg fischer" && pressure.includes("335")) {
-    return TECH_SHEETS.backingRingGeorgFischerClase335;
-  }
+  if (family === "tuberias") return FALLBACK_IMAGES.tuboPavco;
+  if (family === "conexiones" && brand === "integrity") return FALLBACK_IMAGES.conexionIntegrity;
+  if (family === "conexiones" && brand === "georg fischer") return FALLBACK_IMAGES.conexionGeorgFischer;
 
   return undefined;
 }
 
-function resolveProductImage(product: FmProduct): string | undefined {
-  const family = product.productFamily;
-  const brand = normalize(product.brand);
-
-  if (family === "tuberias") {
-    return PRODUCT_IMAGES.tuboPavco;
-  }
-
-  if (family === "conexiones" && brand === "integrity") {
-    return PRODUCT_IMAGES.conexionIntegrity;
-  }
-
-  if (family === "conexiones" && brand === "georg fischer") {
-    return PRODUCT_IMAGES.conexionGeorgFischer;
-  }
-
-  return undefined;
+/** Página válida (entero ≥ 1) o undefined. El panel puede guardar "", null o un texto. */
+function parsePage(page: FmCatalogSheet["page"]): number | undefined {
+  if (page === null || page === undefined || page === "") return undefined;
+  const value = Number(page);
+  return Number.isInteger(value) && value >= 1 ? value : undefined;
 }
+
+/**
+ * Enlace de la ficha de la fila: "ruta#page=N", o undefined («Ficha
+ * pendiente»). Si la entrada distingue variantes y la de esta fila no existe,
+ * también undefined: mejor «Ficha pendiente» que enlazar a la tabla de otro SDR.
+ * La variante "todas" vale para las filas que no tengan una propia.
+ */
+function sheetHref(entry: FmCatalogEntry, product: FmProduct): string | undefined {
+  const sheets = Array.isArray(entry.sheets) ? entry.sheets : [];
+  const variant = fmVariantKey(product);
+  const sheet =
+    sheets.find((item) => item?.key === variant) ?? sheets.find((item) => item?.key === "todas");
+  const path = sheet?.technicalSheet?.trim();
+
+  if (!sheet || !path) return undefined;
+
+  // Una ruta que ya trae su ancla se respeta tal cual.
+  if (path.includes("#")) return path;
+
+  const page = parsePage(sheet.page);
+  return page ? `${path}#page=${page}` : path;
+}
+
+const fmEntries = (Array.isArray(fmCatalogData) ? fmCatalogData : []) as unknown as FmCatalogEntry[];
+const fmEntriesByKey = new Map(fmEntries.map((entry) => [entry.key, entry]));
 
 const rawFmProducts: FmProduct[] = [
   {
@@ -281,7 +191,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Redes contra incendio enterradas",
     webSku: "tuberia-hdpe-fm-sdr11-pavco",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr11/pavco",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -304,7 +213,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Redes contra incendio enterradas",
     webSku: "tuberia-hdpe-fm-sdr9-pavco",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr9/pavco",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -327,7 +235,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Redes contra incendio enterradas",
     webSku: "tuberia-hdpe-fm-sdr11-pavco-mm",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr11/pavco-mm",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE100"
   },
   {
@@ -350,7 +257,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Redes contra incendio enterradas",
     webSku: "tuberia-hdpe-fm-sdr9-pavco-mm",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr9/pavco-mm",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE100"
   },
   {
@@ -373,7 +279,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Protección contra incendio",
     webSku: "tuberia-hdpe-fm-sdr11-wlplastics",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr11/wlplastics",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -396,7 +301,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Protección contra incendio",
     webSku: "tuberia-hdpe-fm-sdr9-wlplastics",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr9/wlplastics",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -419,7 +323,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Protección contra incendio",
     webSku: "tuberia-hdpe-fm-sdr7-wlplastics",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr7/wlplastics",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -442,7 +345,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Protección contra incendio",
     webSku: "tuberia-hdpe-fm-sdr11-wlplastics-mm",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr11/wlplastics-mm",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE100"
   },
   {
@@ -465,7 +367,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Protección contra incendio",
     webSku: "tuberia-hdpe-fm-sdr9-wlplastics-mm",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr9/wlplastics-mm",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE100"
   },
 
@@ -489,7 +390,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Protección contra incendio",
     webSku: "tuberia-hdpe-fm-sdr9-extrucol",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr9/extrucol",
-    technicalSheet: "/assets/fichas-tecnicas/tuberia-hdpe-fm-extrucol.pdf",
     rawMaterial: "PE4710"
   },
   {
@@ -512,7 +412,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Protección contra incendio",
     webSku: "tuberia-hdpe-fm-sdr11-extrucol",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/sdr11/extrucol",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -535,7 +434,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Redes contra incendio enterradas",
     webSku: "tuberia-hdpe-fm-rde11-extrucol",
     suggestedUrl: "/productos/tuberias/contra-incendio/hdpe/rde11/extrucol",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE100"
   },
   {
@@ -559,7 +457,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hierro-ductil-fm-brida-backing-ring-sdr11-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hierro-ductil/brida-backing-ring/sdr11/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "Hierro dúctil"
   },
 
@@ -584,7 +481,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hierro-ductil-fm-brida-backing-ring-sdr7-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hierro-ductil/brida-backing-ring/sdr7/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "Hierro dúctil"
   },
 
@@ -609,7 +505,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hierro-ductil-fm-brida-backing-ring-sdr11-georg-fischer",
     suggestedUrl: "/productos/conexiones/contra-incendio/hierro-ductil/brida-backing-ring/sdr11/georg-fischer",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "Hierro dúctil"
   },
 
@@ -634,7 +529,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hierro-ductil-fm-brida-backing-ring-sdr7-georg-fischer",
     suggestedUrl: "/productos/conexiones/contra-incendio/hierro-ductil/brida-backing-ring/sdr7/georg-fischer",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "Hierro dúctil"
   },
   {
@@ -658,7 +552,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-codo-90-sdr11-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/codo-90/sdr11/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -683,7 +576,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-codo-90-sdr9-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/codo-90/sdr9/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -708,7 +600,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-codo-90-sdr11-georg-fischer",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/codo-90/sdr11/georg-fischer",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -733,7 +624,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-codo-90-sdr9-georg-fischer",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/codo-90/sdr9/georg-fischer",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -757,7 +647,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-codo-45-sdr11-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/codo-45/sdr11/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -782,7 +671,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-codo-45-sdr9-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/codo-45/sdr9/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -807,7 +695,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-codo-45-sdr11-georg-fischer",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/codo-45/sdr11/georg-fischer",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -832,7 +719,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-codo-45-sdr9-georg-fischer",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/codo-45/sdr9/georg-fischer",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -856,7 +742,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-flange-adapter-sdr11-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/flange-adapter/sdr11/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -881,7 +766,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-flange-adapter-sdr9-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/flange-adapter/sdr9/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -906,7 +790,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-flange-adapter-sdr11-georg-fischer",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/flange-adapter/sdr11/georg-fischer",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -931,7 +814,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-flange-adapter-sdr9-georg-fischer",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/flange-adapter/sdr9/georg-fischer",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -968,7 +850,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-reduccion-sdr11-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/reduccion/sdr11/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -1006,7 +887,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-reduccion-sdr9-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/reduccion/sdr9/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -1043,7 +923,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-reduccion-sdr11-georg-fischer",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/reduccion/sdr11/georg-fischer",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -1080,7 +959,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Unir tuberías contra incendio enterradas",
     webSku: "conexion-hdpe-fm-reduccion-sdr9-georg-fischer",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/reduccion/sdr9/georg-fischer",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -1104,7 +982,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Sellado de líneas contra incendio",
     webSku: "conexion-hdpe-fm-tapon-sdr11-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/tapon/sdr11/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -1129,7 +1006,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Sellado de líneas contra incendio",
     webSku: "conexion-hdpe-fm-tapon-sdr9-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/tapon/sdr9/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
   {
@@ -1153,7 +1029,6 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Derivación de líneas contra incendio",
     webSku: "conexion-hdpe-fm-tee-sdr11-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/tee/sdr11/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 
@@ -1178,24 +1053,57 @@ const rawFmProducts: FmProduct[] = [
     mainUse: "Derivación de líneas contra incendio",
     webSku: "conexion-hdpe-fm-tee-sdr9-integrity",
     suggestedUrl: "/productos/conexiones/contra-incendio/hdpe/tee/sdr9/integrity",
-    technicalSheet: "PENDIENTE",
     rawMaterial: "PE4710"
   },
 ];
 
-export const fmProducts: FmProduct[] = rawFmProducts.map((product) => ({
-  ...product,
+// Avisos de build ("::warning::" en GitHub Actions) si fm.json y las filas dejan
+// de corresponderse. No bloquean: una fila sin entrada se publica igual, con
+// «Ficha pendiente» y la foto de respaldo, en vez de desaparecer.
+const usedEntryKeys = new Set<string>();
 
-  filterMaterial:
-  product.certification === "FM Approved"
-    ? `${product.material} FM`
-    : product.material,
+for (const product of rawFmProducts) {
+  const key = fmEntryKey(product);
+  const entry = fmEntriesByKey.get(key);
+  usedEntryKeys.add(key);
 
-  technicalSheet:
-    product.technicalSheet && product.technicalSheet !== "PENDIENTE"
-      ? product.technicalSheet
-      : resolveTechnicalSheet(product) || "PENDIENTE",
+  if (!entry) {
+    console.log(`::warning title=Línea FM::${product.webSku} no tiene entrada «${key}» en src/data/catalog/fm.json: sale con «Ficha pendiente».`);
+  } else if (
+    Array.isArray(entry.sheets) &&
+    !entry.sheets.some((sheet) => sheet?.key === fmVariantKey(product) || sheet?.key === "todas")
+  ) {
+    console.log(`::warning title=Línea FM::${product.webSku}: «${entry.label}» no tiene ficha para la variante «${fmVariantKey(product)}» en fm.json: sale con «Ficha pendiente».`);
+  }
+}
 
-  productImage:
-    product.productImage || resolveProductImage(product)
-}));
+for (const entry of fmEntries) {
+  if (!usedEntryKeys.has(entry.key)) {
+    console.log(`::warning title=Línea FM::La entrada «${entry.label}» (${entry.key}) de src/data/catalog/fm.json no corresponde a ninguna fila de fmProducts.ts.`);
+  }
+}
+
+/** Todas las filas FM, ocultas incluidas, con ficha, foto y visibilidad de fm.json. */
+export const allFmProducts: FmProduct[] = rawFmProducts.map((product) => {
+  const entry = fmEntriesByKey.get(fmEntryKey(product));
+  const image = entry?.image?.trim();
+
+  return {
+    ...product,
+
+    filterMaterial:
+      product.certification === "FM Approved"
+        ? `${product.material} FM`
+        : product.material,
+
+    technicalSheet: (entry && sheetHref(entry, product)) || "PENDIENTE",
+
+    productImage: image || fallbackImage(product),
+
+    // Sólo un false explícito oculta, igual que en overrides.json (agua).
+    visible: entry?.visible !== false
+  };
+});
+
+/** Filas FM publicadas: las ocultas desde el panel no llegan al buscador ni al catálogo. */
+export const fmProducts: FmProduct[] = allFmProducts.filter((product) => product.visible);

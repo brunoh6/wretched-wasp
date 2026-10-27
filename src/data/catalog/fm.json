@@ -1,0 +1,275 @@
+[
+  {
+    "label": "Tubería HDPE FM · Pavco",
+    "family": "tuberias",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "Todas las medidas",
+        "technicalSheet": "/assets/fichas-tecnicas/Ficha tecnica de tuberia HDPE PAVCO FM-sistema ACI.pdf",
+        "page": 5,
+        "key": "todas"
+      }
+    ],
+    "key": "tubo-pavco"
+  },
+  {
+    "label": "Tubería HDPE FM · WL Plastics",
+    "family": "tuberias",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "Todas las medidas",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES TUBO HDPE WL130-1018 FM Pipe WL PLASTICS EN ESPAÑOL.pdf",
+        "page": null,
+        "key": "todas"
+      }
+    ],
+    "key": "tubo-wl-plastics"
+  },
+  {
+    "label": "Tubería HDPE FM · Extrucol",
+    "family": "tuberias",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "Todas las medidas",
+        "technicalSheet": "/assets/fichas-tecnicas/tuberia-hdpe-fm-extrucol.pdf",
+        "page": null,
+        "key": "todas"
+      }
+    ],
+    "key": "tubo-extrucol"
+  },
+  {
+    "label": "Brida / Backing Ring FM · Integrity",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "SDR11 (200 PSI)",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES BACKING Rings-SDR11 FM -Sell-Sheet-041320 INTEGRITY.pdf",
+        "page": 2,
+        "key": "sdr11"
+      },
+      {
+        "variant": "SDR7 (335 PSI)",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES BACKING RING FM SDR7-Sell-Sheet-041320 INTEGRITY.pdf",
+        "page": 2,
+        "key": "sdr7"
+      }
+    ],
+    "key": "brida-backing-ring-integrity"
+  },
+  {
+    "label": "Brida / Backing Ring FM · Georg Fischer",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "Clase 200 (200 PSI)",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES BACKING RING FM COMPLETO GEORG FISCHER.pdf",
+        "page": 2,
+        "key": "clase-200"
+      },
+      {
+        "variant": "Clase 335 (335 PSI)",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES BACKING RING FM COMPLETO GEORG FISCHER.pdf",
+        "page": 4,
+        "key": "clase-335"
+      }
+    ],
+    "key": "brida-backing-ring-georg-fischer"
+  },
+  {
+    "label": "Codo 90° HDPE FM · Integrity",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "SDR11",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES CODO HDPE 90° FM INTEGRITY.pdf",
+        "page": 2,
+        "key": "sdr11"
+      },
+      {
+        "variant": "SDR9",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES CODO HDPE 90° FM INTEGRITY.pdf",
+        "page": 3,
+        "key": "sdr9"
+      }
+    ],
+    "key": "codo-90-integrity"
+  },
+  {
+    "label": "Codo 90° HDPE FM · Georg Fischer",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "Todas las medidas",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES CODO 90° SDR11 - SDR9 HDPE FM GEORG FISCHER.pdf",
+        "page": null,
+        "key": "todas"
+      }
+    ],
+    "key": "codo-90-georg-fischer"
+  },
+  {
+    "label": "Codo 45° HDPE FM · Integrity",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "SDR11",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES CODO HDPE 45° FM INTEGRITY.pdf",
+        "page": 2,
+        "key": "sdr11"
+      },
+      {
+        "variant": "SDR9",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES CODO HDPE 45° FM INTEGRITY.pdf",
+        "page": 3,
+        "key": "sdr9"
+      }
+    ],
+    "key": "codo-45-integrity"
+  },
+  {
+    "label": "Codo 45° HDPE FM · Georg Fischer",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "Todas las medidas",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES CODO 45° SDR11 - SDR9 HDPE FM GEORG FISCHER.pdf",
+        "page": null,
+        "key": "todas"
+      }
+    ],
+    "key": "codo-45-georg-fischer"
+  },
+  {
+    "label": "Flange Adapter HDPE FM · Integrity",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "SDR11",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES FLANGE ADAPTER HDPE FM INTEGRITY.pdf",
+        "page": 3,
+        "key": "sdr11"
+      },
+      {
+        "variant": "SDR9",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES FLANGE ADAPTER HDPE FM INTEGRITY.pdf",
+        "page": 4,
+        "key": "sdr9"
+      }
+    ],
+    "key": "flange-adapter-integrity"
+  },
+  {
+    "label": "Flange Adapter HDPE FM · Georg Fischer",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "Todas las medidas",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES TECNICAS FLANGE ADAPTER HDPE FM GEORG FISCHER.pdf",
+        "page": null,
+        "key": "todas"
+      }
+    ],
+    "key": "flange-adapter-georg-fischer"
+  },
+  {
+    "label": "Reducción HDPE FM · Integrity",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "SDR11",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES REDUCCION HDPE FM INTEGRITY.pdf",
+        "page": 3,
+        "key": "sdr11"
+      },
+      {
+        "variant": "SDR9",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES REDUCCION HDPE FM INTEGRITY.pdf",
+        "page": 4,
+        "key": "sdr9"
+      }
+    ],
+    "key": "reduccion-integrity"
+  },
+  {
+    "label": "Reducción HDPE FM · Georg Fischer",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "Todas las medidas",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES TECNICAS REDUCCION HDPE FM GEORG FISCHER.pdf",
+        "page": null,
+        "key": "todas"
+      }
+    ],
+    "key": "reduccion-georg-fischer"
+  },
+  {
+    "label": "Tapón HDPE FM · Integrity",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "SDR11",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES TAPON HDPE FM INTEGRITY.pdf",
+        "page": 2,
+        "key": "sdr11"
+      },
+      {
+        "variant": "SDR9",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES TAPON HDPE FM INTEGRITY.pdf",
+        "page": 3,
+        "key": "sdr9"
+      }
+    ],
+    "key": "tapon-integrity"
+  },
+  {
+    "label": "Tee HDPE FM · Integrity",
+    "family": "conexiones",
+    "visible": true,
+    "image": "",
+    "sheets": [
+      {
+        "variant": "SDR11",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES TEE HDPE FM INTEGRITY.pdf",
+        "page": 2,
+        "key": "sdr11"
+      },
+      {
+        "variant": "SDR9",
+        "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES TEE HDPE FM INTEGRITY.pdf",
+        "page": 3,
+        "key": "sdr9"
+      }
+    ],
+    "key": "tee-integrity"
+  }
+]
