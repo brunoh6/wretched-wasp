@@ -3,6 +3,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import Section from "../components/Section.astro";
 import cardsData from "../data/catalog/cards.json";
 import { contactInfo } from "../data/contactInfo";
+import { catalogLineHref } from "../data/catalogLines";
 
 /*
  * Página 404.
@@ -33,14 +34,14 @@ type CatalogCard = {
 // del mismo JSON que edita el CMS: si se apaga o renombra una tarjeta allí, esta
 // página la sigue sin tocar código.
 //
-// El enlace va en la forma canónica CON barra final (/productos/tuberias/?linea=fm,
-// decisión D2): así el visitante llega directo con 200, sin pasar por el 301 que
-// Apache hace desde la forma sin barra.
+// El enlace va a la página de la línea en su forma canónica CON barra final
+// (/productos/tuberias/contra-incendio-fm/, decisión D2): así el visitante llega
+// directo con 200, sin pasar por el 301 que Apache hace desde la forma sin barra.
 const productLinks = (cardsData.cards as CatalogCard[])
   .filter((card) => card.visible)
   .sort((a, b) => a.order - b.order)
   .map((card) => ({
-    href: `/productos/${card.family}/?linea=${encodeURIComponent(card.line)}`,
+    href: catalogLineHref(card.family, card.line),
     title: card.title,
     subtitle: card.subtitle
   }));

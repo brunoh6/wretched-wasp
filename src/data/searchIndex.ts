@@ -1,6 +1,7 @@
 import { allGroups, allProducts } from "./catalog";
 import { fmProducts } from "./fmProducts";
 import { visibleCategories } from "./categories";
+import { catalogLineHref } from "./catalogLines";
 // Se reutiliza el slug del buscador para que el enlace que genera el índice y
 // el que genera parseQuery() sean byte a byte el mismo contrato de URL.
 import { slugify } from "./searchQuery";
@@ -209,11 +210,13 @@ const fmSearchItems: SearchItem[] = [...fmGroups.values()].map(group => {
     // Antes apuntaba a la familia desnuda: pulsar "Codo 90° HDPE FM SDR11"
     // aterrizaba en las 69 filas de /productos/conexiones sin ningún filtro,
     // justo debajo de un atajo que sí llevaba la consulta completa.
-    href:
-      `/productos/${group.productFamily}/` +
-      `?producto=${slugify(group.webCategory)}` +
-      (group.sdrRde ? `&tipo=${slugify(group.sdrRde)}` : "") +
-      `&linea=fm`,
+    // Va a la página de la línea FM de su familia, que equivale a ?linea=fm.
+    href: catalogLineHref(
+      group.productFamily,
+      "fm",
+      `producto=${slugify(group.webCategory)}` +
+        (group.sdrRde ? `&tipo=${slugify(group.sdrRde)}` : "")
+    ),
     category: categoryLabel,
     description: `${brands.join(" · ")}${diameter ? ` · ${diameter}` : ""}`,
     badge: "FM",
@@ -424,10 +427,9 @@ const staticSearchItems: SearchItem[] = [
   },
   {
     title: "Sistemas contra incendio FM",
-    // Mismo parámetro que usan las tarjetas de /productos y que emite ahora
-    // parseQuery() para "contra incendio": el enlace del buscador y el de la
-    // tarjeta llevan al mismo sitio filtrado.
-    href: "/productos/tuberias/?linea=fm",
+    // Misma página que la tarjeta "Tuberías FM" de /productos: la de la línea
+    // FM de tuberías, que equivale a /productos/tuberias/?linea=fm.
+    href: catalogLineHref("tuberias", "fm"),
     category: "Sistemas",
     description: "Tuberías y conexiones HDPE certificadas FM Approved.",
     badge: "Sistema",

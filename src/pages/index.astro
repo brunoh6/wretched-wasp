@@ -8,6 +8,7 @@ import BrandCarousel from "../components/BrandCarousel.astro";
 import ContactForm from "../components/ContactForm.astro";
 import { getFeaturedFmProducts } from "../data/catalogDisplayItems";
 import { slugify } from "../data/searchQuery";
+import { catalogLineHref } from "../data/catalogLines";
 import heroHome from "../assets/hero/home.png";
 import heroNuestraEmpresa from "../assets/hero/nuestraempresa.png";
 import heroSlide3 from "../assets/hero/slide3.png";
@@ -18,10 +19,12 @@ import fotoElectrofusion from "../assets/services/electrofusion.png";
 // La portada destaca el catálogo FM publicado (tuberías y conexiones).
 const featuredProducts = getFeaturedFmProducts(8);
 
-// Cada tarjeta abre el catálogo ya filtrado por su producto. El slug sale del
-// mismo slugify() que lee el catálogo en ?producto=, o la casilla no se marca.
+// Cada tarjeta abre la página de la línea FM de su familia ya filtrada por su
+// producto (/productos/conexiones/contra-incendio-fm/?producto=codo-90). El slug
+// sale del mismo slugify() que lee el catálogo en ?producto=, o la casilla no se
+// marca.
 const productHref = (product: (typeof featuredProducts)[number]) =>
-  `/productos/${product.category}/?linea=fm&producto=${slugify(product.productName)}`;
+  catalogLineHref(product.category, "fm", `producto=${slugify(product.productName)}`);
 
 const brands = [
   { name: "+GF+", logo: "/assets/brands/gf.png" },

@@ -3,6 +3,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import Section from "../components/Section.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
 import cardsData from "../data/catalog/cards.json";
+import { catalogLineHref } from "../data/catalogLines";
 
 /**
  * Tarjeta de la portada de productos.
@@ -18,7 +19,7 @@ import cardsData from "../data/catalog/cards.json";
  */
 type CatalogCard = {
   slug: string;
-  /** Familia publicada: coincide con el slug de la ruta /productos/[category]. */
+  /** Familia publicada: coincide con el slug de la ruta /productos/<familia>/. */
   family: string;
   /** Línea comercial: "fm" = contra incendio, "agua" = agua fría/caliente. */
   line: string;
@@ -31,6 +32,8 @@ type CatalogCard = {
 
 // `visible` permite apagar una tarjeta desde el CMS sin borrar su fila, y
 // `order` fija el orden mostrado sin depender de cómo quedó ordenado el JSON.
+// Cada tarjeta lleva a la página de su línea (/productos/tuberias/contra-incendio-fm/);
+// si esa familia y línea no tienen página, a /productos/<familia>/?linea=<línea>.
 const cards = (cardsData.cards as CatalogCard[])
   .filter((card) => card.visible)
   .sort((a, b) => a.order - b.order);
@@ -71,7 +74,7 @@ const cards = (cardsData.cards as CatalogCard[])
     <div class="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card, index) => (
         <a
-          href={`/productos/${card.family}/?linea=${card.line}`}
+          href={catalogLineHref(card.family, card.line)}
           class="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:-translate-y-1 hover:border-[#003595]/30 hover:shadow-lg"
         >
           <div class="aspect-[4/3] overflow-hidden bg-gray-100">
