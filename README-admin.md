@@ -15,16 +15,18 @@ Este documento tiene dos partes:
 
 Desde el panel usted puede, sin ayuda:
 
-- **Subir o cambiar la ficha técnica (PDF)** de un producto de agua.
-- **Subir o cambiar la foto** de un producto de agua.
+- **Subir o cambiar la ficha técnica (PDF)** de un producto de agua o de la
+  línea **contra incendio (FM)**, y en la FM también **la página del PDF** que
+  se abre.
+- **Subir o cambiar la foto** de un producto de agua o FM.
 - **Ocultar o volver a mostrar** un producto en la web.
 - **Cambiar las 4 tarjetas** de la página Productos: foto, título, subtítulo,
   si se ven y en qué orden.
 
 Lo que **no** se cambia desde el panel (llame al equipo técnico):
 
-- Las fichas y fotos de la línea **contra incendio (FM)**.
-- Las medidas, códigos y materiales: vienen del Excel de productos.
+- Las medidas, códigos y materiales: vienen del Excel de productos (y, en la
+  FM, del código de la web).
 - Las categorías nuevas y las certificaciones.
 
 Un **grupo de producto** son todas las medidas de un mismo producto. Por
@@ -51,13 +53,15 @@ saliendo en inglés.
 
 *(Captura 1.)*
 
-- A la izquierda, bajo **Colecciones**, hay dos secciones:
+- A la izquierda, bajo **Colecciones**, hay tres secciones:
   - **Grupos de producto** (32): los productos de agua, PVC y CPVC.
+  - **Línea contra incendio (FM)** (15): tuberías y conexiones HDPE FM, una
+    por producto y marca (punto 9).
   - **Tarjetas de portada**: las 4 tarjetas de la página Productos.
 - Arriba, en el centro, la casilla **Buscar contenido…** busca un producto por
   su nombre.
 - Arriba a la izquierda, el icono de la foto abre **Recursos** (todos los
-  archivos subidos desde el panel). No hace falta usarlo; vea el punto 9.
+  archivos subidos desde el panel). No hace falta usarlo; vea el punto 11.
 
 ## 4. Encontrar un producto
 
@@ -134,7 +138,72 @@ agua**. Mejor con el producto centrado y fondo claro.
 Las tarjetas no se pueden añadir ni borrar: son siempre 4. Para quitar una,
 póngala en **Oculta**.
 
-## 9. Cuándo se ve el cambio en la web
+## 9. Línea contra incendio (FM)
+
+*(Capturas FM-1 a FM-4.)*
+
+A la izquierda, pulse **Línea contra incendio (FM)**. Hay 15 productos, uno
+por producto y marca: por ejemplo «Tee HDPE FM · Integrity» o «Tubería HDPE
+FM · Pavco». Todo lo que cambie vale para **todas las medidas** de ese
+producto de esa marca.
+
+**Encontrar un producto:** escriba en **Buscar contenido…** una palabra (por
+ejemplo `tee`) y pulse Enter, o use **Filtrar**:
+
+- **Sin foto propia**: los que muestran la foto general de la línea.
+- **Sin ficha: la 1.ª o única** y **Sin ficha: SDR9, SDR7 o Clase 335**: los
+  que tienen alguna ficha vacía (la web muestra «Ficha pendiente»).
+- **Ocultos en la web**: los que usted ocultó.
+
+**Agrupar** → **Marca** o **Producto** ordena la lista por marca o por tipo
+de pieza.
+
+### Cambiar la foto
+
+1. Abra el producto.
+2. En **Foto del producto**, pulse **Explorar** (o **Reemplazar** si ya tiene
+   una) y elija la foto. Sirve la del celular: el panel la achica sola.
+3. Pulse **Guardar**.
+
+Si la deja vacía (**Quitar**), la web pone la foto general de la línea, la
+misma para todos.
+
+### Cambiar una ficha técnica y su página
+
+Cada producto tiene **una ficha por presión**. En cada ficha, el recuadro gris
+**Para qué medidas** dice a cuáles corresponde: «SDR11», «SDR9», «Clase 200
+(200 PSI)»… o «Todas las medidas» si hay una sola. Ese recuadro no se cambia.
+
+1. Abra el producto.
+2. Busque la ficha que quiere cambiar (por el recuadro **Para qué medidas**).
+3. En **Ficha técnica (PDF)**, pulse **Reemplazar** y elija el PDF nuevo
+   (hasta 10 MB).
+4. En **Página de la tabla en el PDF** escriba el número de la página donde
+   está la tabla de esas medidas. Cuando alguien pulse «Ficha» en la web, el
+   PDF se abre directamente ahí. **Si el PDF tiene una sola tabla, déjelo
+   vacío** (se abre en la primera página).
+5. Pulse **Guardar**.
+
+**Ojo:** al cambiar el PDF, el número de página **no** se borra solo. Si el
+PDF nuevo tiene la tabla en otra página, corríjalo; si no está seguro, déjelo
+vacío.
+
+Las fichas no se pueden añadir ni quitar de la lista. **Quitar** deja esa
+ficha vacía y la web muestra «Ficha pendiente» en esas medidas.
+
+### Ocultar un producto FM
+
+1. Abra el producto.
+2. En **¿Se ve en la web?**, ponga el interruptor en **Oculto** (gris).
+3. Pulse **Guardar**.
+
+Desaparecen todas sus medidas del catálogo, de la página FM, de la portada y
+del buscador de la web. **No se borra nada**: vuelva a ponerlo en **Visible**
+cuando quiera. Si oculta **una marca entera** (por ejemplo la tubería
+Extrucol), el texto de presentación de la página FM puede seguir
+nombrándola: avise al equipo técnico para que lo corrija.
+
+## 10. Cuándo se ve el cambio en la web
 
 - Después de **Guardar**, la web se actualiza **en unos 5 minutos**. Si guarda
   varias veces seguidas, cuente desde el último guardado.
@@ -144,7 +213,7 @@ póngala en **Oculta**.
 - Si a los **15 minutos** sigue sin verse, avise al equipo técnico con el
   nombre del producto y la hora a la que guardó.
 
-## 10. Si se equivoca
+## 11. Si se equivoca
 
 - **Un interruptor, un título o una posición:** vuelva a ponerlo como estaba y
   pulse **Guardar**.
@@ -158,7 +227,7 @@ póngala en **Oculta**.
 - Si borró algo por error, avise al equipo técnico con la fecha y la hora: se
   puede recuperar.
 
-## 11. Palabras que verá en pantalla
+## 12. Palabras que verá en pantalla
 
 | En pantalla | Qué hace |
 |---|---|
@@ -174,7 +243,9 @@ póngala en **Oculta**.
 | **Expandir todo** / **Contraer todo** | Abre o pliega las 4 tarjetas. |
 | **Recursos** | Los archivos subidos desde el panel. |
 | **Ajustes** / **Cerrar sesión** | En el botón redondo de arriba a la derecha. |
-| «El administrador ha deshabilitado la creación de nuevas entradas…» | Normal: los grupos salen del Excel, no se crean aquí. |
+| «El administrador ha deshabilitado la creación de nuevas entradas…» | Normal: los grupos salen del Excel y los productos FM del código de la web; no se crean aquí. |
+| **Para qué medidas** (recuadro gris) | A qué presión o medidas corresponde esa ficha FM. No se cambia. |
+| **Página de la tabla en el PDF** | Página donde se abre la ficha FM. Vacío = primera página. |
 
 ---
 
@@ -187,6 +258,7 @@ póngala en **Oculta**.
 | `public/admin/index.html` | Carga Sveltia CMS **0.252.0** desde unpkg con `integrity` (SRI). |
 | `public/admin/config.yml` | Colecciones, campos, carpetas y límites. Validado contra el esquema de 0.252.0. |
 | `src/data/catalog/overrides.json` | Una entrada por grupo de agua (lista en la raíz). La edita el panel y la mantiene el importador (`README-catalogo.md`). |
+| `src/data/catalog/fm.json` | Línea FM: una entrada por producto × marca (15) con foto, visibilidad y sus fichas por variante (ruta + página). La lee `src/data/fmProducts.ts`. |
 | `src/data/catalog/cards.json` | Las 4 tarjetas de `/productos`. Formateado exactamente como lo escribe el panel, para que el primer guardado no reformatee el archivo. |
 | `public/assets/panel/` | Todo lo que sube el panel. El `.htaccess` sólo sirve de aquí PDF e imágenes (403 para el resto). |
 | `public/admin/logo-panel.png` | Logo cuadrado del panel. Fuera de la biblioteca para que no se pueda borrar desde Recursos. |
@@ -210,7 +282,7 @@ miniatura y el nombre legible de cada grupo.
   (`image` vacío), Ocultos en la web (`visible: false`).
 - `view_groups`: Material (patrón `CPVC Corzan|PVC` sobre `label`) y Agua fría o
   caliente.
-- `preview_path: /productos/{{family}}/?linea=agua` con
+- `preview_path: /productos/{{family}}/agua-pvc-cpvc/` con
   `site_url: https://www.dihyc.com.pe`: botón «Ver en el sitio en vivo».
 - Campos `label`, `family` y `groupKey`: `widget: hidden`. No se ven y su valor
   se conserva al guardar. Los escribe el importador.
@@ -219,6 +291,50 @@ miniatura y el nombre legible de cada grupo.
   las líneas del grupo editado.
 - Sin campo `notes`: el repositorio es público y las «notas internas» se
   podían leer en GitHub.
+
+**Línea contra incendio (FM)** (`name: fm`) es el mismo montaje sobre
+`src/data/catalog/fm.json`: una entrada por producto × marca (15).
+
+- `create`, `delete` y `duplicate` en `false`. Las filas (medidas, SKU, SDR)
+  siguen en `src/data/fmProducts.ts` y buscan su entrada por `key`
+  (`slug(webCategory)-slug(brand)`) y su ficha por `sheets.*.key` (el SDR, o
+  `clase-NNN` en la Brida de Georg Fischer). Crear o borrar entradas o fichas
+  dejaría filas sin ficha o fichas sin filas.
+- `label`, `family`, `key` y `sheets.*.key`: `hidden`. `sheets.*.variant`
+  («Para qué medidas»): `string` con `readonly: true`, porque con la ficha
+  abierta Sveltia no pinta el `summary` y sin él no se distingue la ficha de
+  SDR11 de la de SDR9. Los dos conservan su valor al guardar (comprobado).
+- `sheets`: lista con `allow_add/remove/duplicate/reorder: false`.
+- `technicalSheet`: `file`, sólo PDF, en `public/assets/panel/fichas/`. Las
+  fichas actuales siguen apuntando a `/assets/fichas-tecnicas/` (fuera de la
+  biblioteca, no se pueden borrar desde Recursos); una ficha nueva sustituye
+  la ruta. Con ruta vacía la web muestra «Ficha pendiente».
+- `page`: `number`, `value_type: int`, `min: 1`, opcional. Se guarda como
+  número; vacío se guarda como `null` (el sitio no pone ancla). El sitio arma
+  `technicalSheet + "#page=" + page`; si la ruta ya trae `#`, ignora `page`.
+  Al reemplazar el PDF la página **no** se borra sola: la ayuda del campo lo
+  avisa.
+- `image`: mismas reglas que la foto de agua (sin SVG, WebP 80, 800×800,
+  1 MB, `public/assets/panel/fotos/`). Vacía = la foto compartida de siempre
+  (`tubo_pavco.jpg`, `codo_integrity.jpg` o `codo_gf.jpg`).
+- `visible: false` quita todas las filas de esa entrada del catálogo, las
+  páginas por línea, la portada y el buscador. Si se oculta una marca que
+  nombra el texto de la página FM (`src/data/catalogLines.ts`, p. ej.
+  Extrucol), el build da `::warning::` (no bloquea) y el texto sigue
+  nombrándola hasta corregirlo.
+- `view_filters`: Sin foto propia (`image` vacío); **Sin ficha: la 1.ª o
+  única** (`sheets.0.technicalSheet`, `empty: true`); **Sin ficha: SDR9, SDR7
+  o Clase 335** (`sheets.1.technicalSheet`, `eq: ''`); Ocultos (`visible:
+  false`). En 0.252.0 un filtro con comodín (`sheets.*.technicalSheet`) da
+  por vacías **todas** las entradas, y `empty` en `sheets.1` cuenta también
+  las entradas que no tienen 2.ª ficha; por eso un filtro por posición y `eq:
+  ''` en la segunda (como mucho hay 2 fichas por entrada).
+- `view_groups`: Marca y Producto, por patrón sobre `label` (agrupar por
+  `family` mostraba «tuberias» sin tilde).
+- `preview_path: /productos/{{family}}/contra-incendio-fm/`.
+- El orden de los campos es el de las claves del JSON (`label, family,
+  visible, image, sheets[variant, technicalSheet, page, key], key`): un
+  guardado sólo cambia las líneas tocadas.
 
 **Tarjetas de portada** (`name: portada`, archivo `tarjetas`) es una lista
 bloqueada (`allow_add/remove/duplicate/reorder: false`). `slug`, `family` y
@@ -235,8 +351,8 @@ web y le quitaba medio ancho al formulario.
 | Qué | Carpeta del repo | URL pública |
 |---|---|---|
 | Biblioteca global (Recursos) | `public/assets/panel/` | `/assets/panel/` |
-| Fichas de grupo | `public/assets/panel/fichas/` | `/assets/panel/fichas/` |
-| Fotos de grupo | `public/assets/panel/fotos/` | `/assets/panel/fotos/` |
+| Fichas de grupo y FM | `public/assets/panel/fichas/` | `/assets/panel/fichas/` |
+| Fotos de grupo y FM | `public/assets/panel/fotos/` | `/assets/panel/fotos/` |
 | Fotos de tarjeta | `public/assets/panel/tarjetas/` | `/assets/panel/tarjetas/` |
 
 **Por qué una carpeta propia:** la biblioteca deja borrar, renombrar y
@@ -349,8 +465,9 @@ en esto. Opciones técnicas:
 
 ## H. Qué NO se puede editar desde el panel
 
-- **Línea FM:** las fichas y fotos están en `src/data/fmProducts.ts`
-  (`TECH_SHEETS`, `PRODUCT_IMAGES`), que es código.
+- **Línea FM, filas:** medidas, SKU, SDR y qué filas existen siguen en
+  `src/data/fmProducts.ts` (código). Desde el panel se cambian foto, ficha,
+  página y visibilidad (`fm.json`).
 - **Categorías** (`src/data/categories.ts`) y **certificaciones**
   (`src/data/certifications.ts`, apagadas con `CERTIFICATIONS_ENABLED = false`):
   código TypeScript.
@@ -389,6 +506,34 @@ en esto. Opciones técnicas:
 - Revisión independiente posterior: el selector de fotos ya no ofrece «Fotos de
   stock» (`stock_assets: false`); antes guardaba URLs externas que la CSP del
   sitio bloquea.
+
+**Línea FM (27/10/2026, mismo arnés, `fm.json` real sembrado):**
+
+- La colección sale como «Línea contra incendio (FM)» con 15 nombres legibles;
+  `config.yml` pasa el esquema de 0.252.0 y lo rechaza con una opción
+  inventada en la colección, el filtro, la lista y el subcampo.
+- «Buscar contenido…» con `tee` encuentra «Tee HDPE FM · Integrity» (y los
+  dos Tee de agua).
+- Filtros con una semilla alterada (una 1.ª ficha vacía, una 2.ª vacía, una
+  entrada oculta, una con foto): cada filtro devuelve exactamente la entrada
+  esperada. Agrupar por Marca da 5 grupos (1+1+1+5+7) y por Producto 8.
+- Ocultar «Tubería HDPE FM · Extrucol» y guardar cambia **sólo** su línea
+  `visible`. En «Tee HDPE FM · Integrity»: la foto `foto-prueba.jpg` se guarda
+  como `/assets/panel/fotos/foto-prueba.webp` (800×786); la página SDR9 3→4 se
+  guarda como número `4` y vaciar la de SDR11 la guarda como `null`. Resto de
+  entradas, `label`, `family`, `key`, `variant` y orden de claves, iguales; el
+  formato (2 espacios, sin escapar tildes) no cambia.
+- «Quitar» una ficha la guarda como `""` y la encuentra el filtro de la 2.ª
+  ficha; un PDF «Ficha Técnica #40 Codo 45°.pdf» se guarda como
+  `/assets/panel/fichas/ficha-tecnica-40-codo-45.pdf`.
+- «Ver en el sitio en vivo» abre
+  `https://www.dihyc.com.pe/productos/conexiones/contra-incendio-fm/`.
+- Con ese `fm.json` y la foto copiados a una copia del repositorio, el build
+  pasa: las filas Extrucol desaparecen del catálogo y del buscador, el Tee
+  enlaza la ficha SDR11 sin ancla y la SDR9 con `#page=4`, la foto nueva sale
+  en la portada y en las páginas de conexiones, y la validación de archivos
+  citados de `deploy.yml` da 0 críticos. Único aviso: el texto de la página
+  de tuberías FM sigue nombrando a Extrucol.
 
 **No comprobado:** guardar contra GitHub de verdad (hace falta una cuenta con
 acceso) y la conversión de fotos grandes en Safari del iPhone.

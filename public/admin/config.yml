@@ -14,15 +14,18 @@
 # página que habla directamente con GitHub: cuando el cliente pulsa Guardar, el
 # CMS hace un commit en este mismo repositorio y el sitio se vuelve a construir.
 # Por eso todo lo que el cliente puede tocar tiene que estar en un archivo del
-# repositorio. Hoy son dos:
+# repositorio. Hoy son tres:
 #   · src/data/catalog/overrides.json -> ficha, foto y visibilidad de cada grupo
+#                                        de agua
+#   · src/data/catalog/fm.json        -> ficha (y su página), foto y
+#                                        visibilidad de la línea FM
 #   · src/data/catalog/cards.json     -> las 4 tarjetas de la página /productos
 #
 # QUÉ NO ESTÁ AQUÍ Y POR QUÉ (explicado también en README-admin.md):
 #   · Las medidas, SKU y materiales viven en products.json / groups.json, que
-#     los REGENERA el importador de Excel.
-#   · La línea FM (fichas y fotos en src/data/fmProducts.ts), las categorías y
-#     las certificaciones son código TypeScript, no datos.
+#     los REGENERA el importador de Excel. Las filas FM (medidas, SKU, SDR)
+#     siguen en src/data/fmProducts.ts.
+#   · Las categorías y las certificaciones son código TypeScript, no datos.
 # ─────────────────────────────────────────────────────────────────────────────
 
 backend:
@@ -117,8 +120,8 @@ collections:
     description: >-
       Productos de la línea **Agua** (PVC y CPVC). Un grupo son todas las
       medidas de un producto: su ficha, su foto y si se ve en la web valen para
-      todas. Las fichas y fotos de la línea contra incendio (FM) no están aquí:
-      las cambia el equipo técnico.
+      todas. Las fichas y fotos de la línea contra incendio (FM) están en
+      «Línea contra incendio (FM)».
     file: src/data/catalog/overrides.json
     create: false
     delete: false
@@ -213,6 +216,167 @@ collections:
           reduce y se convierte sola. Al guardar, la web se actualiza en unos 5
           minutos.
       - name: groupKey
+        label: Código interno
+        widget: hidden
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # LÍNEA CONTRA INCENDIO (FM)
+  #
+  # Mismo montaje que los grupos de agua, sobre fm.json: una entrada por
+  # producto × marca (15). Las filas (medidas, SKU, SDR) siguen en
+  # src/data/fmProducts.ts y buscan su entrada por `key` y su ficha por
+  # `sheets.*.key` (el SDR o la clase de la fila). Por eso:
+  #   · crear, borrar o duplicar entradas, o añadir, quitar o reordenar fichas,
+  #     dejaría filas sin ficha o fichas sin filas: todo bloqueado. El arrastre
+  #     de la lista de entradas no se puede quitar, pero es inofensivo (se
+  #     busca por key, no por posición).
+  #   · label, family, key y sheets.*.key van `hidden`: no se ven y se
+  #     conservan al guardar. sheets.*.variant se ve pero es `readonly`.
+  # El orden de los campos es el de las claves del JSON, para que un guardado
+  # no reordene el archivo.
+  # ═════════════════════════════════════════════════════════════════════════
+  - name: fm
+    label: Línea contra incendio (FM)
+    label_singular: Producto FM
+    icon: local_fire_department
+    description: >-
+      Productos de la línea **contra incendio (FM)**, en HDPE. Cada producto de
+      una marca tiene su foto, si se ve en la web y su ficha técnica; algunos
+      tienen una ficha por presión (SDR o clase). Las medidas y códigos no se
+      cambian aquí.
+    file: src/data/catalog/fm.json
+    create: false
+    delete: false
+    duplicate: false
+    identifier_field: label
+    summary: '{{label}}'
+    thumbnail: image
+    sortable_fields: [label]
+    view_filters:
+      - label: Sin foto propia
+        field: image
+        empty: true
+      # Un filtro mira un solo campo: con `sheets.*` (comodín) Sveltia 0.252.0
+      # da por vacías TODAS las entradas, así que va uno por posición (como
+      # mucho hay 2 fichas). En la 2.ª se usa eq '' y no `empty`, porque
+      # `empty` también cuenta como vacía la 2.ª ficha que no existe.
+      - label: 'Sin ficha: la 1.ª o única'
+        field: sheets.0.technicalSheet
+        empty: true
+      - label: 'Sin ficha: SDR9, SDR7 o Clase 335'
+        field: sheets.1.technicalSheet
+        eq: ''
+      - label: Ocultos en la web
+        field: visible
+        eq: false
+    # El nombre del grupo es el texto que coincide con el patrón en el nombre.
+    view_groups:
+      - label: Marca
+        field: label
+        pattern: Pavco|WL Plastics|Extrucol|Integrity|Georg Fischer
+      - label: Producto
+        field: label
+        pattern: Tubería|Brida|Codo 90°|Codo 45°|Flange Adapter|Reducción|Tapón|Tee
+    # Botón "ver en la web": la página FM de su familia.
+    preview_path: /productos/{{family}}/contra-incendio-fm/
+    fields:
+      - name: label
+        label: Producto
+        widget: hidden
+      - name: family
+        label: Familia
+        widget: hidden
+      - name: visible
+        label: ¿Se ve en la web?
+        widget: boolean
+        default: true
+        before_input: Oculto
+        after_input: Visible
+        hint: >-
+          Oculto = este producto de esta marca deja de verse en la web con
+          todas sus medidas (catálogo, página FM, portada y buscador), sin
+          borrar nada. Al guardar, la web se actualiza en unos 5 minutos.
+      - name: image
+        label: Foto del producto
+        widget: image
+        required: false
+        default: ''
+        # Mismas reglas que la foto de los grupos de agua (sin SVG, WebP de
+        # 800 px, 1 MB, sin fotos de stock); ver allí el porqué.
+        accept: image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif
+        choose_url: false
+        media_folder: /public/assets/panel/fotos
+        public_folder: /assets/panel/fotos
+        media_libraries:
+          stock_assets: false
+          default:
+            config:
+              max_file_size: 1000000
+              transformations:
+                raster_image:
+                  format: webp
+                  quality: 80
+                  width: 800
+                  height: 800
+        hint: >-
+          Es la miniatura de cada fila de este producto en la web. Si se deja
+          vacía, sale la foto general de la línea (la misma para todos).
+          Sirve cualquier foto, también la del celular: al subirla se reduce y
+          se convierte sola. Al guardar, la web se actualiza en unos 5 minutos.
+      - name: sheets
+        label: Fichas técnicas
+        label_singular: Ficha
+        widget: list
+        allow_add: false
+        allow_remove: false
+        allow_duplicate: false
+        allow_reorder: false
+        collapsed: false
+        summary: 'Ficha para: {{variant}}'
+        hint: >-
+          Una ficha por presión (SDR o clase); «Todas las medidas» vale para
+          todo el producto. No se añaden ni se quitan: si una queda vacía, la
+          web muestra «Ficha pendiente» en esas filas.
+        fields:
+          # Visible pero bloqueado: con la ficha abierta Sveltia no pinta el
+          # `summary`, y sin esto no se sabe cuál es la de SDR11 y cuál la de
+          # SDR9. readonly conserva el valor al guardar (comprobado).
+          - name: variant
+            label: Para qué medidas
+            widget: string
+            readonly: true
+          - name: technicalSheet
+            label: Ficha técnica (PDF)
+            widget: file
+            required: false
+            default: ''
+            accept: application/pdf,.pdf
+            choose_url: false
+            media_folder: /public/assets/panel/fichas
+            public_folder: /assets/panel/fichas
+            hint: >-
+              Solo PDF, de hasta 10 MB. Si se deja vacío, la web muestra
+              «Ficha pendiente». El nombre del archivo se guarda en minúsculas
+              y con guiones. Si cambia el PDF, revise también la página de
+              abajo. Al guardar, la web se actualiza en unos 5 minutos.
+          # El sitio arma technicalSheet + "#page=" + page; vacío = sin ancla
+          # (el PDF se abre en la primera página).
+          - name: page
+            label: Página de la tabla en el PDF
+            widget: number
+            value_type: int
+            required: false
+            min: 1
+            max: 999
+            step: 1
+            hint: >-
+              Opcional. Si la ficha trae varias tablas, el número de página
+              donde está la de este SDR: la web abre el PDF directamente ahí.
+              Déjelo vacío para que se abra en la primera página.
+          - name: key
+            label: Código interno
+            widget: hidden
+      - name: key
         label: Código interno
         widget: hidden
 
