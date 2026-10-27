@@ -865,7 +865,10 @@ const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
     });
 
     // Si el usuario vuelve con el botón "atrás" (bfcache) tras el envío
-    // normal, el botón debe quedar utilizable otra vez.
-    window.addEventListener("pageshow", desbloquear);
+    // normal, el botón debe quedar utilizable otra vez. El primer pageshow de
+    // la carga (persisted=false) no debe soltar un envío que sigue en curso.
+    window.addEventListener("pageshow", (e) => {
+      if (e.persisted || !enviando) desbloquear();
+    });
   }
 </script>

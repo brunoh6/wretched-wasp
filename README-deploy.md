@@ -258,7 +258,8 @@ concreta como `public_html/`.
 ## 6. Activar la medición de Google Ads
 
 El sitio ya está preparado para medir qué anuncios traen contactos. Mientras
-no se active, **no carga nada de Google**: los clics sólo quedan anotados
+no se active, **no carga nada de Google Ads** (sólo lo de siempre: la
+tipografía de Google Fonts y el mapa de Contacto): los clics sólo quedan anotados
 dentro del navegador del visitante (para un futuro Google Analytics). Activarlo
 es crear unas variables en GitHub; no hay que tocar código.
 

@@ -244,14 +244,23 @@ function verifyClaims(landing: CatalogLanding, rows: CatalogDisplayItem[]): stri
 
 /**
  * Páginas por línea que se publican: las de una familia visible
- * (categories.ts) cuya línea tiene productos. Si una línea se queda sin filas,
- * su página no se genera y los enlaces vuelven a /productos/<familia>/?linea=.
+ * (categories.ts), tenga o no productos su línea. Son las URL finales de los
+ * anuncios y deploy.yml las exige: si se dejaran de generar al ocultar desde el
+ * panel todos los grupos de una línea, el anuncio daría 404 y la validación
+ * bloquearía toda publicación. Vacía, la página muestra su texto, el aviso
+ * «Aún no hay productos visibles…» y el enlace al catálogo completo.
  */
-export const publishedCatalogLandings: CatalogLanding[] = landings.filter(
-  (landing) =>
-    visibleCategories.some((category) => category.slug === landing.family) &&
-    rowsOf(landing).length > 0
+export const publishedCatalogLandings: CatalogLanding[] = landings.filter((landing) =>
+  visibleCategories.some((category) => category.slug === landing.family)
 );
+
+for (const landing of publishedCatalogLandings) {
+  if (rowsOf(landing).length === 0) {
+    console.log(
+      `::warning title=Página por línea vacía::/productos/${landing.family}/${landing.slug}/ quedó sin productos visibles: pausa su grupo de anuncios o vuelve a mostrar algún grupo en el panel.`
+    );
+  }
+}
 
 // Aviso y no error: ocultar productos desde el panel es una acción normal del
 // gerente y no debe bloquear su publicación por un texto de marketing. Las
@@ -277,11 +286,12 @@ export function getCatalogLanding(family: string, slug: string): CatalogLanding 
  * parámetros extra del contrato del catálogo, sin "?" ("producto=codo-90").
  *
  * Con página propia: /productos/conexiones/contra-incendio-fm/?producto=codo-90
- * Sin ella (familia o línea sin página): /productos/conexiones/?linea=fm&producto=codo-90
+ * Sin ella, o si su línea está vacía: /productos/conexiones/?linea=fm&producto=codo-90
+ * (los enlaces del sitio no deben llevar a una página sin productos).
  */
 export function catalogLineHref(family: string, line: string, query = ""): string {
   const landing = publishedCatalogLandings.find(
-    (item) => item.family === family && item.line === line
+    (item) => item.family === family && item.line === line && rowsOf(item).length > 0
   );
 
   if (landing) {
