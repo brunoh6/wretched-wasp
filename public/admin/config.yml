@@ -212,10 +212,11 @@ collections:
                   width: 800
                   height: 800
         hint: >-
-          Es la miniatura que sale junto al nombre en cada fila del catálogo de
-          agua. Sirve cualquier foto, también la del celular: al subirla se
-          reduce y se convierte sola. Al guardar, la web se actualiza en unos 5
-          minutos.
+          Es la foto principal de la tabla de su marca en el catálogo (arriba,
+          junto al nombre de la marca); las filas no llevan foto. Si varios
+          productos de la marca tienen foto, sale la del primero de la tabla.
+          Sirve cualquier foto, también la del celular: al subirla se reduce y
+          se convierte sola. Al guardar, la web se actualiza en unos 5 minutos.
       - name: groupKey
         label: Código interno
         widget: hidden
@@ -320,10 +321,12 @@ collections:
                   width: 800
                   height: 800
         hint: >-
-          Es la miniatura de cada fila de este producto en la web. Si se deja
-          vacía, sale la foto general de la línea (la misma para todos).
-          Sirve cualquier foto, también la del celular: al subirla se reduce y
-          se convierte sola. Al guardar, la web se actualiza en unos 5 minutos.
+          Es la foto principal de la tabla de su marca en el catálogo (arriba,
+          junto al nombre de la marca) y la de su tarjeta en la portada, si
+          sale ahí; las filas no llevan foto. Si se deja vacía, sale la foto
+          general de la línea (la misma para todos). Sirve cualquier foto,
+          también la del celular: al subirla se reduce y se convierte sola. Al
+          guardar, la web se actualiza en unos 5 minutos.
       - name: sheets
         label: Fichas técnicas
         label_singular: Ficha

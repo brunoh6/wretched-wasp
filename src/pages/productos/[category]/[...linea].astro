@@ -1354,28 +1354,6 @@ function renderProductName(row) {
   `;
 }
 
-// Foto por fila: sólo en la línea de agua, que es la que recibe una foto por
-// grupo desde el panel (overrides.json). Antes esa foto sólo salía en la
-// cabecera de marca si el grupo quedaba primero, así que casi nunca se veía.
-// Sin foto no se pinta nada (ni hueco ni imagen genérica) y, si el archivo no
-// carga, la miniatura se retira en vez de dejar un icono roto. alt vacío: el
-// nombre del producto va justo al lado.
-function renderRowThumb(row) {
-  if (row.line !== "agua" || !row.productImage) return "";
-
-  return `
-    <img
-      src="${safeText(row.productImage)}"
-      alt=""
-      width="40"
-      height="40"
-      loading="lazy"
-      decoding="async"
-      class="h-10 w-10 shrink-0 rounded border object-cover"
-      onerror="this.remove()"
-    />
-  `;
-}
 
 function applyFilters() {
   if (!data.length) return;
@@ -1753,7 +1731,11 @@ function renderTables(items) {
     const sortedRows = sortRows(rows);
     const firstRow = sortedRows[0];
     const imageKey = getImageKey(firstRow);
-    const tableImage = firstRow.productImage || `/assets/products/${imageKey}.png`;
+    // Foto principal de la tabla: la del primer producto de la marca que tenga
+    // foto en el panel (las filas no llevan foto propia); si ninguno la tiene,
+    // la genérica del material.
+    const tableImage =
+      sortedRows.find(row => row.productImage)?.productImage || `/assets/products/${imageKey}.png`;
 
     // La miniatura de la cabecera lleva alt vacío: el nombre de la marca ya
     // está en el h2 contiguo y el lector de pantalla lo leía dos veces.
@@ -1795,7 +1777,6 @@ function renderTables(items) {
                 <tr class="border-t">
                   <td class="${TABLE_CELL}">
                     <div class="flex items-start gap-3">
-                      ${renderRowThumb(row)}
                       <div class="min-w-0">
                         <div class="font-medium capitalize">
                           ${renderProductName(row)}
@@ -1838,7 +1819,6 @@ function renderTables(items) {
           ${sortedRows.map(row => `
             <div class="border rounded-lg p-4">
               <div class="flex items-start gap-3">
-                ${renderRowThumb(row)}
                 <div class="min-w-0">
                   <div class="font-medium capitalize">
                     ${renderProductName(row)}

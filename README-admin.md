@@ -114,8 +114,10 @@ Pulse el nombre de un grupo para abrirlo.
    «Procesando un archivo. Esto puede tardar un poco.».
 4. Pulse **Guardar**.
 
-La foto sale como **miniatura junto al nombre en cada fila del catálogo de
-agua**. Mejor con el producto centrado y fondo claro.
+La foto sale como **foto principal de la tabla de su marca** en el catálogo
+(arriba, junto al nombre de la marca); las filas de la tabla no llevan foto. Si
+varios productos de una misma marca tienen foto, sale la del primero de la
+tabla. Mejor con el producto centrado y fondo claro.
 
 ## 7. Ocultar o volver a mostrar un producto
 
@@ -567,9 +569,10 @@ en esto. Opciones técnicas:
   `deploy.yml`: es el que publica.
 - **«Hay un error en la configuración del CMS»:** `config.yml` inválido.
   Validarlo contra el esquema (punto F).
-- **Las fotos de grupo ya se suben, pero la miniatura por fila del catálogo
-  de agua la pinta `src/pages/productos/[category]/[...linea].astro`;** si ese cambio no
-  está publicado, la foto sólo se ve en el bloque de marca.
+- **Las fotos de grupo y de producto FM no salen por fila:** desde el
+  28/10/2026 son sólo la foto principal del bloque de cada marca (la del
+  primer producto con foto; si ninguno tiene, la genérica del material), en
+  `src/pages/productos/[category]/[...linea].astro`.
 
 ## J. Qué se comprobó (26/10/2026, arnés con Sveltia 0.252.0 y Chrome en es-PE)
 
