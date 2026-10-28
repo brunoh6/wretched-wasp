@@ -627,7 +627,10 @@ const breadcrumbs = landing
           </div>
 
           <div id="activeFilters" class="mb-5 flex flex-wrap gap-2"></div>
-          <div id="results"></div>
+          {/* data-foto-marca="grande": cabecera de cada marca con el nombre a la
+               izquierda y la foto grande a la derecha (pedido de la empresa,
+               28-10-2026). De momento sólo en Tuberías. */}
+          <div id="results" data-foto-marca={category === "tuberias" ? "grande" : undefined}></div>
         </div>
       </div>
     )}
@@ -839,6 +842,7 @@ const BRAND_ORDER = JSON.parse(
 );
 
 const container = document.getElementById("results");
+const BIG_BRAND_PHOTO = container?.dataset.fotoMarca === "grande";
 
 const TYPE_CLASS_ORDER = [
   "SDR11",
@@ -1740,10 +1744,29 @@ function renderTables(items) {
     const tableImage =
       sortedRows.find(row => row.productImage)?.productImage || `/assets/products/${imageKey}.png`;
 
-    // La miniatura de la cabecera lleva alt vacío: el nombre de la marca ya
-    // está en el h2 contiguo y el lector de pantalla lo leía dos veces.
-    return `
-      <div class="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+    // La foto de la cabecera lleva alt vacío: el nombre de la marca ya está en
+    // el h2 contiguo y el lector de pantalla lo leía dos veces.
+    // Con foto grande: nombre, cantidad y materiales a la izquierda y la foto
+    // a la derecha, entera (object-contain) para que no se corte ni se amplíe.
+    const header = BIG_BRAND_PHOTO
+      ? `
+        <div class="mb-4 flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h2 class="text-lg font-semibold sm:text-xl">${safeText(String(brand).toUpperCase())}</h2>
+            <span class="text-xs text-gray-500">${sortedRows.length} productos disponibles</span>
+            <div class="mt-3">${renderMaterialLegend(sortedRows)}</div>
+          </div>
+
+          <img
+            src="${safeText(tableImage)}"
+            alt=""
+            loading="lazy"
+            class="img-bright h-28 w-28 shrink-0 rounded-lg border bg-white object-contain p-1 sm:h-40 sm:w-40"
+            onerror="this.style.display='none'"
+          />
+        </div>
+      `
+      : `
         <div class="mb-4 flex items-center gap-4">
           <img
             src="${safeText(tableImage)}"
@@ -1760,6 +1783,11 @@ function renderTables(items) {
         </div>
 
         ${renderMaterialLegend(sortedRows)}
+      `;
+
+    return `
+      <div class="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+        ${header}
 
         <div class="hidden lg:block overflow-x-auto border rounded-lg">
           <table class="w-full text-sm">
