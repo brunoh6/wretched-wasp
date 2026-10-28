@@ -132,20 +132,21 @@ const typeClasses = [
   ...new Set(items.map(i => i.typeClass).filter(Boolean))
 ].sort((a, b) => getTypeClassOrder(a) - getTypeClassOrder(b));
 
-// D2: Georg Fischer encabeza toda lista de marcas porque es el socio
-// principal del cliente; el resto sigue en alfabético. Se detecta por NOMBRE
-// y nunca por un índice fijo: en una categoría futura donde GF no venda, la
-// lista queda simplemente alfabética sin hueco ni error.
-function isGeorgFischer(brand: string) {
-  return brand.trim().toLowerCase() === "georg fischer";
+// D2: orden de las marcas que pidió la empresa (28-10-2026): Georg Fischer
+// —su socio principal— primero, luego Pavco, WL Plastics y Extrucol. Cualquier
+// otra marca va después, en alfabético. Se compara por NOMBRE y nunca por un
+// índice fijo: en una categoría donde falte alguna, las demás suben sin hueco.
+// Esta misma lista ordena los bloques de marca en el navegador (#brand-order).
+const BRAND_ORDER = ["georg fischer", "pavco", "wl plastics", "extrucol"];
+
+function brandRank(brand: string) {
+  const index = BRAND_ORDER.indexOf(brand.trim().toLowerCase());
+  return index === -1 ? BRAND_ORDER.length : index;
 }
 
 const brands = [
   ...new Set(items.map(i => i.brand).filter(Boolean))
-].sort((a, b) => {
-  if (isGeorgFischer(a) !== isGeorgFischer(b)) return isGeorgFischer(a) ? -1 : 1;
-  return a.localeCompare(b, "es");
-});
+].sort((a, b) => brandRank(a) - brandRank(b) || a.localeCompare(b, "es"));
 
 // Faceta "Producto": el nombre comercial (Tubo, Codo 90°, Tee...). Sale de los
 // mismos items que el resto de facetas para que barra lateral y hoja móvil
@@ -820,6 +821,7 @@ const breadcrumbs = landing
        toJsonScript(). El navegador no ejecuta type="application/json". -->
   <script id="catalog-data" type="application/json" set:html={toJsonScript(clientItems)}></script>
   <script id="material-descriptions" type="application/json" set:html={toJsonScript(materialDescriptions)}></script>
+  <script id="brand-order" type="application/json" set:html={toJsonScript(brands)}></script>
 </BaseLayout>
 
 <script is:inline>
@@ -829,6 +831,11 @@ const data = JSON.parse(
 
 const materialDescriptions = JSON.parse(
   document.getElementById("material-descriptions")?.textContent || "{}"
+);
+
+// Orden de las marcas (el de las casillas de Marca, ver BRAND_ORDER arriba).
+const BRAND_ORDER = JSON.parse(
+  document.getElementById("brand-order")?.textContent || "[]"
 );
 
 const container = document.getElementById("results");
@@ -1708,21 +1715,17 @@ function renderTables(items) {
     groupedByBrand[row.brand].push(row);
   });
 
-  // D2: los bloques de marca salen con Georg Fischer PRIMERO —es el socio
-  // principal del cliente— y el resto en alfabético. Antes seguían el orden
-  // de aparición de las filas, que dependía del Excel de origen. Se detecta
-  // por nombre y nunca por un índice fijo: en una categoría sin GF el orden
-  // queda simplemente alfabético. (Misma regla que las casillas de Marca,
-  // ordenadas en el frontmatter.)
-  const isGeorgFischerBrand = brand =>
-    String(brand).trim().toLowerCase() === "georg fischer";
-
+  // D2: los bloques de marca siguen el MISMO orden que las casillas de Marca
+  // (Georg Fischer, Pavco, WL Plastics, Extrucol y el resto en alfabético),
+  // que llega ya ordenado del frontmatter en #brand-order. Antes seguían el
+  // orden de aparición de las filas, que dependía del Excel de origen.
   const compareBrandNames = (a, b) => {
-    if (isGeorgFischerBrand(a) !== isGeorgFischerBrand(b)) {
-      return isGeorgFischerBrand(a) ? -1 : 1;
-    }
+    const rank = brand => {
+      const index = BRAND_ORDER.indexOf(brand);
+      return index === -1 ? BRAND_ORDER.length : index;
+    };
 
-    return String(a).localeCompare(String(b), "es");
+    return rank(a) - rank(b) || String(a).localeCompare(String(b), "es");
   };
 
   container.innerHTML = Object.entries(groupedByBrand)
