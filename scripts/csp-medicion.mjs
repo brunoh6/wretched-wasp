@@ -53,7 +53,7 @@ const GA4 = [
 ];
 const CLARITY = ["https://*.clarity.ms", "https://c.bing.com"];
 
-// Las validaciones son las mismas que src/layouts/BaseLayout.astro.
+// Las validaciones son las mismas que src/data/measurement.ts.
 const MEDICIONES = [
   {
     nombre: "Google Ads",

@@ -1,4 +1,6 @@
 ---
+import { PRIVACY_VISIBLE, PRIVACY_PATH, PRIVACY_POLICY_VERSION, PURPOSE_SUMMARY, privacyPolicy } from "../data/privacy";
+
 const formAction = "https://formspree.io/f/xpqlyqok";
 
 /* =========================================================
@@ -109,6 +111,13 @@ const fieldError = "mt-1 hidden text-sm leading-snug text-red-600";
 // lo escrito (avisos de error, prefijo, agradecimiento). Sin Clarity el
 // atributo no se emite y el HTML queda como siempre.
 const enmascararClarity = String(import.meta.env.PUBLIC_CLARITY_ID ?? "").trim() ? "True" : undefined;
+
+// Aviso de privacidad junto al botón (Ley 29733, art. 18: informar ANTES de
+// recoger). Sólo con la política publicada o en vista previa
+// (src/data/privacy.ts). `politica_privacidad` viaja con el envío y deja en
+// Formspree qué versión del aviso vio la persona; no lleva "_" delante porque
+// Formspree reserva esos nombres.
+const privacidad = PRIVACY_VISIBLE ? privacyPolicy : null;
 ---
 
 <form
@@ -289,6 +298,20 @@ const enmascararClarity = String(import.meta.env.PUBLIC_CLARITY_ID ?? "").trim()
   <p id="formError" class="hidden text-sm text-red-600" role="alert">
     Por favor revisa los campos marcados.
   </p>
+
+  {privacidad && (
+    <>
+      <input type="hidden" name="politica_privacidad" value={`v${PRIVACY_POLICY_VERSION}`} />
+      <p id="cf-privacidad" class="text-xs leading-relaxed text-gray-500">
+        {PURPOSE_SUMMARY} Responsable:
+        {" "}{privacidad.owner.legalName.replace(/\.?$/, ".")} El formulario se envía a través de Formspree, Inc.
+        (Estados Unidos).{privacidad.marketing === false && " No los usamos para publicidad."} No
+        incluyas datos de salud u otros datos sensibles en el mensaje. Para ejercer tus derechos,
+        escribe a {privacidad.owner.privacyEmail || <mark class="bg-yellow-200">[correo para datos personales]</mark>}.
+        Más información en nuestra <a href={PRIVACY_PATH} class="text-[#003595] underline underline-offset-2">Política de privacidad</a>.
+      </p>
+    </>
+  )}
 
   <div>
     <button

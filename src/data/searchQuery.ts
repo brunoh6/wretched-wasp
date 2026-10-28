@@ -539,7 +539,12 @@ export function buildCatalogUrl(parsed: ParsedQuery): string | null {
 
   const rawText = parsed.raw.trim().replace(/\s+/g, ' ');
   // 'q' no filtra: sólo alimenta el "Resultados para …" del catálogo.
-  if (rawText) query.push(`q=${encodeURIComponent(rawText).replace(/%20/g, '+')}`);
+  // Un texto con @ o 7+ dígitos (correo, teléfono) no va a la URL: la URL
+  // llega a los registros del hosting y, si se activan, a GA4 y Clarity. Es
+  // la misma regla que el evento «busqueda» de BaseLayout.
+  if (rawText && !/@|(\d[\s.-]?){7,}/.test(rawText)) {
+    query.push(`q=${encodeURIComponent(rawText).replace(/%20/g, '+')}`);
+  }
 
   return `/productos/${category}/${query.length ? `?${query.join('&')}` : ''}`;
 }

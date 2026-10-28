@@ -77,10 +77,12 @@ jobs:
           PUBLIC_BUILD_ID: ${{ github.sha }}
           # Medición (README-deploy.md, sección 6): Google Ads, Google
           # Analytics 4 y Microsoft Clarity. Sin sus variables no se carga nada
-          # de Google ni de Microsoft; con cada ID, el HTML lleva su etiqueta y
-          # "npm run build" amplía la CSP de dist/.htaccess
-          # (scripts/csp-medicion.mjs). Son variables, no secrets: los IDs y
-          # las etiquetas se ven en el HTML publicado.
+          # de Google ni de Microsoft. Hoy cualquiera de estos IDs DETIENE la
+          # compilación mientras CONSENT_BANNER_READY sea false
+          # (src/data/measurement.ts): falta el aviso de cookies. Con el aviso
+          # listo, cada ID añade su etiqueta y "npm run build" amplía la CSP de
+          # dist/.htaccess (scripts/csp-medicion.mjs). Son variables, no
+          # secrets: los IDs y las etiquetas se ven en el HTML publicado.
           PUBLIC_GOOGLE_ADS_ID: ${{ vars.GOOGLE_ADS_ID }}
           PUBLIC_ADS_LABEL_WHATSAPP: ${{ vars.ADS_LABEL_WHATSAPP }}
           PUBLIC_ADS_LABEL_FORMULARIO: ${{ vars.ADS_LABEL_FORMULARIO }}

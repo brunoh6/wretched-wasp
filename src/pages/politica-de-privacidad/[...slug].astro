@@ -1,0 +1,442 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import { contactInfo } from "../../data/contactInfo";
+import { measurementEnabled } from "../../data/measurement";
+import {
+  PRIVACY_POLICY_ENABLED,
+  PRIVACY_PREVIEW,
+  PRIVACY_POLICY_VERSION,
+  PURPOSE_SUMMARY,
+  privacyPolicy,
+  visibleRecipients,
+  pendingItems
+} from "../../data/privacy";
+
+/*
+ * Ruta dinámica por la misma razón que certificaciones/[...slug].astro: sólo
+ * así getStaticPaths() decide en el build si /politica-de-privacidad/ existe.
+ * Publicada o en vista previa (src/data/privacy.ts); si no, no se emite.
+ */
+export async function getStaticPaths() {
+  if (!PRIVACY_POLICY_ENABLED && !PRIVACY_PREVIEW) return [];
+  return [{ params: { slug: undefined } }];
+}
+
+const p = privacyPolicy;
+const owner = p.owner;
+const pending = PRIVACY_PREVIEW ? pendingItems() : [];
+const anyMeasurement = measurementEnabled.ga4 || measurementEnabled.clarity || measurementEnabled.ads;
+// En vista previa se ven también los apartados de medición, con su condición.
+const show = {
+  ga4: measurementEnabled.ga4 || PRIVACY_PREVIEW,
+  clarity: measurementEnabled.clarity || PRIVACY_PREVIEW,
+  ads: measurementEnabled.ads || PRIVACY_PREVIEW
+};
+const measurementOn = anyMeasurement || PRIVACY_PREVIEW;
+const transfers = visibleRecipients.filter((recipient) => !/^Perú/.test(recipient.country));
+
+const sections = [
+  ["responsable", "Quién es responsable de tus datos"],
+  ["datos", "Qué datos tratamos"],
+  ["finalidades", "Para qué los usamos"],
+  ["destinatarios", "Quién más los recibe"],
+  ["transferencias", "Transferencias fuera del Perú"],
+  ["conservacion", "Cuánto tiempo los guardamos"],
+  ["cookies", "Cookies y tecnologías parecidas"],
+  ["derechos", "Tus derechos y cómo ejercerlos"],
+  ["menores", "Menores de edad"],
+  ["seguridad", "Cómo los protegemos"],
+  ["cambios", "Cambios en esta política"]
+];
+---
+
+<BaseLayout
+  title="Política de privacidad | DIHYC"
+  description="Cómo DIHYC trata los datos personales de quienes visitan su sitio web o le escriben: qué datos, para qué, quién los recibe y cómo ejercer tus derechos."
+  noindex={PRIVACY_PREVIEW}
+>
+  <section class="border-b border-gray-200 bg-gray-50">
+    <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-14">
+      <Breadcrumbs items={[{ label: "Política de privacidad" }]} />
+      <h1 class="text-3xl font-bold sm:text-4xl">Política de privacidad</h1>
+      <p class="mt-3 text-sm text-gray-600">
+        Versión {PRIVACY_POLICY_VERSION} · Última actualización:
+        {p.updated || <mark class="pendiente">[fecha de publicación]</mark>}
+      </p>
+    </div>
+  </section>
+
+  <article class="politica mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-14">
+    {PRIVACY_PREVIEW && (
+      <div class="borrador" role="note">
+        <p class="font-semibold">Borrador sin publicar: vista previa interna.</p>
+        <p>
+          Lo marcado en amarillo falta completar o confirmar ({pending.length}
+          {pending.length === 1 ? " dato" : " datos"}). Los recuadros naranjas sólo se publican
+          cuando se active esa herramienta. Este texto debe revisarlo un abogado antes de publicarse.
+        </p>
+      </div>
+    )}
+
+    <p class="lead">
+      En DIHYC cuidamos los datos personales de quienes visitan este sitio o nos escriben. Aquí
+      explicamos, en palabras simples, qué datos tratamos, para qué, quién más los recibe y cómo
+      puedes ejercer tus derechos, conforme a la Ley N.° 29733, Ley de Protección de Datos
+      Personales, y su Reglamento (Decreto Supremo N.° 016-2024-JUS).
+    </p>
+
+    <h2 id="resumen">En resumen</h2>
+    <dl class="resumen">
+      <dt>Responsable</dt>
+      <dd>{owner.legalName}{!owner.legalNameConfirmed && PRIVACY_PREVIEW && <mark class="pendiente">[confirmar con la ficha RUC]</mark>}, RUC {owner.ruc || <mark class="pendiente">[RUC]</mark>}.</dd>
+      <dt>Para qué</dt>
+      <dd>
+        {PURPOSE_SUMMARY}
+        {p.marketing === false && " No los usamos para enviarte publicidad."}
+        {p.marketing === null && <mark class="pendiente">[¿Se usarán para publicidad? Por definir.]</mark>}
+      </dd>
+      <dt>Quién más los recibe</dt>
+      <dd>Los proveedores que nos ayudan a recibir tus mensajes y a mantener el sitio, algunos fuera del Perú. No vendemos tus datos.</dd>
+      <dt>Tus derechos</dt>
+      <dd>
+        Puedes pedir información, acceso (también una copia para llevarla a otra empresa),
+        rectificación, supresión u oposición, o retirar tu consentimiento, escribiendo a
+        {" "}{owner.privacyEmail ? <a href={`mailto:${owner.privacyEmail}`}>{owner.privacyEmail}</a> : <mark class="pendiente">[correo para datos personales]</mark>}. Es gratis.
+      </dd>
+    </dl>
+
+    <nav class="contenido" aria-label="Contenido">
+      <p class="font-semibold text-gray-900">Contenido</p>
+      <ol>
+        {sections.map(([id, label]) => (
+          <li><a href={`#${id}`}>{label}</a></li>
+        ))}
+      </ol>
+    </nav>
+
+    <h2 id="responsable">1. Quién es responsable de tus datos</h2>
+    <p>
+      El responsable del tratamiento es <strong>{owner.legalName}</strong>
+      {!owner.legalNameConfirmed && PRIVACY_PREVIEW && <mark class="pendiente">[confirmar con la ficha RUC]</mark>}
+      (en este sitio, «DIHYC» o «H&C»), con RUC {owner.ruc || <mark class="pendiente">[RUC]</mark>} y
+      domicilio en {owner.address || <mark class="pendiente">[domicilio fiscal completo]</mark>}.
+    </p>
+    <p>
+      Para cualquier asunto sobre tus datos personales, incluido retirar un consentimiento o ejercer
+      tus derechos, escríbenos a
+      {" "}{owner.privacyEmail ? <a href={`mailto:${owner.privacyEmail}`}>{owner.privacyEmail}</a> : <mark class="pendiente">[correo para datos personales]</mark>}
+      {" "}o envía una carta a la dirección anterior.
+    </p>
+    <p>
+      Tus datos forman parte del banco de datos personales
+      «{p.database.name || <mark class="pendiente">[nombre del banco de datos]</mark>}», inscrito en
+      el Registro Nacional de Protección de Datos Personales con el código
+      {" "}{p.database.code || <mark class="pendiente">[código RNPDP]</mark>}.
+    </p>
+
+    <h2 id="datos">2. Qué datos tratamos</h2>
+    <h3>Los que nos das en el formulario de contacto</h3>
+    <ul>
+      <li><strong>Obligatorios:</strong> nombres y apellidos, preferencia de contacto (WhatsApp, llamada o correo), país, teléfono, correo electrónico y tu mensaje. Sin ellos no podemos responderte.</li>
+      <li>
+        <strong>Opcionales:</strong> DNI, carné de extranjería o RUC, y razón social. Los usamos
+        {" "}{p.documentPurpose || <mark class="pendiente">[para qué se usan: p. ej. preparar la cotización o el comprobante]</mark>}.
+        Si no los das, igual te respondemos.
+      </li>
+    </ul>
+    <p>
+      Te pedimos no incluir en el mensaje datos de salud ni otros datos sensibles: no los necesitamos.
+      Si escribes en nombre de una empresa, tratamos tus datos de contacto sólo para atender la
+      relación con ella.
+    </p>
+    <h3>Los que nos das cuando nos escribes o llamas</h3>
+    <p>
+      Si nos escribes por WhatsApp o por correo, o nos llamas, recibimos tu número o tu correo, tu
+      nombre o el de tu perfil y lo que nos cuentes.
+    </p>
+    <h3>Los que se generan al navegar</h3>
+    <p>
+      Como cualquier sitio web, el servidor registra datos técnicos de cada visita: tu dirección IP,
+      la página que pides (incluido lo que escribes en el buscador y los filtros del catálogo, que
+      van en la dirección de la página), tu navegador, la página desde la que llegas y la fecha y hora.
+      Si lo que buscas parece un correo o un teléfono, no lo ponemos en la dirección de la página.
+    </p>
+    <p>
+      No tenemos cuentas de usuario ni cobros en línea, y no pedimos datos sensibles.
+    </p>
+
+    <h2 id="finalidades">3. Para qué los usamos</h2>
+    <h3>Lo necesario para atenderte</h3>
+    <ul>
+      <li>Responder tu consulta y preparar la cotización que pides, por el medio que elijas.</li>
+      <li>Si nos compras, gestionar la venta, la entrega, la facturación y la atención posterior.</li>
+    </ul>
+    <p>
+      Para esto no necesitamos tu consentimiento, porque son datos necesarios para preparar o cumplir
+      la relación comercial que tú pides (Ley N.° 29733, artículo 14, inciso 5). Sí te informamos de
+      todo antes de que nos los des, como hacemos aquí y junto al formulario.
+    </p>
+    <h3>Para que el sitio funcione y esté seguro</h3>
+    <p>
+      Cuando visitas el sitio, el servidor usa tu dirección IP para entregarte cada página y guarda los
+      registros técnicos del punto 2 para detectar abusos y ataques.
+      {" "}{p.serverLogsBasis || <mark class="pendiente">[Base legal por definir con el abogado: el art. 14.5 sólo cubre a quien pide una cotización o compra.]</mark>}
+    </p>
+    <h3>Lo que sólo hacemos si lo aceptas</h3>
+    {p.marketing === false && <p>No usamos tus datos para enviarte publicidad ni novedades.</p>}
+    {p.marketing === null && (
+      <p><mark class="pendiente">[Por definir: si la empresa enviará publicidad o novedades. Si no, aquí dirá «No usamos tus datos para enviarte publicidad ni novedades». Si sí, hace falta antes una casilla aparte y sin marcar en el formulario.]</mark></p>
+    )}
+    {measurementOn && (
+      <div class:list={[!anyMeasurement && "condicional"]}>
+        {!anyMeasurement && <p class="condicion">Sólo se publica cuando se active la medición, con su aviso de cookies.</p>}
+        <p>
+          Medir cómo se usa el sitio y cuántos contactos llegan desde nuestros anuncios, con las
+          herramientas descritas en el punto 7, <strong>sólo si lo aceptas</strong> en el aviso de
+          cookies. Si no lo aceptas, el sitio funciona igual.
+        </p>
+      </div>
+    )}
+    <p>
+      No vendemos tus datos, no tomamos decisiones automatizadas ni elaboramos perfiles sobre ti, y no
+      usamos Google Ads para mostrarte anuncios según tu navegación. Fuera de lo que se indica en el
+      punto 4 para los servicios que actúan como responsables propios, no cedemos tus datos a otras
+      empresas para sus propios fines.
+    </p>
+
+    <h2 id="destinatarios">4. Quién más los recibe</h2>
+    <p>
+      Para funcionar nos apoyamos en estos proveedores. Algunos tratan los datos sólo por encargo
+      nuestro; otros (Google con la tipografía y el mapa, WhatsApp si nos escribes por ahí) los tratan
+      también como responsables, según sus propias políticas. Fuera de ellos, sólo entregaríamos datos
+      a una autoridad cuando la ley nos obligue.
+    </p>
+    <div class="proveedores">
+      {visibleRecipients.map((r) => (
+        <div class:list={["proveedor", !r.active && "condicional"]}>
+          {!r.active && <p class="condicion">Sólo se publica cuando se active esta herramienta, con su aviso de cookies.</p>}
+          <p class="font-semibold text-gray-900">
+            {r.name}{r.ruc && `, RUC ${r.ruc}`}{!r.confirmed && PRIVACY_PREVIEW && <mark class="pendiente">[confirmar]</mark>}
+          </p>
+          <dl>
+            <dt>Qué hace</dt><dd>{r.role}</dd>
+            <dt>Cómo</dt><dd>{r.controller ? "También los trata como responsable, según su propia política." : "Los trata sólo por encargo nuestro."}</dd>
+            <dt>Qué datos</dt><dd>{r.data}</dd>
+            <dt>Cuándo</dt><dd>{r.when}</dd>
+            <dt>País</dt><dd>{r.country}</dd>
+            <dt>Domicilio</dt><dd>{r.address || <mark class="pendiente">[domicilio del proveedor]</mark>}</dd>
+          </dl>
+          {(r.link || r.subprocessorsLink) && (
+            <p class="text-sm">
+              {r.link && <a href={r.link} target="_blank" rel="noopener noreferrer">Su política de privacidad</a>}
+              {r.link && r.subprocessorsLink && " · "}
+              {r.subprocessorsLink && <a href={r.subprocessorsLink} target="_blank" rel="noopener noreferrer">Sus subencargados</a>}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+
+    <h2 id="transferencias">5. Transferencias fuera del Perú</h2>
+    <p>
+      Algunos de esos proveedores tratan los datos fuera del Perú, lo que la ley llama «flujo
+      transfronterizo». Lo hacemos con las garantías que se indican y lo tenemos comunicado al
+      Registro Nacional de Protección de Datos Personales.
+    </p>
+    <ul>
+      {transfers.map((r) => (
+        <li class:list={[!r.active && "condicional"]}>
+          <strong>{r.name}</strong>, {r.country}: {r.safeguard || <mark class="pendiente">[garantía de la transferencia: por definir]</mark>}
+          {!r.active && <span class="condicion"> (Sólo cuando se active.)</span>}
+        </li>
+      ))}
+    </ul>
+
+    <h2 id="conservacion">6. Cuánto tiempo los guardamos</h2>
+    <ul>
+      <li><strong>Consultas y cotizaciones que no terminan en una compra:</strong> {p.retention.inquiries || <mark class="pendiente">[plazo, p. ej. 12 meses desde el último contacto]</mark>}.</li>
+      <li><strong>Datos de clientes:</strong> {p.retention.customers || <mark class="pendiente">[mientras dure la relación y luego el plazo que exijan las normas contables y tributarias]</mark>}.</li>
+      <li><strong>Copia del formulario en Formspree:</strong> {p.retention.formspree || <mark class="pendiente">[plazo]</mark>}.</li>
+      <li><strong>Registros técnicos del servidor:</strong> {p.retention.serverLogs || <mark class="pendiente">[plazo que aplica el hosting]</mark>}.</li>
+      {show.ga4 && (
+        <li class:list={[!measurementEnabled.ga4 && "condicional"]}>
+          <strong>Google Analytics:</strong> {p.retention.ga4 || <mark class="pendiente">[2 o 14 meses, según se configure]</mark>}.
+          {!measurementEnabled.ga4 && <span class="condicion"> (Sólo cuando se active.)</span>}
+        </li>
+      )}
+      {show.clarity && (
+        <li class:list={[!measurementEnabled.clarity && "condicional"]}>
+          <strong>Microsoft Clarity:</strong> las grabaciones, 30 días; las que marquemos como favoritas o
+          etiquetemos y una muestra al azar que elige Microsoft, hasta 9 meses. Los datos de clics y los
+          mapas de calor, 9 meses.
+          {!measurementEnabled.clarity && <span class="condicion"> (Sólo cuando se active.)</span>}
+        </li>
+      )}
+    </ul>
+    <p>Pasado ese tiempo, los eliminamos o los anonimizamos.</p>
+
+    <h2 id="cookies">7. Cookies y tecnologías parecidas</h2>
+    <p>
+      {!anyMeasurement && <><strong>Hoy este sitio no instala cookies.</strong>{" "}</>}
+      Al enviar el formulario, el sitio guarda en tu navegador la hora de los envíos para frenar el
+      spam: no incluye tus datos, sólo se guarda cuando tú envías el formulario y se borra al cerrar la
+      pestaña.
+    </p>
+    <p>
+      La tipografía del sitio se descarga de Google Fonts y el mapa de la página Contacto es de Google
+      Maps: al cargarlos, Google recibe tu dirección IP y tu navegador (ver el punto 4).
+    </p>
+    {measurementOn && (
+      <div class:list={[!anyMeasurement && "condicional"]}>
+        {!anyMeasurement && <p class="condicion">Desde aquí hasta el final del punto 7, sólo lo que esté activado, con su aviso de cookies.</p>}
+        <p>
+          Usamos estas herramientas <strong>sólo si las aceptas</strong> en el aviso que aparece al entrar.
+          Nada se instala antes de que elijas, y puedes cambiar tu elección cuando quieras en
+          «Configurar cookies», al pie de cada página. Si las rechazas, el sitio funciona igual.
+        </p>
+        {show.ga4 && (
+          <div class:list={[!measurementEnabled.ga4 && "condicional"]}>
+            <h3>Medición: Google Analytics</h3>
+            <p>
+              Nos dice cuántas personas visitan el sitio, qué páginas ven, qué buscan, qué filtros usan,
+              qué fichas técnicas abren y por qué medio nos contactan, para mejorar el catálogo. Instala
+              las cookies <code>_ga</code> y <code>_ga_…</code> (hasta 2 años) en este sitio. No enviamos a
+              Google lo que escribes en el formulario de contacto (nombre, teléfono, correo ni mensaje), y
+              las búsquedas que parecen un correo o un teléfono no se envían. Más información en
+              {" "}<a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">cómo usa Google los datos de los sitios que usan sus servicios</a>; también puedes
+              instalar el <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer">complemento de inhabilitación de Google Analytics</a>.
+            </p>
+          </div>
+        )}
+        {show.clarity && (
+          <div class:list={[!measurementEnabled.clarity && "condicional"]}>
+            <h3>Grabación de sesiones: Microsoft Clarity</h3>
+            <p>
+              Graba cómo se recorre el sitio (clics, desplazamiento y movimientos) y arma mapas de calor,
+              para ver qué confunde y mejorarlo. Lo que escribes en los campos se oculta antes de salir de
+              tu navegador. Instala las cookies <code>_clck</code> y <code>_clsk</code> en este sitio, y
+              Microsoft puede usar sus propias cookies en sus dominios (<code>CLID</code>, <code>MUID</code>,
+              {" "}<code>MR</code>, <code>SM</code> y <code>ANONCHK</code>), con las que reconoce tu navegador
+              en los sitios que usan Clarity y en sus servicios, incluida su publicidad. Microsoft actúa como
+              responsable de estos datos y los trata también según su
+              {" "}<a href="https://privacy.microsoft.com/es-es/privacystatement" target="_blank" rel="noopener noreferrer">declaración de privacidad</a>
+              {" "}(<a href="https://learn.microsoft.com/es-es/clarity/setup-and-installation/clarity-cookies" target="_blank" rel="noopener noreferrer">lista de cookies de Clarity</a>).
+            </p>
+            <p>
+              Microsoft no permite borrar las grabaciones de una sola persona, sólo el proyecto entero. Si
+              pides la supresión,
+              {" "}{p.claritySuppression || <mark class="pendiente">[por decidir: borraremos el proyecto completo de Clarity, o tus grabaciones se borrarán solas en los plazos del punto 6]</mark>}.
+              Para que dejemos de grabarte, retira tu consentimiento en «Configurar cookies».
+            </p>
+          </div>
+        )}
+        {show.ads && (
+          <div class:list={[!measurementEnabled.ads && "condicional"]}>
+            <h3>Publicidad: Google Ads</h3>
+            <p>
+              Cuenta cuántos contactos (WhatsApp, llamada o formulario) llegan desde nuestros anuncios en
+              Google, para saber si funcionan. Instala las cookies <code>_gcl_au</code> y, si llegas desde un
+              anuncio, <code>_gcl_aw</code> (90 días), y Google puede usar las suyas. La tenemos configurada
+              para que no se usen tus visitas para mostrarte anuncios personalizados. Puedes revisar cómo te
+              muestra anuncios Google en su <a href="https://myadcenter.google.com/" target="_blank" rel="noopener noreferrer">centro de anuncios</a>.
+            </p>
+          </div>
+        )}
+      </div>
+    )}
+
+    <h2 id="derechos">8. Tus derechos y cómo ejercerlos</h2>
+    <p>Respecto de tus datos, puedes:</p>
+    <ul>
+      <li><strong>Información y acceso:</strong> saber qué datos tenemos de ti, de dónde salen y qué hacemos con ellos, y recibir una copia, también en un formato que puedas llevar a otra empresa (portabilidad).</li>
+      <li><strong>Rectificación, actualización e inclusión:</strong> corregirlos, ponerlos al día o completarlos.</li>
+      <li><strong>Supresión:</strong> que los borremos cuando ya no sean necesarios o retires tu consentimiento.</li>
+      <li><strong>Oposición:</strong> que dejemos de usarlos para un fin concreto.</li>
+      <li><strong>Impedir el suministro:</strong> que no los entreguemos a terceros, salvo a los proveedores que los tratan por encargo nuestro.</li>
+      <li><strong>Tratamiento objetivo:</strong> no ser objeto de decisiones que te afecten tomadas sólo de forma automatizada. Hoy no tomamos decisiones así.</li>
+      <li><strong>Retirar tu consentimiento</strong> en cualquier momento, sin que afecte lo hecho antes.</li>
+    </ul>
+    <p>
+      <strong>Cómo:</strong> escribe a
+      {" "}{owner.privacyEmail ? <a href={`mailto:${owner.privacyEmail}`}>{owner.privacyEmail}</a> : <mark class="pendiente">[correo para datos personales]</mark>}
+      {" "}o envía una carta a {owner.address || <mark class="pendiente">[domicilio fiscal]</mark>}, con tu
+      nombre completo y una copia de tu DNI o documento de identidad (o los de tu representante y el
+      poder), qué pides, y un correo o dirección para responderte. Es gratis.
+    </p>
+    <p>
+      <strong>Plazos</strong> (en días hábiles): te respondemos en 8 días si pides información, en 20 si
+      pides acceso o una copia y en 10 para los demás pedidos. Si nos falta algún dato, te lo pedimos
+      dentro de los primeros días. Cuando retiras tu consentimiento, dejamos de usar tus datos para ese
+      fin en un máximo de 10 días.
+    </p>
+    <p>
+      Si no te respondemos o no estás de acuerdo con la respuesta, puedes presentar una reclamación ante
+      la <a href="https://www.gob.pe/anpd" target="_blank" rel="noopener noreferrer">Autoridad Nacional de Protección de Datos Personales</a>
+      {" "}o acudir al Poder Judicial (proceso de hábeas data). Si sufres un daño por un incumplimiento
+      de la ley, puedes reclamar la indemnización que corresponda.
+    </p>
+
+    <h2 id="menores">9. Menores de edad</h2>
+    <p>
+      Este sitio y nuestros servicios están dirigidos a empresas y a personas mayores de edad. No
+      recogemos a sabiendas datos de menores. Si eres menor de 14 años, no nos envíes tus datos sin la
+      autorización de tus padres o tutores. Si detectamos datos de un menor sin esa autorización, los
+      borramos.
+    </p>
+
+    <h2 id="seguridad">10. Cómo los protegemos</h2>
+    <p>
+      El sitio funciona sólo con conexión cifrada (https). El acceso a los mensajes y a los sistemas que
+      los guardan está restringido a las personas que los necesitan para atenderte, con usuario y
+      contraseña, y nuestros proveedores tienen obligaciones de confidencialidad y seguridad. Ningún
+      sistema es infalible: si ocurriera un incidente que te afecte, te lo comunicaremos y actuaremos
+      según la ley.
+    </p>
+
+    <h2 id="cambios">11. Cambios en esta política</h2>
+    <p>
+      Si cambiamos esta política, publicaremos aquí la nueva versión con su fecha. Si el cambio afecta
+      a para qué usamos tus datos o a quién los recibe, además se lo avisaremos por correo a quienes
+      tengan una relación vigente con nosotros y, cuando haga falta, pediremos de nuevo el
+      consentimiento.
+    </p>
+
+    <p class="mt-10 text-sm text-gray-600">
+      ¿Dudas sobre esta política? Escríbenos a
+      {" "}{owner.privacyEmail ? <a href={`mailto:${owner.privacyEmail}`}>{owner.privacyEmail}</a> : <mark class="pendiente">[correo para datos personales]</mark>}.
+      Para consultas comerciales sigue usando {contactInfo.emails[1]} o el formulario de contacto.
+    </p>
+  </article>
+</BaseLayout>
+
+<style>
+  .politica { color: #374151; }
+  .politica .lead { font-size: 1.0625rem; line-height: 1.75; }
+  .politica h2 {
+    margin-top: 2.75rem; margin-bottom: 0.75rem; scroll-margin-top: 6rem;
+    font-size: 1.375rem; font-weight: 700; color: #111827;
+  }
+  .politica h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; color: #111827; }
+  .politica p, .politica li, .politica dd { line-height: 1.7; overflow-wrap: anywhere; }
+  .politica p + p { margin-top: 0.75rem; }
+  .politica ul { margin: 0.5rem 0 0.75rem; padding-left: 1.25rem; list-style: disc; }
+  .politica ol { margin-top: 0.5rem; padding-left: 1.25rem; list-style: decimal; }
+  .politica li + li { margin-top: 0.375rem; }
+  .politica a { color: #003595; text-decoration: underline; text-underline-offset: 2px; }
+  .politica code { font-size: 0.875em; background: #f3f4f6; padding: 0 0.25em; border-radius: 3px; }
+  .resumen { margin-top: 0.5rem; border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden; }
+  .resumen dt { padding: 0.75rem 1rem 0; font-weight: 600; color: #111827; }
+  .resumen dd { padding: 0.25rem 1rem 0.75rem; border-bottom: 1px solid #f3f4f6; }
+  .resumen dd:last-child { border-bottom: 0; }
+  .contenido { margin-top: 2rem; border-left: 3px solid #003595; padding-left: 1rem; }
+  .proveedores { display: grid; gap: 1rem; margin-top: 1rem; }
+  .proveedor { border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1rem; }
+  .proveedor dl { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.25rem 0.75rem; margin: 0.5rem 0; font-size: 0.9375rem; }
+  .proveedor dt { color: #6b7280; }
+  @media (max-width: 480px) { .proveedor dl { grid-template-columns: 1fr; } .proveedor dt { margin-top: 0.375rem; } }
+  .pendiente { background: #fef08a; color: #713f12; padding: 0 0.25em; border-radius: 3px; }
+  .condicional { border-left: 4px solid #f59e0b; background: #fffbeb; padding: 0.5rem 0.75rem; border-radius: 0.25rem; }
+  .condicion { font-size: 0.8125rem; font-weight: 600; color: #b45309; }
+  .borrador { margin-bottom: 2rem; border: 2px solid #f59e0b; background: #fffbeb; border-radius: 0.75rem; padding: 1rem; color: #78350f; }
+</style>

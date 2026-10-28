@@ -255,6 +255,9 @@ concreta como `public_html/`.
 | El push falla por **workflow scope** | Ver 1.5. |
 | *Compilar* falla con `PUBLIC_GOOGLE_ADS_ID=… no tiene la forma AW-123456789` (o con una etiqueta de conversión) | La variable `GOOGLE_ADS_ID` (o `ADS_LABEL_…`) está mal copiada: sin espacios, sin comillas, el ID empieza por `AW-`. Corregirla y **Run workflow** (sección 6). |
 | *Compilar* falla con `PUBLIC_GA4_ID=… no tiene la forma G-XXXXXXXXXX` o `PUBLIC_CLARITY_ID=… no tiene la forma…` | La variable `GA4_ID` o `CLARITY_ID` está mal copiada: GA4 es el «ID de medición» (`G-` y mayúsculas/números, no el número de la propiedad); Clarity, las 10 letras minúsculas y números del proyecto. Corregirla y **Run workflow** (sección 6). |
+| *Compilar* falla con «Google Ads, GA4 o Clarity tienen su variable puesta, pero la web todavía no tiene el aviso de cookies…» | Alguien creó `GOOGLE_ADS_ID`, `GA4_ID` o `CLARITY_ID` antes de que exista el aviso de cookies (sección 6). Mientras siga así **no se publica ningún cambio**, tampoco los guardados del panel. Borrar la variable (Settings → Variables) y **Run workflow**. |
+| *Compilar* falla con «La política de privacidad está activada pero le falta: …» | Se puso `PRIVACY_POLICY_ENABLED = true` con datos pendientes. Completar lo que lista en `src/data/privacy.ts` o volver a ponerlo en `false`. |
+| *Compilar* falla con «ga4 está encendido, pero la política v… dice lo contrario» (o clarity, ads) | Se encendió o apagó una herramienta de medición con la política publicada. Antes hay que actualizar la inscripción en el RNPDP, la versión y la fecha de la política, y `POLICY_COVERS_MEASUREMENT` en `src/data/privacy.ts`. |
 
 ---
 
@@ -264,28 +267,45 @@ El sitio ya está preparado para medir tres cosas, cada una con su herramienta.
 Las tres están **apagadas**: mientras no se active ninguna, el sitio **no carga
 nada de Google ni de Microsoft** (sólo lo de siempre: la tipografía de Google
 Fonts y el mapa de Contacto) y los clics sólo quedan anotados dentro del
-navegador del visitante. Activar cada una es crear una variable en GitHub y
-volver a publicar; no hay que tocar código. Se pueden activar por separado y en
-cualquier orden.
+navegador del visitante. Una vez cumplidos los dos requisitos de abajo,
+activar cada una es crear una variable en GitHub y volver a publicar. Se
+pueden activar por separado y en cualquier orden.
 
 | Herramienta | Para qué sirve | Variable de GitHub |
 |---|---|---|
 | **Google Ads** | Saber qué anuncios traen contactos (conversiones) para que Google puje mejor. | `GOOGLE_ADS_ID` y `ADS_LABEL_…` |
 | **Google Analytics 4** (GA4) | Cuánta gente entra, de dónde viene y cuántos llegan a pedir cotización (embudo). | `GA4_ID` |
-| **Microsoft Clarity** | Ver grabaciones anónimas de las visitas y mapas de calor: dónde hacen clic, hasta dónde bajan, dónde se traban. | `CLARITY_ID` |
+| **Microsoft Clarity** | Ver grabaciones de las visitas y mapas de calor: dónde hacen clic, hasta dónde bajan, dónde se traban. | `CLARITY_ID` |
 
-> ⚠ **Antes de activar cualquiera** tiene que estar publicada en el sitio la
-> **Política de privacidad**, y debe decir que el sitio usa **cookies**,
-> **Google Analytics** (estadísticas de visitas), la etiqueta de **Google Ads**
-> (resultados de la publicidad) y **Microsoft Clarity**, que **graba de forma
-> anónima cómo se usa la página** (clics, desplazamiento; lo que se escribe en
-> el formulario nunca se graba). Google y Microsoft piden informar de ello a los
-> visitantes, y la ley peruana de datos personales (Ley 29733) exige el aviso
-> de privacidad. Hoy el sitio no tiene esa página: sin ella, no activar.
+> ⚠ **Antes de activar cualquiera hacen falta DOS cosas, y hoy no existe
+> ninguna:**
+>
+> 1. **La Política de privacidad publicada.** El borrador ya está en el sitio,
+>    apagado (`src/data/privacy.ts`, con los pasos para publicarlo). Sus
+>    apartados de Google Analytics, Clarity y Google Ads ya están escritos y
+>    se muestran cuando se activa cada herramienta, pero encender una cambia
+>    la política: antes hay que actualizar la inscripción en el RNPDP, subir la
+>    versión y la fecha y marcarla en `POLICY_COVERS_MEASUREMENT` (si no, la
+>    publicación se detiene).
+> 2. **Un aviso de cookies** con «Aceptar», «Rechazar» y «Configurar», con el
+>    mismo peso visual, que no cargue ninguna de las tres hasta que el
+>    visitante la acepte y que deje cambiar la elección desde el pie de página.
+>    Todavía no está construido. Con la Ley 29733 y su Reglamento
+>    (DS 016-2024-JUS), estas herramientas tratan identificadores en línea y
+>    necesitan el **consentimiento previo** del visitante. La ANPD ya multó
+>    por instalar cookies sin una acción positiva del usuario (RD
+>    100-2024-JUS/DGTAIPD): no basta con avisar ni con «si sigues navegando,
+>    aceptas».
+>
+> Para que nadie las encienda por error, **la publicación se detiene** si
+> existe `GOOGLE_ADS_ID`, `GA4_ID` o `CLARITY_ID` mientras
+> `CONSENT_BANNER_READY` siga en `false` (`src/data/measurement.ts`). Ese
+> interruptor pasa a `true` sólo cuando el aviso exista y cargue cada
+> herramienta después de que el visitante la acepte.
+>
 > Clarity, además, no debe usarse en sitios dirigidos a menores de 18 años, y
-> para visitantes de Europa pide consentimiento previo: el sitio está pensado
-> para empresas de Perú, pero si algún día se apunta a Europa hay que añadir un
-> aviso de cookies.
+> Microsoft pide no llamar «anónimas» a sus grabaciones: tratan
+> identificadores.
 
 ### Qué se mide
 
@@ -349,6 +369,9 @@ nombre a veces; la ruta suele ser esta:
    **No** hay que pegar ese código en ningún sitio: el sitio ya lo trae.
 
 #### Paso 2. Crear las variables en GitHub
+
+Sólo después de cumplir los dos requisitos del inicio de esta sección; si no,
+la compilación se detiene a propósito y no se publica nada.
 
 Repositorio → **Settings** → **Secrets and variables** → **Actions** →
 pestaña **Variables** → *New repository variable*, una por una:
@@ -420,7 +443,8 @@ de la empresa (los nombres de los menús pueden variar un poco):
 
 #### Paso 2. Variable y publicación
 
-Crear la variable **`GA4_ID`** = `G-XXXXXXXXXX` (igual que en A, paso 2) y
+Sólo después de cumplir los dos requisitos del inicio de esta sección. Crear
+la variable **`GA4_ID`** = `G-XXXXXXXXXX` (igual que en A, paso 2) y
 **Run workflow**. En la ejecución debe verse:
 
 - *Compilar y validar*: `Google Analytics 4 G-…: etiqueta en el HTML y CSP ampliada.`
@@ -494,8 +518,9 @@ Google para los dos.
 
 #### Paso 2. Variable y publicación
 
-Crear la variable **`CLARITY_ID`** con ese ID y **Run workflow**. En la
-ejecución debe verse:
+Sólo después de cumplir los dos requisitos del inicio de esta sección. Crear
+la variable **`CLARITY_ID`** con ese ID y **Run workflow**. En la ejecución
+debe verse:
 
 - *Compilar y validar*: `Clarity …: código en el HTML, formulario enmascarado y CSP ampliada.`
 - *Probar el sitio en vivo*: `✅ la CSP en vivo permite Clarity`.
@@ -565,6 +590,11 @@ busca la gente entre lo que sí hay),
 
 ### Para quien toque el código
 
+- `src/data/measurement.ts`: lee y valida los IDs (`AW-` + números, `G-` +
+  mayúsculas y números, Clarity: 10 minúsculas y números; uno mal copiado hace
+  fallar la compilación) y detiene la compilación si hay alguno mientras
+  `CONSENT_BANNER_READY` sea `false`. La política de privacidad lo usa para
+  mostrar sólo los apartados de lo que está encendido.
 - `src/layouts/BaseLayout.astro`: con `PUBLIC_GOOGLE_ADS_ID` y/o
   `PUBLIC_GA4_ID` carga **una** etiqueta de Google (gtag.js) al principio del
   `<head>` y hace un `gtag('config', …)` por ID, como indica
@@ -572,8 +602,10 @@ busca la gente entre lo que sí hay),
   el `config` de GA4 envía el `page_view`. Con `PUBLIC_CLARITY_ID`, el código
   oficial de Clarity
   ([guía](https://learn.microsoft.com/clarity/setup-and-installation/clarity-setup)).
-  Los IDs se validan al compilar (`AW-` + números, `G-` + mayúsculas y números,
-  Clarity: 10 minúsculas y números): uno mal copiado hace fallar la compilación.
+  Antes de los `config` fija `allow_ad_personalization_signals: false` y
+  `allow_google_signals: false`: sin remarketing ni Google Signals, como dice
+  la política de privacidad. Activarlos exige cambiar esa línea, la política y
+  la categoría «Publicidad» del aviso de cookies.
 - En todas las páginas hay un único escucha (delegado en `document`):
   - en un clic a `wa.me` / `api.whatsapp.com`, en un `tel:` o en el evento
     `document.dispatchEvent(new CustomEvent("dihyc:conversion", { detail: { tipo: "formulario" } }))`
@@ -601,10 +633,13 @@ busca la gente entre lo que sí hay),
   [Microsoft](https://learn.microsoft.com/clarity/setup-and-installation/clarity-csp)
   (`*.clarity.ms` y `c.bing.com`)—. Sin IDs no toca nada; correrlo dos veces
   deja el mismo archivo. `public/.htaccess` no cambia.
-- Para probar en local:
+- Para probar en local hay que poner antes `CONSENT_BANNER_READY = true` en una
+  copia de `src/data/measurement.ts` (sin eso la compilación se detiene a
+  propósito):
   `PUBLIC_GOOGLE_ADS_ID=AW-000000000 PUBLIC_GA4_ID=G-TEST000000 PUBLIC_CLARITY_ID=abcde12345 npm run build`.
   Esas compilaciones de prueba no se suben: la publicación siempre compila en
-  GitHub.
+  GitHub. La CSP sola se puede probar sin compilar, como hace
+  `scripts/probar-htaccess.sh`: `PUBLIC_GA4_ID=G-TEST000000 node scripts/csp-medicion.mjs dist`.
 
 ---
 

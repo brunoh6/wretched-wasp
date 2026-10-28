@@ -3,6 +3,8 @@ import { contactInfo, telHref } from "../data/contactInfo";
 import { visibleCategories } from "../data/categories";
 // Igual que en el Header: el enlace sólo existe si la sección está publicada.
 import { CERTIFICATIONS_ENABLED } from "../data/certifications";
+// La política de privacidad, igual: sin publicar no hay enlace.
+import { PRIVACY_VISIBLE, PRIVACY_PATH } from "../data/privacy";
 
 const year = new Date().getFullYear();
 
@@ -144,6 +146,8 @@ const links = [
   </div>
 
   <div class="border-t border-white/10 py-5 text-center text-xs text-gray-400">
-    © {year} DIHYC. Todos los derechos reservados.
+    © {year} DIHYC. Todos los derechos reservados.{PRIVACY_VISIBLE && (
+      <> · <a href={PRIVACY_PATH} class="underline underline-offset-2 transition hover:text-white">Política de privacidad</a></>
+    )}
   </div>
 </footer>

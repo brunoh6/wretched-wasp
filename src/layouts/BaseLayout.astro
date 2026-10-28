@@ -6,6 +6,7 @@ import WhatsAppButton from "../components/WhatsAppButton.astro";
 import { getImage } from "astro:assets";
 import ogFoto from "../assets/hero/slide3.png";
 import { searchIndex, SEARCH_SYNONYMS, popularSearches } from "../data/searchIndex";
+import { adsId, ga4Id, clarityId, adsEtiquetas } from "../data/measurement";
 
 // El índice viaja una sola vez por página. Vive aquí y no en SearchBar porque
 // el Header monta el buscador dos veces (escritorio y móvil) y el JSON se
@@ -61,42 +62,11 @@ const ogImage = site ? new URL(ogImageAsset.src, site).href : ogImageAsset.src;
 // emite "local". Es pública a propósito: un SHA de commit no es un secreto.
 const buildId = import.meta.env.PUBLIC_BUILD_ID ?? "local";
 
-// Medición: Google Ads, Google Analytics 4 y Microsoft Clarity (README-deploy.md,
-// sección 6). Cada una se activa SÓLO con su variable del build; sin ninguna no
-// se carga nada de Google ni de Microsoft y la página sólo lleva el escucha de
-// abajo, que deja los eventos en window.dataLayer. Los mismos IDs amplían la
-// CSP de dist/.htaccess (scripts/csp-medicion.mjs): si se cambia una
-// validación aquí, cambiarla allí. Acceso estático a cada variable: Vite sólo
-// sustituye `import.meta.env.X` escrito tal cual.
-const limpiar = (valor: unknown) => String(valor ?? "").trim();
-const adsId = limpiar(import.meta.env.PUBLIC_GOOGLE_ADS_ID);
-const ga4Id = limpiar(import.meta.env.PUBLIC_GA4_ID);
-const clarityId = limpiar(import.meta.env.PUBLIC_CLARITY_ID);
-const adsEtiquetas = {
-  whatsapp: limpiar(import.meta.env.PUBLIC_ADS_LABEL_WHATSAPP),
-  formulario: limpiar(import.meta.env.PUBLIC_ADS_LABEL_FORMULARIO),
-  llamada: limpiar(import.meta.env.PUBLIC_ADS_LABEL_LLAMADA)
-};
-// Un valor mal copiado debe parar el build: si no, la campaña arrancaría sin
-// medir y nadie lo notaría hasta ver cero conversiones o cero visitas.
-if (adsId && !/^AW-\d+$/.test(adsId)) {
-  throw new Error(`PUBLIC_GOOGLE_ADS_ID="${adsId}" no tiene la forma AW-123456789`);
-}
-for (const [tipo, etiqueta] of Object.entries(adsEtiquetas)) {
-  if (etiqueta && !/^[A-Za-z0-9_-]+$/.test(etiqueta)) {
-    throw new Error(`La etiqueta de conversión de ${tipo} ("${etiqueta}") sólo puede llevar letras, números, - y _`);
-  }
-}
-// GA4: el «ID de medición» del flujo web (G- y mayúsculas/números). El ID de
-// la propiedad o del flujo (sólo números) NO sirve.
-if (ga4Id && !/^G-[A-Z0-9]+$/.test(ga4Id)) {
-  throw new Error(`PUBLIC_GA4_ID="${ga4Id}" no tiene la forma G-XXXXXXXXXX (el «ID de medición» del flujo web)`);
-}
-// Clarity: el «ID del proyecto», 10 letras minúsculas y números (p. ej. el
-// proyecto de demostración de la documentación de Microsoft, 3t0wlogvdz).
-if (clarityId && !/^[a-z0-9]{10}$/.test(clarityId)) {
-  throw new Error(`PUBLIC_CLARITY_ID="${clarityId}" no tiene la forma de un ID de proyecto de Clarity (10 letras minúsculas y números)`);
-}
+// Medición: Google Ads, Google Analytics 4 y Microsoft Clarity. Los IDs, su
+// validación y el freno «sin aviso de cookies no se enciende» viven en
+// src/data/measurement.ts; sin ninguno no se carga nada de Google ni de
+// Microsoft y la página sólo lleva el escucha de abajo, que deja los eventos en
+// window.dataLayer.
 // Una sola etiqueta de Google (gtag.js) para Ads y GA4: se carga con el primer
 // ID y cada producto se configura con su propio "config"
 // (developers.google.com/tag-platform/gtagjs/install). Ads va primero para que
@@ -118,12 +88,17 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
             principio del <head> de cada página, cargada UNA vez y con un
             "config" por ID. El "config" de GA4 envía por sí solo el page_view de cada
             página. define:vars envuelve el código en una función, por eso gtag
-            se asigna a window en vez de declararse con "function". */}
+            se asigna a window en vez de declararse con "function".
+            Sin publicidad personalizada ni Google Signals: así la política de
+            privacidad puede decir que no se usan las visitas para mostrar
+            anuncios (remarketing). Activarlos exige cambiar esta línea, la
+            política y la categoría del aviso de cookies. */}
         <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gtagIds[0]}`}></script>
         <script is:inline define:vars={{ gtagIds }}>
           window.dataLayer = window.dataLayer || [];
           window.gtag = function () { window.dataLayer.push(arguments); };
           window.gtag("js", new Date());
+          window.gtag("set", { allow_ad_personalization_signals: false, allow_google_signals: false });
           gtagIds.forEach(function (id) { window.gtag("config", id); });
         </script>
       </>
