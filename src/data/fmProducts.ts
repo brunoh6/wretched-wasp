@@ -62,6 +62,9 @@ export type FmCatalogEntry = {
   /** Ruta de la foto. Vacío = foto compartida de respaldo (FALLBACK_IMAGES). */
   image?: string;
   sheets?: FmCatalogSheet[];
+  /** Texto del panel sobre el producto (Tuberías); lo lee productTexts.ts. */
+  title?: string;
+  description?: string;
   /** Clave oculta: slug de webCategory + "-" + slug de la marca (fmEntryKey). */
   key: string;
 };

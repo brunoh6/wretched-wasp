@@ -99,6 +99,9 @@ export type CatalogOverride = Omit<CatalogPresentation, "notes"> & {
   notes?: string;
   label?: string;
   family?: string;
+  /** Texto del panel sobre el producto; lo lee productTexts.ts, no la tabla. */
+  title?: string;
+  description?: string;
 };
 
 /** Producto listo para pintar: especificación + datos heredados del CMS. */
@@ -134,6 +137,9 @@ const overrides = (
     ? overridesRaw
     : ((overridesRaw as { overrides?: unknown[] } | null)?.overrides ?? [])
 ) as CatalogOverride[];
+
+/** Las filas de overrides.json tal cual (los textos de producto, ver productTexts.ts). */
+export const catalogOverrides: readonly CatalogOverride[] = overrides;
 
 /** Índice por groupKey para no recorrer la lista de overrides en cada producto. */
 const overridesByGroupKey = new Map<string, CatalogOverride>(

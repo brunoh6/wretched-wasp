@@ -12,6 +12,8 @@
         "key": "todas"
       }
     ],
+    "title": "Tubería de polietileno para redes contra incendio",
+    "description": "Pavco Wavin fabrica tuberías de PEAD / HDPE con certificación FM a partir de resina clasificada como PE 4710 según ASTM F714 y PE 100 según ISO 4427. Para utilizar el certificado FM, los productos fabricados en sus instalaciones cumplen con la norma FM1613, superando las pruebas exigidas por Factory Mutual y manteniendo los registros de los resultados de las pruebas y controles de calidad realizadas.\n\nLos productos con la etiqueta Factory Mutual (FM) demuestran que cumplen con los requisitos de un sistema de protección contra incendios y que seguirán cumpliéndolos en caso de incendio.",
     "key": "tubo-pavco"
   },
   {
@@ -27,6 +29,8 @@
         "key": "todas"
       }
     ],
+    "title": "",
+    "description": "La tubería PE4710 de WL Plastics aprobada por FM está recomendada por FM Approvals para ser utilizada en sistemas subterráneos de protección contra incendios de acuerdo con la Norma de aprobación de FM, número de clase 1613-17, Polyethylene (PE) Pipe and Fittings for Underground Fire Protection (Tuberías y accesorios de polietileno para sistemas subterráneos de protección contra incendios). La tubería PE4710 de WL Plastics aprobada por FM se fabrica con un compuesto de polietileno de alta densidad (High-density polyethylene, HDPE) con certificación NSF-61 que cumple o supera las designaciones de materiales PE3408 y PE3608. El compuesto PE4710 de WL Plastics, según WL106, cumple o supera las clasificaciones de celda PE445574C y PE345464C según ASTM D3350.",
     "key": "tubo-wl-plastics"
   },
   {
@@ -42,6 +46,8 @@
         "key": "todas"
       }
     ],
+    "title": "",
+    "description": "La tubería de polietileno de EXTRUCOL S.A. es utilizada para redes contraincendios enterradas, para una presión de trabajo de hasta 250 PSI, fabricada bajo estándares normativos internacionales FM 1613 de FM APPROVALS y especificación dimensional de acuerdo con la norma UNE EN 12201-2 para tubería en milímetro y AWWA C906 para tubería en pulgadas.",
     "key": "tubo-extrucol"
   },
   {
@@ -63,6 +69,8 @@
         "key": "sdr7"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "brida-backing-ring-integrity"
   },
   {
@@ -84,6 +92,8 @@
         "key": "clase-335"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "brida-backing-ring-georg-fischer"
   },
   {
@@ -105,6 +115,8 @@
         "key": "sdr9"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "codo-90-integrity"
   },
   {
@@ -120,6 +132,8 @@
         "key": "todas"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "codo-90-georg-fischer"
   },
   {
@@ -141,6 +155,8 @@
         "key": "sdr9"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "codo-45-integrity"
   },
   {
@@ -156,6 +172,8 @@
         "key": "todas"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "codo-45-georg-fischer"
   },
   {
@@ -177,6 +195,8 @@
         "key": "sdr9"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "flange-adapter-integrity"
   },
   {
@@ -192,6 +212,8 @@
         "key": "todas"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "flange-adapter-georg-fischer"
   },
   {
@@ -213,6 +235,8 @@
         "key": "sdr9"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "reduccion-integrity"
   },
   {
@@ -228,6 +252,8 @@
         "key": "todas"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "reduccion-georg-fischer"
   },
   {
@@ -249,6 +275,8 @@
         "key": "sdr9"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "tapon-integrity"
   },
   {
@@ -270,6 +298,8 @@
         "key": "sdr9"
       }
     ],
+    "title": "",
+    "description": "",
     "key": "tee-integrity"
   }
 ]

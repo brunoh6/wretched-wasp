@@ -38,7 +38,8 @@
 // fabricante y darle ficha técnica.
 
 import { allProducts, type CatalogProduct } from "./catalog";
-import { allFmProducts } from "./fmProducts";
+import { allFmProducts, fmEntryKey } from "./fmProducts";
+import { fmTextKey } from "./productTexts";
 
 /**
  * Origen de los datos de la fila. Hoy coincide 1:1 con `line` (cada línea
@@ -79,6 +80,8 @@ export type CatalogDisplayItem = {
   productImage?: string;
   /** Sólo FM: la foto es la de respaldo compartida (un codo para todas las conexiones). */
   productImageIsFallback?: boolean;
+  /** Clave de su texto del panel (productTexts.ts): la entrada de fm.json o el grupo de agua. */
+  textKey: string;
   webSku?: string;
   visible: boolean;
   notes?: string;
@@ -139,6 +142,7 @@ function expandFmItems(): CatalogDisplayItem[] {
     rawMaterial: product.rawMaterial,
     productImage: product.productImage,
     productImageIsFallback: product.productImageIsFallback,
+    textKey: fmTextKey(fmEntryKey(product)),
     technicalSheet: normalizeTechnicalSheet(product.technicalSheet),
     suggestedUrl: product.suggestedUrl,
     webSku: product.webSku,
@@ -370,6 +374,7 @@ function expandAguaItems(): CatalogDisplayItem[] {
       // llegan vacías y la tabla pinta "Ficha pendiente".
       technicalSheet: optional(first.technicalSheet),
       productImage: optional(first.image),
+      textKey: first.groupKey,
       webSku: aguaGroupSku(aguaGroupParts(first)),
       visible: first.visible,
       notes: optional(first.notes)

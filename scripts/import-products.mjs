@@ -79,7 +79,16 @@ const KNOWN_OPTIONS = new Set([ALLOW_ORPHANS_OPTION]);
  * diffs de pura reordenación. Las claves que no están aquí (p. ej. `notes`,
  * que salió del panel) se conservan detrás, en su orden original.
  */
-const OVERRIDE_KEYS = ["label", "family", "visible", "technicalSheet", "image", "groupKey"];
+const OVERRIDE_KEYS = [
+  "label",
+  "family",
+  "visible",
+  "technicalSheet",
+  "image",
+  "title",
+  "description",
+  "groupKey"
+];
 
 /** Prefijo del `label` de una fila huérfana conservada con --permitir-huerfanos. */
 const ORPHAN_LABEL_PREFIX = "(ya no está en el Excel) ";
@@ -430,6 +439,8 @@ function hasPanelData(override) {
     override?.visible === false ||
     Boolean(clean(override?.technicalSheet)) ||
     Boolean(clean(override?.image)) ||
+    Boolean(clean(override?.title)) ||
+    Boolean(clean(override?.description)) ||
     Boolean(clean(override?.notes))
   );
 }
@@ -448,6 +459,8 @@ function overrideRow({ label, family, groupKey }, previous = {}) {
     visible: previous.visible !== false,
     technicalSheet: typeof previous.technicalSheet === "string" ? previous.technicalSheet : "",
     image: typeof previous.image === "string" ? previous.image : "",
+    title: typeof previous.title === "string" ? previous.title : "",
+    description: typeof previous.description === "string" ? previous.description : "",
     groupKey
   };
 
@@ -466,6 +479,7 @@ function describePanelData(override) {
   if (clean(override?.technicalSheet)) parts.push(`ficha "${override.technicalSheet}"`);
   if (clean(override?.image)) parts.push(`foto "${override.image}"`);
   if (override?.visible === false) parts.push("OCULTO en la web");
+  if (clean(override?.title) || clean(override?.description)) parts.push("texto del producto");
   if (clean(override?.notes)) parts.push("notas");
   return parts.join(", ");
 }

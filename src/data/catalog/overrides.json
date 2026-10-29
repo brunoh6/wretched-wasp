@@ -5,6 +5,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|adaptador-hembra|cpvc-corzan|agua-caliente"
   },
   {
@@ -13,6 +15,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|adaptador-hembra|pvc|agua-fria"
   },
   {
@@ -21,6 +25,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|adaptador-macho|cpvc-corzan|agua-caliente"
   },
   {
@@ -29,6 +35,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|adaptador-macho|pvc|agua-fria"
   },
   {
@@ -37,6 +45,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|brida-ciega|cpvc-corzan|agua-caliente"
   },
   {
@@ -45,6 +55,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|brida-fija|cpvc-corzan|agua-caliente"
   },
   {
@@ -53,6 +65,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|brida-fija|pvc|agua-fria"
   },
   {
@@ -61,6 +75,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|brida-loca|cpvc-corzan|agua-caliente"
   },
   {
@@ -69,6 +85,8 @@
     "visible": true,
     "technicalSheet": "/assets/panel/fichas/especificaciones-brida-loca-pvc-georg-fischer.pdf",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|brida-loca|pvc|agua-fria"
   },
   {
@@ -77,6 +95,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|bushing|cpvc-corzan|agua-caliente"
   },
   {
@@ -85,6 +105,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|bushing|pvc|agua-fria"
   },
   {
@@ -93,6 +115,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|codo-45|cpvc-corzan|agua-caliente"
   },
   {
@@ -101,6 +125,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|codo-45|pvc|agua-fria"
   },
   {
@@ -109,6 +135,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|codo-90|cpvc-corzan|agua-caliente"
   },
   {
@@ -117,6 +145,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|codo-90|pvc|agua-fria"
   },
   {
@@ -125,6 +155,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|niple|cpvc-corzan|agua-caliente"
   },
   {
@@ -133,6 +165,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|niple|pvc|agua-fria"
   },
   {
@@ -141,6 +175,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|reduccion|cpvc-corzan|agua-caliente"
   },
   {
@@ -149,6 +185,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|reduccion|pvc|agua-fria"
   },
   {
@@ -157,6 +195,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|tapon-hembra|cpvc-corzan|agua-caliente"
   },
   {
@@ -165,6 +205,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|tapon-hembra|pvc|agua-fria"
   },
   {
@@ -173,6 +215,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|tapon-macho|pvc|agua-fria"
   },
   {
@@ -181,6 +225,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|tee|cpvc-corzan|agua-caliente"
   },
   {
@@ -189,6 +235,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|tee|pvc|agua-fria"
   },
   {
@@ -197,6 +245,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|union|cpvc-corzan|agua-caliente"
   },
   {
@@ -205,6 +255,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|union-simple|pvc|agua-fria"
   },
   {
@@ -213,6 +265,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|union-universal|cpvc-corzan|agua-caliente"
   },
   {
@@ -221,6 +275,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|union-universal|pvc|agua-fria"
   },
   {
@@ -229,6 +285,8 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|yee|cpvc-corzan|agua-caliente"
   },
   {
@@ -237,22 +295,28 @@
     "visible": true,
     "technicalSheet": "",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|yee|pvc|agua-fria"
   },
   {
     "label": "Tubo CPVC Corzan · Agua caliente",
     "family": "tuberias",
     "visible": true,
-    "technicalSheet": "",
+    "technicalSheet": "/assets/panel/fichas/ficha-tecnica-tubo-cpvc-corzan-sch-80-georg-fischer.pdf",
     "image": "/assets/panel/fotos/whatsapp-image-2026-10-28-at-20-25-49-2.webp",
+    "title": "Tubo CPVC Corzan® SCH-80",
+    "description": "El tubo Corzan® de Georg Fischer (GF) es un sistema de tuberías de CPVC (policloruro de vinilo clorado) SCH-80 para uso industrial diseñado especialmente para el transporte de fluidos a altas temperaturas y fluidos químicos corrosivos.\n\nGeorg Fischer produce estos sistemas principalmente bajo su línea comercial Sistemas ChlorFIT® CPVC Schedule 80 (SCH-80).\n\n• Resistencia térmica: Soporta de forma continua temperaturas de hasta 93 °C (200 °F) bajo presión.\n• Resistencia química extrema: Ideal para entornos corrosivos severos, ácidos, bases, agua clorada y procesos químicos industriales.\n• Cédulas disponibles: Se fabrica principalmente en SCH-80 (cédula 80) para máxima resistencia a la presión, aunque también está disponible en SCH-40.\n• En formato CPVC Corzan SCH-80 oscila habitualmente entre 1/4\" hasta 12\" de diámetro, en longitudes estándar de 6 metros aprox. (20 pies).",
     "groupKey": "agua|tuberias|tubo|cpvc-corzan|agua-caliente"
   },
   {
     "label": "Tubo PVC · Agua fría",
     "family": "tuberias",
     "visible": true,
-    "technicalSheet": "",
+    "technicalSheet": "/assets/panel/fichas/ficha-tecnica-tubo-pvc-sch-80-georg-fischer.pdf",
     "image": "/assets/panel/fotos/tubo-pvc.webp",
+    "title": "Tubo PVC SCH-80",
+    "description": "El tubo de PVC Schedule 80 (SCH-80 o Cédula 80) de Georg Fischer (GF Piping Systems) es un sistema de tuberías industriales de pared gruesa diseñado para soportar altas presiones y fluidos corrosivos.\n\n• Material: Compuesto de PVC rígido industrial de alta resistencia mecánica.\n• Espesor de pared: Mayor grosor en comparación con el Schedule 40, lo que le permite soportar mayores niveles de presión de trabajo.\n• Resistencia a la temperatura: Soporta hasta 60 °C (140 °F).\n• Soldadura por disolvente (cementado) en dos pasos.\n• Color: Gris industrial.\n• Fabricado bajo estándares internacionales como ASTM D-1784.",
     "groupKey": "agua|tuberias|tubo|pvc|agua-fria"
   }
 ]

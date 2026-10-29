@@ -119,6 +119,30 @@ La foto sale como **foto principal de la tabla de su marca** en el catálogo
 varios productos de una misma marca tienen foto, sale la del primero de la
 tabla. Mejor con el producto centrado y fondo claro.
 
+## 6 bis. Escribir el texto de un tubo
+
+Por ahora el texto solo se ve en **Tuberías**: sale en la tabla de la marca,
+debajo de su nombre y al lado de la foto. Los tubos de agua (PVC y CPVC) están
+en **Grupos de producto**; los de la línea contra incendio, en **Línea contra
+incendio (FM)**.
+
+1. Abra el producto (por ejemplo «Tubería HDPE FM · Pavco» o «Tubo PVC · Agua
+   fría»).
+2. Baje hasta **Título del texto (opcional)**, que sale en negrita, y **Texto
+   sobre el producto (opcional)**.
+3. Escriba o pegue el texto **como texto, no como imagen**: así lo lee Google.
+   - Para empezar otro párrafo, deje **una línea en blanco**.
+   - Para una lista, empiece cada línea con **•** o con **-** y un espacio. Si
+     una línea de la lista empieza con «Algo:», ese «Algo» sale en negrita.
+   - Hasta 2000 letras en el texto y 120 en el título.
+4. Pulse **Guardar**.
+
+En la web se ven unas líneas y el botón **Leer más**, que abre el texto entero.
+Si el texto es corto, sale entero y sin botón. Si una marca tiene varios
+productos con texto (Georg Fischer: CPVC y PVC), salen uno debajo del otro; el
+título ayuda a distinguirlos. El panel deja escribir texto también en las
+conexiones, pero ahí todavía no se muestra.
+
 ## 7. Ocultar o volver a mostrar un producto
 
 1. Abra el grupo.
@@ -328,8 +352,14 @@ miniatura y el nombre legible de cada grupo.
 - Campos `label`, `family` y `groupKey`: `widget: hidden`. No se ven y su valor
   se conserva al guardar. Los escribe el importador.
 - El orden de los campos en `config.yml` es el de las claves del JSON (`label,
-  family, visible, technicalSheet, image, groupKey`): un guardado sólo cambia
-  las líneas del grupo editado.
+  family, visible, technicalSheet, image, title, description, groupKey`): un
+  guardado sólo cambia las líneas del grupo editado. `scripts/import-products.mjs`
+  escribe las filas en ese mismo orden (`OVERRIDE_KEYS`).
+- `title` y `description`: el texto del producto (Parte 1, §6 bis). Opcionales,
+  sin `pattern` (no bloquean el guardado de los grupos sin texto) y con
+  `maxlength` 120 y 2000. Los lee `src/data/productTexts.ts`; por ahora sólo
+  los pinta Tuberías, escritos en el HTML (para los buscadores) y movidos por
+  el script a la cabecera de su marca.
 - Sin campo `notes`: el repositorio es público y las «notas internas» se
   podían leer en GitHub.
 
@@ -374,8 +404,9 @@ miniatura y el nombre legible de cada grupo.
   `family` mostraba «tuberias» sin tilde).
 - `preview_path: /productos/{{family}}/contra-incendio-fm/`.
 - El orden de los campos es el de las claves del JSON (`label, family,
-  visible, image, sheets[variant, technicalSheet, page, key], key`): un
-  guardado sólo cambia las líneas tocadas.
+  visible, image, sheets[variant, technicalSheet, page, key], title,
+  description, key`): un guardado sólo cambia las líneas tocadas. `title` y
+  `description` son el texto del producto, igual que en los grupos.
 
 **Tarjetas de portada** (`name: portada`, archivo `tarjetas`) es una lista
 bloqueada (`allow_add/remove/duplicate/reorder: false`). `slug`, `family` y

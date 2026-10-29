@@ -8,6 +8,7 @@ import {
   type CatalogDisplayItem
 } from "../../../data/catalogDisplayItems";
 import { getCatalogLanding, publishedCatalogLandings } from "../../../data/catalogLines";
+import { productTexts, type ProductText } from "../../../data/productTexts";
 
 // Una sola página para todo el catálogo de una familia:
 //   /productos/tuberias/                     -> linea: undefined (todas las líneas)
@@ -156,6 +157,25 @@ const brands = [
   ...new Set(items.map(i => i.brand).filter(Boolean))
 ].sort((a, b) => brandRank(a) - brandRank(b) || a.localeCompare(b, "es"));
 
+// Textos de producto del panel (título y descripción, ver productTexts.ts).
+// Por ahora sólo en Tuberías: van en la cabecera de cada marca, junto a la
+// foto grande (pedido de la empresa, 29-10-2026). Se escriben en el HTML, en
+// #product-texts, para que Google los lea sin ejecutar el script; el script
+// sólo los mueve a la cabecera de su marca. Uno por entrada o grupo, en el
+// orden de las marcas.
+const pageTexts: ProductText[] =
+  category === "tuberias"
+    ? [
+        ...new Map(
+          [...items]
+            .sort((a, b) => brandRank(a.brand) - brandRank(b.brand))
+            .filter(item => productTexts.has(item.textKey))
+            .map(item => [item.textKey, productTexts.get(item.textKey)!])
+        ).values()
+      ]
+    : [];
+const pageTextKeys = new Set(pageTexts.map(text => text.key));
+
 // Faceta "Producto": el nombre comercial (Tubo, Codo 90°, Tee...). Sale de los
 // mismos items que el resto de facetas para que barra lateral y hoja móvil
 // compartan exactamente el mismo origen de datos.
@@ -240,6 +260,9 @@ function toClientItem(item: CatalogDisplayItem) {
     client.productImage = item.productImage;
   }
   if (item.webSku) client.webSku = item.webSku;
+  // Sólo si el producto tiene texto en esta página: el script lo usa para
+  // poner cada texto en la cabecera de su marca.
+  if (pageTextKeys.has(item.textKey)) client.textKey = item.textKey;
 
   return client;
 }
@@ -645,6 +668,40 @@ const breadcrumbs = landing
             data-foto-marca={category === "tuberias" ? "grande" : undefined}
             data-foto-pieza={piecePhotos ? "si" : undefined}
           ></div>
+
+          {/* Textos de producto, escritos en el HTML para los buscadores. Con el
+               script, cada uno pasa a la cabecera de su marca y este bloque se
+               oculta; sin script se leen aquí, debajo. */}
+          {pageTexts.length > 0 && (
+            <div id="product-texts" class="mt-8 space-y-8">
+              {pageTexts.map(text => (
+                <section
+                  data-texto={text.key}
+                  class="max-w-3xl space-y-2 text-sm leading-relaxed text-gray-700 wrap-anywhere"
+                >
+                  {text.title && (
+                    <h3 class="text-base font-semibold text-gray-900">{text.title}</h3>
+                  )}
+                  {text.blocks.map(block =>
+                    block.type === "p" ? (
+                      <p>{block.text}</p>
+                    ) : (
+                      <ul class="list-disc space-y-1 pl-5">
+                        {block.items.map(item => (
+                          <li>
+                            {item.label && (
+                              <span class="font-medium text-gray-900">{item.label}:{" "}</span>
+                            )}
+                            {item.text}
+                          </li>
+                        ))}
+                      </ul>
+                    )
+                  )}
+                </section>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     )}
@@ -857,6 +914,103 @@ const BRAND_ORDER = JSON.parse(
 
 const container = document.getElementById("results");
 const BIG_BRAND_PHOTO = container?.dataset.fotoMarca === "grande";
+
+// Textos de producto (Tuberías): llegan escritos en #product-texts (así los
+// leen los buscadores). Aquí sólo se MUEVEN a la cabecera de su marca; antes
+// de repintar vuelven al almacén, que queda oculto con los de las marcas que
+// el filtro deja fuera.
+const TEXT_STORE = document.getElementById("product-texts");
+const TEXT_NODES = new Map(
+  [...(TEXT_STORE?.querySelectorAll("[data-texto]") || [])].map(node => [node.dataset.texto, node])
+);
+if (TEXT_STORE) TEXT_STORE.hidden = true;
+
+// Recortado a unas líneas con «Leer más», para que la tabla no quede muy
+// abajo (sobre todo en el celular). Si el texto cabe, o sólo sobran un par de
+// líneas, se ve entero y sin botón. Lo abierto sigue abierto al filtrar
+// (OPEN_TEXT_BRANDS), aunque la cabecera se vuelva a pintar.
+const TEXT_CLAMP = ["max-h-48", "overflow-hidden", "sm:max-h-60"];
+const OPEN_TEXT_BRANDS = new Set();
+
+// La caja va en la 1.ª columna, 2.ª fila (debajo del nombre y al lado de la
+// foto); en el celular ocupa el ancho entero. Fijada con col-start/row-start
+// para que no salte al hueco de la foto si ésta no carga.
+function renderProductTexts(keys, id, brand) {
+  return `
+    <div class="col-span-2 col-start-1 row-start-2 mt-4 min-w-0 sm:col-span-1" data-textos data-marca="${safeText(brand)}">
+      <div id="${id}" class="relative ${TEXT_CLAMP.join(" ")}" data-textos-cuerpo>
+        <div class="space-y-5">
+          ${keys.map(key => `<div data-texto-hueco="${safeText(key)}"></div>`).join("")}
+        </div>
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-white" data-textos-velo></div>
+      </div>
+      <button
+        type="button"
+        class="mt-2 text-sm font-medium text-[#003595] hover:underline"
+        aria-expanded="false"
+        aria-controls="${id}"
+        data-leer-mas
+      ><span data-leer-mas-texto>Leer más</span><span class="sr-only"> sobre ${safeText(brand)}</span></button>
+    </div>
+  `;
+}
+
+function placeProductTexts() {
+  container.querySelectorAll("[data-texto-hueco]").forEach(slot => {
+    const node = TEXT_NODES.get(slot.dataset.textoHueco);
+    if (node) slot.replaceWith(node);
+    else slot.remove();
+  });
+  fitProductTexts();
+}
+
+function setTextsOpen(box, open) {
+  const body = box.querySelector("[data-textos-cuerpo]");
+  const button = box.querySelector("[data-leer-mas]");
+  box.dataset.abierto = open ? "si" : "";
+  TEXT_CLAMP.forEach(name => body.classList.toggle(name, !open));
+  box.querySelector("[data-textos-velo]").hidden = open;
+  button.querySelector("[data-leer-mas-texto]").textContent = open ? "Leer menos" : "Leer más";
+  button.setAttribute("aria-expanded", String(open));
+}
+
+function fitProductTexts() {
+  container?.querySelectorAll("[data-textos]").forEach(box => {
+    const button = box.querySelector("[data-leer-mas]");
+    if (OPEN_TEXT_BRANDS.has(box.dataset.marca)) {
+      setTextsOpen(box, true);
+      button.hidden = false;
+      return;
+    }
+    setTextsOpen(box, false);
+    const body = box.querySelector("[data-textos-cuerpo]");
+    const fits = body.scrollHeight - body.clientHeight <= 48;
+    if (fits) body.classList.remove(...TEXT_CLAMP);
+    box.querySelector("[data-textos-velo]").hidden = fits;
+    button.hidden = fits;
+  });
+}
+
+container?.addEventListener("click", event => {
+  const button = event.target.closest?.("[data-leer-mas]");
+  if (!button) return;
+  const box = button.closest("[data-textos]");
+  const open = !OPEN_TEXT_BRANDS.has(box.dataset.marca);
+  if (open) OPEN_TEXT_BRANDS.add(box.dataset.marca);
+  else OPEN_TEXT_BRANDS.delete(box.dataset.marca);
+  // Al cerrar se vuelve a medir: si el ancho cambió con el texto abierto,
+  // quizá ya cabe entero y no hace falta el botón.
+  fitProductTexts();
+  if (!open) box.scrollIntoView({ block: "nearest" });
+});
+
+// El alto del texto cambia con el ancho y cuando termina de cargar la fuente.
+let fitTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(fitProductTexts, 150);
+});
+document.fonts?.ready.then(fitProductTexts);
 // Conexiones: columna «Pieza» con la foto y el nombre de cada pieza (Codo 90°,
 // Tee...) al lado de todas sus filas, porque mucha gente no sabe cómo es cada
 // conexión (pedido de la empresa, 28-10-2026). La cabecera de marca va sin foto.
@@ -1780,6 +1934,8 @@ const TABLE_CELL = PIECE_PHOTOS ? "px-3 py-3" : "px-3 py-3 xl:px-4";
 const QUOTE_COLUMN = "sticky right-0 shadow-[inset_1px_0_0_#e5e7eb]";
 
 function renderTables(items) {
+  TEXT_NODES.forEach(node => TEXT_STORE.appendChild(node));
+
   if (!items.length) {
     container.innerHTML = `
       <div class="text-center py-10 text-gray-500">
@@ -1812,9 +1968,11 @@ function renderTables(items) {
     return rank(a) - rank(b) || String(a).localeCompare(String(b), "es");
   };
 
+  const placedTextKeys = new Set();
+
   container.innerHTML = Object.entries(groupedByBrand)
     .sort(([brandA], [brandB]) => compareBrandNames(brandA, brandB))
-    .map(([brand, rows]) => {
+    .map(([brand, rows], brandIndex) => {
     const sortedRows = PIECE_PHOTOS ? sortRowsByPiece(rows) : sortRows(rows);
     const spans = PIECE_PHOTOS ? pieceSpans(sortedRows) : [];
     const firstRow = sortedRows[0];
@@ -1824,6 +1982,17 @@ function renderTables(items) {
     // la genérica del material.
     const tableImage =
       sortedRows.find(row => row.productImage)?.productImage || `/assets/products/${imageKey}.png`;
+    // Textos de producto de esta marca (uno por entrada o grupo), en el orden
+    // de sus filas: en Georg Fischer, el del CPVC Corzan y luego el del PVC.
+    // Un grupo de agua no distingue marca: si dos marcas compartieran grupo,
+    // su texto (que es uno solo) iría sólo en la primera.
+    const textKeys = BIG_BRAND_PHOTO
+      ? [...new Set(sortedRows.map(row => row.textKey))].filter(key => {
+          if (!TEXT_NODES.has(key) || placedTextKeys.has(key)) return false;
+          placedTextKeys.add(key);
+          return true;
+        })
+      : [];
 
     // La foto de la cabecera lleva alt vacío: el nombre de la marca ya está en
     // el h2 contiguo y el lector de pantalla lo leía dos veces.
@@ -1840,14 +2009,16 @@ function renderTables(items) {
       `
       : BIG_BRAND_PHOTO
       ? `
-        <div class="mb-4 flex items-start justify-between gap-4">
-          <div class="min-w-0">
+        <div class="mb-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4">
+          <div class="col-start-1 row-start-1 min-w-0">
             <h2 class="text-lg font-semibold sm:text-xl">${safeText(String(brand).toUpperCase())}</h2>
             <span class="text-xs text-gray-500">${sortedRows.length} productos disponibles</span>
             <div class="mt-3">${renderMaterialLegend(sortedRows)}</div>
           </div>
 
-          ${renderFramedPhoto(tableImage, "h-28 w-28 sm:h-40 sm:w-40", "justify-end")}
+          ${renderFramedPhoto(tableImage, "col-start-2 row-start-1 h-28 w-28 sm:row-span-2 sm:h-40 sm:w-40", "justify-end")}
+
+          ${textKeys.length ? renderProductTexts(textKeys, `textos-${brandIndex}`, brand) : ""}
         </div>
       `
       : `
@@ -1989,6 +2160,7 @@ function renderTables(items) {
       </div>
     `;
   }).join("");
+  placeProductTexts();
   attachQuoteListeners();
   updateQuotePanel();
 }

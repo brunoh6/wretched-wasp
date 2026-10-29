@@ -17,10 +17,10 @@ técnicos, la segunda sí.
    el CMS, nunca en el Excel.
 
 Las dos cosas conviven sin pisarse. Puedes mandar un Excel nuevo diez veces y
-**las fichas, fotos y ocultaciones que cargaste en el CMS se conservan**,
+**las fichas, fotos, textos y ocultaciones que cargaste en el CMS se conservan**,
 siempre que el producto siga llamándose igual en el Excel (mismo producto,
 material y aplicación). Si el Excel le cambia el nombre a un producto que ya
-tenía ficha, foto u ocultación, la importación **se detiene sin tocar nada** y
+tenía ficha, foto, texto u ocultación, la importación **se detiene sin tocar nada** y
 dice qué producto es y cómo se llama ahora, para que nadie pierda ese trabajo
 sin enterarse (ver "Productos que cambian de nombre" en la Parte 2).
 
@@ -42,7 +42,7 @@ El primero convierte el Excel en datos para la web. El segundo publica el sitio.
 | --- | --- |
 | `src/data/catalog/products.json` | El importador. **Se borra y se reescribe entero en cada importación.** |
 | `src/data/catalog/groups.json` | El importador. Igual que el anterior. |
-| `src/data/catalog/overrides.json` | **El CMS** (ficha, foto, visible) y el importador (la lista de filas y sus nombres). El importador nunca cambia lo que puso el CMS. |
+| `src/data/catalog/overrides.json` | **El CMS** (ficha, foto, texto, visible) y el importador (la lista de filas y sus nombres). El importador nunca cambia lo que puso el CMS. |
 
 Si editas `products.json` o `groups.json` a mano, tu cambio desaparecerá la
 próxima vez que se importe un Excel. Si quieres cambiar un dato técnico,
@@ -111,8 +111,10 @@ Es la forma que pide la colección de un solo archivo del panel (Sveltia).
     "label": "Brida loca PVC · Agua fría",
     "family": "conexiones",
     "visible": true,
-    "technicalSheet": "/assets/fichas-tecnicas/ESPECIFICACIONES BRIDA LOCA PVC GEORG FISCHER.pdf",
+    "technicalSheet": "/assets/panel/fichas/especificaciones-brida-loca-pvc-georg-fischer.pdf",
     "image": "",
+    "title": "",
+    "description": "",
     "groupKey": "agua|conexiones|brida-loca|pvc|agua-fria"
   }
 ]
@@ -125,10 +127,12 @@ Es la forma que pide la colección de un solo archivo del panel (Sveltia).
 | `visible` | CMS | `false` oculta el grupo entero de la web. |
 | `technicalSheet` | CMS | Ruta del PDF. Vacío = "Ficha pendiente". |
 | `image` | CMS | Ruta de la foto. Vacío = sin foto. |
+| `title` | CMS | Título del texto del producto. Vacío = sin título. |
+| `description` | CMS | Texto del producto (`src/data/productTexts.ts`). Por ahora sólo lo muestra Tuberías. |
 | `groupKey` | Importador | Une la fila con su grupo. No se cambia nunca a mano. |
 
 **El orden de las claves es fijo** (`label, family, visible, technicalSheet,
-image, groupKey`) y debe coincidir con el orden de los campos de la colección en
+image, title, description, groupKey`) y debe coincidir con el orden de los campos de la colección en
 `public/admin/config.yml`: el panel reescribe el archivo en el orden de su
 config, y si ambos coinciden ni un guardado ni una importación generan diffs de
 pura reordenación. Si una fila trae otras claves, el importador las conserva
@@ -150,9 +154,9 @@ siempre porque el Excel cambió el nombre del producto, del material o de la
 aplicación (por ejemplo, `CPVC CORZAN` → `CPVC`). Una fila huérfana no pinta
 nada en la web. El importador hace esto:
 
-- **Huérfana vacía** (visible, sin ficha, sin foto, sin notas): se **retira**
+- **Huérfana vacía** (visible, sin ficha, sin foto, sin texto, sin notas): se **retira**
   sola y el informe la lista en "Retirados".
-- **Huérfana con datos** (ficha, foto, oculta o notas): la importación **se
+- **Huérfana con datos** (ficha, foto, texto, oculta o notas): la importación **se
   detiene sin escribir ningún archivo**, lista esas filas y sugiere el grupo
   nuevo que más se le parece. Hay dos salidas:
   1. Si fue un error del Excel, corregirlo y volver a importar.

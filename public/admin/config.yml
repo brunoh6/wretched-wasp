@@ -217,6 +217,32 @@ collections:
           productos de la marca tienen foto, sale la del primero de la tabla.
           Sirve cualquier foto, también la del celular: al subirla se reduce y
           se convierte sola. Al guardar, la web se actualiza en unos 5 minutos.
+      # Texto del producto: por ahora sólo lo pinta Tuberías, en la cabecera de
+      # la marca junto a la foto (src/data/productTexts.ts). Texto plano: la web
+      # lo escapa. Sin `required` ni `pattern`, para no bloquear el guardado de
+      # las entradas que no lo usan.
+      - name: title
+        label: Título del texto (opcional)
+        widget: string
+        required: false
+        default: ''
+        maxlength: 120
+        hint: >-
+          Sale en negrita encima del texto. Por ahora el texto solo se ve en
+          Tuberías, junto a la foto de la marca. Si la marca tiene varios productos con texto (Georg Fischer: CPVC y PVC), salen uno debajo del otro: el título ayuda a distinguirlos.
+      - name: description
+        label: Texto sobre el producto (opcional)
+        widget: text
+        required: false
+        default: ''
+        maxlength: 2000
+        hint: >-
+          Por ahora solo se ve en Tuberías, junto a la foto de la marca; en las
+          conexiones no sale. Escríbalo como texto, no como imagen: así lo lee
+          Google. Para empezar otro párrafo, deje una línea en blanco. Para una
+          lista, empiece cada línea con «•» o con «- »; si una línea de la lista
+          empieza con «Algo:», ese «Algo» sale en negrita. En la web se ven unas líneas y el
+          botón «Leer más». Al guardar, la web se actualiza en unos 5 minutos.
       - name: groupKey
         label: Código interno
         widget: hidden
@@ -380,6 +406,32 @@ collections:
           - name: key
             label: Código interno
             widget: hidden
+      # Texto del producto: por ahora sólo lo pinta Tuberías, en la cabecera de
+      # la marca junto a la foto (src/data/productTexts.ts). Texto plano: la web
+      # lo escapa. Sin `required` ni `pattern`, para no bloquear el guardado de
+      # las entradas que no lo usan.
+      - name: title
+        label: Título del texto (opcional)
+        widget: string
+        required: false
+        default: ''
+        maxlength: 120
+        hint: >-
+          Sale en negrita encima del texto. Por ahora el texto solo se ve en
+          Tuberías, junto a la foto de la marca.
+      - name: description
+        label: Texto sobre el producto (opcional)
+        widget: text
+        required: false
+        default: ''
+        maxlength: 2000
+        hint: >-
+          Por ahora solo se ve en Tuberías, junto a la foto de la marca; en las
+          conexiones no sale. Escríbalo como texto, no como imagen: así lo lee
+          Google. Para empezar otro párrafo, deje una línea en blanco. Para una
+          lista, empiece cada línea con «•» o con «- »; si una línea de la lista
+          empieza con «Algo:», ese «Algo» sale en negrita. En la web se ven unas líneas y el
+          botón «Leer más». Al guardar, la web se actualiza en unos 5 minutos.
       - name: key
         label: Código interno
         widget: hidden
