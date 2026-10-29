@@ -77,6 +77,8 @@ export type CatalogDisplayItem = {
   technicalSheet?: string;
   suggestedUrl?: string;
   productImage?: string;
+  /** Sólo FM: la foto es la de respaldo compartida (un codo para todas las conexiones). */
+  productImageIsFallback?: boolean;
   webSku?: string;
   visible: boolean;
   notes?: string;
@@ -136,6 +138,7 @@ function expandFmItems(): CatalogDisplayItem[] {
     mainUse: product.mainUse,
     rawMaterial: product.rawMaterial,
     productImage: product.productImage,
+    productImageIsFallback: product.productImageIsFallback,
     technicalSheet: normalizeTechnicalSheet(product.technicalSheet),
     suggestedUrl: product.suggestedUrl,
     webSku: product.webSku,

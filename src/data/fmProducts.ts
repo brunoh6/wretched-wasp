@@ -35,6 +35,8 @@ export type FmProduct = {
   /** Ruta del PDF con su ancla "#page=N", o "PENDIENTE". La pone fm.json. */
   technicalSheet?: string;
   productImage?: string;
+  /** true = productImage es la foto de respaldo compartida, no una propia de fm.json. */
+  productImageIsFallback?: boolean;
   rawMaterial: string;
   /** false = la entrada de fm.json está oculta desde el panel. */
   visible?: boolean;
@@ -1099,6 +1101,7 @@ export const allFmProducts: FmProduct[] = rawFmProducts.map((product) => {
     technicalSheet: (entry && sheetHref(entry, product)) || "PENDIENTE",
 
     productImage: image || fallbackImage(product),
+    productImageIsFallback: !image,
 
     // Sólo un false explícito oculta, igual que en overrides.json (agua).
     visible: entry?.visible !== false

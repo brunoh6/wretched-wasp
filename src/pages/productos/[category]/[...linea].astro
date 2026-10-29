@@ -38,6 +38,14 @@ const items = getCatalogDisplayItemsByCategory(category || "").filter(
   item => !landing || item.line === landing.line
 );
 
+// Conexiones: una foto por pieza al lado de sus filas (ver PIECE_PHOTOS en el
+// script). Ahí la foto de respaldo, un codo para todas, ponía un codo en la
+// Brida o la Tee: no viaja y la pieza sale con «Foto pendiente».
+// APAGADO hasta que las conexiones tengan foto propia en el panel: hoy las 29
+// piezas saldrían con «Foto pendiente». Para encenderlo, poner true.
+const PIECE_PHOTOS_READY = false;
+const piecePhotos = PIECE_PHOTOS_READY && category === "conexiones";
+
 const TYPE_CLASS_ORDER = [
   "SDR11",
   "RDE11",
@@ -228,7 +236,9 @@ function toClientItem(item: CatalogDisplayItem) {
   if (item.standard) client.standard = item.standard;
   if (item.jointType) client.jointType = item.jointType;
   if (item.technicalSheet) client.technicalSheet = item.technicalSheet;
-  if (item.productImage) client.productImage = item.productImage;
+  if (item.productImage && !(piecePhotos && item.productImageIsFallback)) {
+    client.productImage = item.productImage;
+  }
   if (item.webSku) client.webSku = item.webSku;
 
   return client;
@@ -630,7 +640,11 @@ const breadcrumbs = landing
           {/* data-foto-marca="grande": cabecera de cada marca con el nombre a la
                izquierda y la foto grande a la derecha (pedido de la empresa,
                28-10-2026). De momento sólo en Tuberías. */}
-          <div id="results" data-foto-marca={category === "tuberias" ? "grande" : undefined}></div>
+          <div
+            id="results"
+            data-foto-marca={category === "tuberias" ? "grande" : undefined}
+            data-foto-pieza={piecePhotos ? "si" : undefined}
+          ></div>
         </div>
       </div>
     )}
@@ -843,6 +857,69 @@ const BRAND_ORDER = JSON.parse(
 
 const container = document.getElementById("results");
 const BIG_BRAND_PHOTO = container?.dataset.fotoMarca === "grande";
+// Conexiones: columna «Pieza» con la foto y el nombre de cada pieza (Codo 90°,
+// Tee...) al lado de todas sus filas, porque mucha gente no sabe cómo es cada
+// conexión (pedido de la empresa, 28-10-2026). La cabecera de marca va sin foto.
+const PIECE_PHOTOS = container?.dataset.fotoPieza === "si";
+
+// Con foto por pieza, las filas de una misma pieza van juntas: primero la
+// pieza (y su línea, agua o FM), después el orden de siempre.
+function sortRowsByPiece(rows) {
+  const usual = sortRows(rows);
+  const position = new Map(usual.map((row, index) => [row, index]));
+  return [...rows].sort((a, b) =>
+    (a.productName || "").localeCompare(b.productName || "", "es") ||
+    (a.line || "").localeCompare(b.line || "", "es") ||
+    position.get(a) - position.get(b)
+  );
+}
+
+// Una pieza = mismo nombre, misma línea y misma foto. Devuelve, para cada
+// fila, cuántas filas abarca su foto (0 = la cubre la foto de más arriba).
+function pieceSpans(rows) {
+  const key = row => `${row.productName}|${row.line}|${row.productImage || ""}`;
+  const spans = rows.map(() => 0);
+  let start = 0;
+  rows.forEach((row, index) => {
+    if (index > 0 && key(row) === key(rows[start])) {
+      spans[start] += 1;
+    } else {
+      start = index;
+      spans[index] = 1;
+    }
+  });
+  return spans;
+}
+
+// La foto se ajusta dentro de un hueco fijo y el borde la rodea a ella, no al
+// hueco: si la foto no es cuadrada o su fondo no es blanco, no quedan franjas
+// blancas a los lados. Tampoco se recorta ni se amplía.
+function renderFramedPhoto(src, frame, align = "justify-center") {
+  return `
+    <div class="flex ${frame} shrink-0 items-center ${align}">
+      <img
+        src="${safeText(src)}"
+        alt=""
+        loading="lazy"
+        class="img-bright max-h-full max-w-full rounded-lg border bg-white"
+        onerror="this.parentElement.style.display='none'"
+      />
+    </div>
+  `;
+}
+
+function renderPiecePhoto(row, frame = "h-24 w-28") {
+  if (!row.productImage) {
+    return `<div class="flex ${frame} shrink-0 items-center justify-center rounded-lg border border-dashed bg-gray-50 p-2 text-center text-[11px] leading-tight text-gray-400">Foto pendiente</div>`;
+  }
+  return renderFramedPhoto(row.productImage, frame);
+}
+
+// Nombre de la pieza, sin enlace: sus filas pueden tener fichas distintas
+// (SDR11 y SDR9, Class 200 y 335) y cada una lleva su «Descargar ficha».
+function renderPieceName(row) {
+  return safeText(row.productName || titleCase(row.category || ""));
+}
 
 const TYPE_CLASS_ORDER = [
   "SDR11",
@@ -1696,7 +1773,10 @@ function attachQuoteListeners() {
 // El relleno es más estrecho hasta xl para que las 7 columnas quepan a 1024 px,
 // y "Cotizar" va fija a la derecha por si aun así la tabla tiene que
 // desplazarse (fotos por fila, zoom del navegador): la casilla nunca se pierde.
-const TABLE_CELL = "px-3 py-3 xl:px-4";
+// Con foto por pieza (Conexiones) hay una columna más: la tabla empieza en xl
+// (a 1024 px se desbordaba ~130 px; por debajo van las tarjetas, que ya llevan
+// la foto de cada pieza) y el relleno se queda estrecho también ahí.
+const TABLE_CELL = PIECE_PHOTOS ? "px-3 py-3" : "px-3 py-3 xl:px-4";
 const QUOTE_COLUMN = "sticky right-0 shadow-[inset_1px_0_0_#e5e7eb]";
 
 function renderTables(items) {
@@ -1735,7 +1815,8 @@ function renderTables(items) {
   container.innerHTML = Object.entries(groupedByBrand)
     .sort(([brandA], [brandB]) => compareBrandNames(brandA, brandB))
     .map(([brand, rows]) => {
-    const sortedRows = sortRows(rows);
+    const sortedRows = PIECE_PHOTOS ? sortRowsByPiece(rows) : sortRows(rows);
+    const spans = PIECE_PHOTOS ? pieceSpans(sortedRows) : [];
     const firstRow = sortedRows[0];
     const imageKey = getImageKey(firstRow);
     // Foto principal de la tabla: la del primer producto de la marca que tenga
@@ -1747,8 +1828,17 @@ function renderTables(items) {
     // La foto de la cabecera lleva alt vacío: el nombre de la marca ya está en
     // el h2 contiguo y el lector de pantalla lo leía dos veces.
     // Con foto grande: nombre, cantidad y materiales a la izquierda y la foto
-    // a la derecha, entera (object-contain) para que no se corte ni se amplíe.
-    const header = BIG_BRAND_PHOTO
+    // a la derecha, entera (renderFramedPhoto) para que no se corte ni se amplíe.
+    const header = PIECE_PHOTOS
+      ? `
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold sm:text-xl">${safeText(String(brand).toUpperCase())}</h2>
+          <span class="text-xs text-gray-500">${sortedRows.length} productos disponibles</span>
+        </div>
+
+        ${renderMaterialLegend(sortedRows)}
+      `
+      : BIG_BRAND_PHOTO
       ? `
         <div class="mb-4 flex items-start justify-between gap-4">
           <div class="min-w-0">
@@ -1757,13 +1847,7 @@ function renderTables(items) {
             <div class="mt-3">${renderMaterialLegend(sortedRows)}</div>
           </div>
 
-          <img
-            src="${safeText(tableImage)}"
-            alt=""
-            loading="lazy"
-            class="img-bright h-28 w-28 shrink-0 rounded-lg border bg-white object-contain p-1 sm:h-40 sm:w-40"
-            onerror="this.style.display='none'"
-          />
+          ${renderFramedPhoto(tableImage, "h-28 w-28 sm:h-40 sm:w-40", "justify-end")}
         </div>
       `
       : `
@@ -1789,11 +1873,12 @@ function renderTables(items) {
       <div class="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:p-6">
         ${header}
 
-        <div class="hidden lg:block overflow-x-auto border rounded-lg">
+        <div class="${PIECE_PHOTOS ? "hidden xl:block" : "hidden lg:block"} overflow-x-auto border rounded-lg">
           <table class="w-full text-sm">
             <thead class="bg-gray-100 text-xs uppercase text-gray-700">
               <tr>
-                <th class="${TABLE_CELL} text-left">Producto / Material</th>
+                ${PIECE_PHOTOS ? `<th class="${TABLE_CELL} w-36 text-center">Pieza</th>` : ""}
+                <th class="${TABLE_CELL} text-left">${PIECE_PHOTOS ? "Material" : "Producto / Material"}</th>
                 <th class="${TABLE_CELL} text-left">Tipo / Clase</th>
                 <th class="${TABLE_CELL} text-left">Presión</th>
                 <th class="${TABLE_CELL} text-left">Medidas disponibles</th>
@@ -1804,14 +1889,24 @@ function renderTables(items) {
             </thead>
 
             <tbody>
-              ${sortedRows.map(row => `
+              ${sortedRows.map((row, index) => `
                 <tr class="border-t">
+                  ${PIECE_PHOTOS && spans[index] > 0 ? `
+                    <td class="${TABLE_CELL} border-r bg-white align-top" rowspan="${spans[index]}">
+                      <div class="flex flex-col items-center gap-2 text-center">
+                        ${renderPiecePhoto(row)}
+                        <div class="text-sm font-semibold capitalize">${renderPieceName(row)}</div>
+                      </div>
+                    </td>
+                  ` : ""}
                   <td class="${TABLE_CELL}">
                     <div class="flex items-start gap-3">
                       <div class="min-w-0">
-                        <div class="font-medium capitalize">
-                          ${renderProductName(row)}
-                        </div>
+                        ${PIECE_PHOTOS ? "" : `
+                          <div class="font-medium capitalize">
+                            ${renderProductName(row)}
+                          </div>
+                        `}
                         ${renderMaterialLine(row)}
                       </div>
                     </div>
@@ -1846,8 +1941,14 @@ function renderTables(items) {
           </table>
         </div>
 
-        <div class="lg:hidden space-y-4">
-          ${sortedRows.map(row => `
+        <div class="${PIECE_PHOTOS ? "xl:hidden" : "lg:hidden"} space-y-4">
+          ${sortedRows.map((row, index) => `
+            ${PIECE_PHOTOS && spans[index] > 0 ? `
+              <div class="flex items-center gap-3 pt-2">
+                ${renderPiecePhoto(row, "h-20 w-24")}
+                <div class="font-semibold capitalize">${renderPieceName(row)}</div>
+              </div>
+            ` : ""}
             <div class="border rounded-lg p-4">
               <div class="flex items-start gap-3">
                 <div class="min-w-0">
