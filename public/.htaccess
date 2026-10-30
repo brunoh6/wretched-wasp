@@ -44,6 +44,10 @@ AddDefaultCharset UTF-8
 <IfModule mod_mime.c>
   # El panel /admin lee config.yml: que llegue como texto UTF-8, no como binario.
   AddType text/yaml .yml .yaml
+  # La tipografía (Poppins, en /_astro/): por si el mime.types del hosting es
+  # viejo y no conoce estos tipos.
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
   AddCharset UTF-8 .yml .yaml .txt .xml .json .css .js .svg
 </IfModule>
 
@@ -151,7 +155,7 @@ AddDefaultCharset UTF-8
   #     catálogo usa onerror= en las imágenes. Aun así la política protege contra
   #     incrustar el sitio en otro (clickjacking), plugins, <base> inyectado y
   #     formularios que envíen datos a terceros.
-  #   - fonts.googleapis/gstatic: tipografía Poppins.
+  #   - La tipografía (Poppins) se sirve desde el propio sitio: 'self'.
   #   - www.google.com: el mapa incrustado de /contacto.
   #   - formspree.io: el formulario de contacto, en form-action (envío
   #     clásico) y en connect-src (envío con fetch, que permite medir la
@@ -164,7 +168,7 @@ AddDefaultCharset UTF-8
   # No escribir aquí esos dominios ni en comentarios: la validación de
   # deploy.yml comprueba que sin IDs el .htaccess no los nombre.
   # /admin tiene su propia política en admin/.htaccess (el CMS la necesita).
-  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src https://www.google.com; connect-src 'self' https://formspree.io; form-action 'self' https://formspree.io; frame-ancestors 'self'; object-src 'none'; base-uri 'self'" env=DIHYC
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; frame-src https://www.google.com; connect-src 'self' https://formspree.io; form-action 'self' https://formspree.io; frame-ancestors 'self'; object-src 'none'; base-uri 'self'" env=DIHYC
 
   # HSTS prudente: 1 día, SIN includeSubDomains ni preload. Con includeSubDomains,
   # cualquier subdominio sin SSL (correo, el subdominio que ya existe) quedaría

@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Poppins alojada en el propio sitio (@fontsource/poppins, versión fija en
+   package.json): antes venía de Google Fonts y cada visita le mandaba a
+   Google la IP del visitante. Los pesos que usa el sitio, 300 a 700; cada
+   archivo trae sus «unicode-range» (latín, latín extendido…) y el navegador
+   sólo descarga los que la página necesita. */
+@import "@fontsource/poppins/300.css";
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@fontsource/poppins/700.css";
+
 :root {
   --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;

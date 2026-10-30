@@ -42,7 +42,7 @@ function listOf(items: string[]) {
 
 // Punto 4: quiénes tratan los datos también para sus propios fines.
 const CONTROLLER_LABELS: Record<string, string> = {
-  "google-recursos": "Google con la tipografía y el mapa",
+  "google-recursos": "Google con el mapa",
   whatsapp: "WhatsApp si nos escribes por ahí",
   clarity: "Microsoft con Clarity",
   "google-ads": "Google con Google Ads"
@@ -323,9 +323,9 @@ const sections = [
       pestaña.
     </p>
     <p>
-      La tipografía del sitio se descarga de Google Fonts: al cargarla, Google recibe tu dirección IP y
-      tu navegador (ver el punto 4). El mapa de la página Contacto es de Google Maps y sólo se carga si
-      pulsas «Ver mapa»; entonces Google recibe además lo que hagas en él y puede usar sus cookies.
+      El mapa de la página Contacto es de Google Maps y sólo se carga si pulsas «Ver mapa»; entonces
+      Google recibe tu dirección IP, tu navegador y lo que hagas en el mapa, y puede usar sus cookies
+      (ver el punto 4). La tipografía y todo lo demás del sitio se sirven desde nuestro propio servidor.
     </p>
     {measurementOn && (
       <div class:list={[!anyMeasurement && "condicional"]}>

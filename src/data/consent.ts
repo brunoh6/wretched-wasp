@@ -9,8 +9,8 @@
 // investigación del 30-10-2026 (README-deploy.md, sección 6):
 //   · consentimiento PREVIO y con un clic: ninguna herramienta de medición se
 //     pide antes de aceptar (Consent Mode «básico»); cerrar o seguir navegando
-//     no es aceptar. (La tipografía de Google Fonts sí se pide en cada visita:
-//     no pone cookies y la política la declara; alojarla aquí lo evitaría.);
+//     no es aceptar. (La tipografía también va en el propio sitio, y el mapa
+//     de Contacto se carga sólo al pulsar «Ver mapa».);
 //   · por finalidad: una casilla por herramienta, todas apagadas al abrir
 //     «Configurar» (la ANPD no admite casillas marcadas de antemano);
 //   · rechazar tan fácil como aceptar: «Rechazar todas» al lado de «Aceptar

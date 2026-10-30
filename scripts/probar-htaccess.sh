@@ -175,6 +175,8 @@ done
 echo "h) Caché"
 js=$(cd www && ls _astro/*.js | head -1)
 r=$(hdr https www.dihyc.com.pe "/$js");                   has "$r" "Cache-Control: public, max-age=31536000, immutable" && ok "/_astro/*.js → 1 año, immutable" || ko "astro" "$(echo "$r" | grep -i cache-control)"
+fuente=$(cd www && ls _astro/poppins-latin-400-normal.*.woff2 | head -1)
+r=$(hdr https www.dihyc.com.pe "/$fuente");               has "$r" "Content-Type: font/woff2" && has "$r" "Cache-Control: public, max-age=31536000, immutable" && ok "tipografía /_astro/*.woff2 → font/woff2, 1 año" || ko "woff2" "$(echo "$r" | grep -i -e content-type -e cache-control)"
 r=$(hdr https www.dihyc.com.pe "$p");                      has "$r" "Cache-Control: public, max-age=86400" && ok "PDF → 1 día" || ko "pdf" "$(echo "$r" | grep -i cache-control)"
 r=$(hdr https www.dihyc.com.pe '/assets/products/pvc.png'); has "$r" "Cache-Control: public, max-age=86400" && ok "imagen → 1 día" || ko "img" "$(echo "$r" | grep -i cache-control)"
 r=$(hdr https www.dihyc.com.pe '/productos/');             has "$r" "Cache-Control: no-cache" && ok "página → no-cache" || ko "html" "$(echo "$r" | grep -i cache-control)"

@@ -339,10 +339,10 @@ Lo que demuestra que funciona es el mecanismo: antes de cada publicación que
 toque la medición, y cada cierto tiempo, conviene guardar una prueba con un
 navegador limpio (sin cookies `_ga`, `_gcl_…`, `_clck` ni peticiones a
 googletagmanager.com, google-analytics.com, googleadservices.com,
-doubleclick.net o clarity.ms antes de aceptar ni después de rechazar). La
-tipografía de Google Fonts sí se pide en cada visita (sin cookies, declarada en
-la política); alojarla en el propio sitio quitaría esa última petición a
-Google.
+doubleclick.net o clarity.ms antes de aceptar ni después de rechazar). Sin
+medición aceptada, una página no pide nada fuera del sitio: la tipografía
+(Poppins, `@fontsource/poppins`) se sirve desde el propio dominio y el mapa de
+Contacto sólo se carga al pulsar «Ver mapa».
 
 Al configurar las cuentas, para que cada casilla mida sólo lo suyo:
 
