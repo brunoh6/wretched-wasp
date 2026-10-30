@@ -319,8 +319,8 @@ máximo, el número se pone rojo y el panel **no guarda** hasta que lo acorte
 
 | Archivo | Qué es |
 |---|---|
-| `public/admin/index.html` | Carga Sveltia CMS **0.252.0** desde unpkg con `integrity` (SRI). |
-| `public/admin/config.yml` | Colecciones, campos, carpetas y límites. Validado contra el esquema de 0.252.0. |
+| `public/admin/index.html` | Carga Sveltia CMS **0.253.1** desde unpkg con `integrity` (SRI). |
+| `public/admin/config.yml` | Colecciones, campos, carpetas y límites. Validado contra el esquema de 0.253.1. |
 | `src/data/catalog/overrides.json` | Una entrada por grupo de agua (lista en la raíz). La edita el panel y la mantiene el importador (`README-catalogo.md`). |
 | `src/data/catalog/fm.json` | Línea FM: una entrada por producto × marca (15) con foto, visibilidad y sus fichas por variante (ruta + página). La lee `src/data/fmProducts.ts`. |
 | `src/data/catalog/cards.json` | Las 4 tarjetas de `/productos`. Formateado exactamente como lo escribe el panel, para que el primer guardado no reformatee el archivo. |
@@ -500,13 +500,21 @@ Los archivos que las tarjetas y la Brida loca PVC usaban se **copiaron** aquí
 
 ## E. Versión fijada de Sveltia y cómo actualizarla
 
-`index.html` carga `https://unpkg.com/@sveltia/cms@0.252.0/dist/sveltia-cms.js`
+`index.html` carga `https://unpkg.com/@sveltia/cms@0.253.1/dist/sveltia-cms.js`
 con `integrity="sha384-…"` y `crossorigin="anonymous"`. Si la CDN sirviera otro
 archivo, el navegador no lo ejecuta (comprobado con un hash alterado: «Failed
 to find a valid digest… The resource has been blocked.»). Sin versión fijada,
 el panel cambiaba solo: entre 0.205.2 y 0.252.0 hubo 100 versiones y dos
 cambios incompatibles. A cambio, las correcciones ya no llegan solas: revisar
-una vez al mes (el 26/10/2026 ya existía 0.253.0).
+una vez al mes.
+
+**Historial:** 0.252.0 (26/10/2026) → **0.253.1** (30/10/2026), por dos avisos
+de seguridad que afectaban a 0.252.0 (GHSA-2vxp-gw92-99r4, credenciales que
+quedaban en el celular tras entrar con un enlace; GHSA-2m4h-9hmv-mpmw, la
+búsqueda podía colgar la pestaña). No se eligió la última (0.255.1): el
+29/10/2026 salieron tres versiones en un día, una para corregir otra de
+horas antes. Regla: no adoptar una versión que todavía recibe arreglos el
+mismo día; preferir la más chica que traiga lo que hace falta.
 
 Para subir de versión (por ejemplo a `X.Y.Z`):
 
@@ -530,7 +538,7 @@ Sveltia de la misma versión.
 
 ## F. Validaciones
 
-- **Esquema:** `config.yml` pasa el esquema JSON de 0.252.0 sin errores, y el
+- **Esquema:** `config.yml` pasa el esquema JSON de 0.252.0 y el de 0.253.1 sin errores, y el
   esquema rechaza una opción inventada en cada nivel usado (raíz, `logo`,
   `editor`, `media_libraries`, colección, filtro, grupo, campo, transformación,
   archivo y subcampo).
@@ -679,6 +687,22 @@ en esto. Opciones técnicas:
 - Con los datos de hoy, `/servicios` y la sección de servicios de la portada
   son idénticas píxel a píxel a la versión publicada antes del cambio
   (celular y escritorio).
+
+**Sveltia 0.253.1 (30/10/2026, mismo arnés con los datos reales del repositorio):**
+
+- Carga en español con sus cuatro colecciones (Grupos 32, Línea FM 15,
+  Tarjetas, Servicios); búsqueda «Codo» con 8 resultados; filtros de Grupos
+  (Sin ficha técnica 29, Sin foto 30, Ocultos 0) y de FM (Sin foto propia 12)
+  con los mismos números que 0.252.0; agrupar por Material y por Agua fría o
+  caliente.
+- Guardar un grupo, una entrada FM o una tarjeta cambia sólo la línea tocada y
+  conserva el orden de las claves; una foto JPG se convierte a WebP y un PDF se
+  guarda con nombre en minúsculas y guiones; el título de 130 letras no deja
+  guardar («No puedes ingresar más de 120 caracteres.»); «Para qué medidas»
+  sigue de solo lectura y «Ver en el sitio en vivo» lleva a la página correcta.
+- Los archivos que guarda son idénticos byte a byte a los de 0.252.0, y 25 de
+  28 pantallas son idénticas píxel a píxel (las otras 3, por el cursor o el
+  suavizado).
 
 **No comprobado:** guardar contra GitHub de verdad (hace falta una cuenta con
 acceso) y la conversión de fotos grandes en Safari del iPhone.

@@ -1,7 +1,7 @@
-# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms@0.252.0/schema/sveltia-cms.json
+# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms@0.253.1/schema/sveltia-cms.json
 # ─────────────────────────────────────────────────────────────────────────────
 # Panel de administración del catálogo · DIHYC
-# Motor: Sveltia CMS 0.252.0, versión FIJADA en index.html (https://sveltiacms.app)
+# Motor: Sveltia CMS 0.253.1, versión FIJADA en index.html (https://sveltiacms.app)
 #
 # La primera línea NO es decorativa: engancha este archivo al esquema de la
 # MISMA versión que carga index.html. En VS Code (con la extensión YAML) marca
@@ -284,7 +284,7 @@ collections:
       - label: Sin foto propia
         field: image
         empty: true
-      # Un filtro mira un solo campo: con `sheets.*` (comodín) Sveltia 0.252.0
+      # Un filtro mira un solo campo: con `sheets.*` (comodín) Sveltia (0.252.0)
       # da por vacías TODAS las entradas, así que va uno por posición (como
       # mucho hay 2 fichas). En la 2.ª se usa eq '' y no `empty`, porque
       # `empty` también cuenta como vacía la 2.ª ficha que no existe.
