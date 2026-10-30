@@ -4,6 +4,7 @@ import Hero from "../components/Hero.astro";
 import Section from "../components/Section.astro";
 import ContactForm from "../components/ContactForm.astro";
 import { contactInfo, telHref } from "../data/contactInfo";
+import { PRIVACY_PATH, PRIVACY_VISIBLE } from "../data/privacy";
 
 const whatsappNumber = contactInfo.whatsapp[0].replace(/\D/g, "");
 const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
@@ -11,6 +12,16 @@ const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
 )}`;
 
 // `tel:` y `mailto:` hacen que los datos sean accionables desde el móvil.
+
+// Mapa de Google Maps: se carga sólo si el visitante pulsa «Ver mapa». Dentro
+// del mapa Google pone y lee sus cookies, y eso necesita su permiso (Ley 29733);
+// con un clic explícito no hace falta pasar por el aviso de cookies. «Abrir en
+// Google Maps» es un enlace normal: no carga nada en esta página.
+const mapEmbedUrl =
+  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2680.541816251334!2d-77.04899403904167!3d-12.04769881850536!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9105c8d163d43f73%3A0x6a07cb1d8b3140fd!2sAv.%20%C3%93scar%20R.%20Benavides%20553%2C%20Lima%2015082!5e0!3m2!1ses-419!2spe!4v1716758089025!5m2!1ses-419!2spe";
+const mapLinkUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+  "Av. Óscar R. Benavides 553, Lima 15082"
+)}`;
 
 const details = [
   {
@@ -113,13 +124,42 @@ const icons: Record<string, string> = {
         ))}
       </ul>
 
-      <iframe
-        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2680.541816251334!2d-77.04899403904167!3d-12.04769881850536!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9105c8d163d43f73%3A0x6a07cb1d8b3140fd!2sAv.%20%C3%93scar%20R.%20Benavides%20553%2C%20Lima%2015082!5e0!3m2!1ses-419!2spe!4v1716758089025!5m2!1ses-419!2spe"
-        class="h-72 w-full rounded-xl border sm:h-80 md:h-[420px]"
-        loading="lazy"
-        title="Ubicación de DIHYC en Lima"
-        referrerpolicy="no-referrer-when-downgrade"
-      ></iframe>
+      <div
+        class="h-72 w-full overflow-hidden rounded-xl border bg-gray-50 sm:h-80 md:h-[420px]"
+        data-mapa={mapEmbedUrl}
+      >
+        <div class="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+          <svg class="h-8 w-8 text-[#003595]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z" />
+            <circle cx="12" cy="10" r="2.5" />
+          </svg>
+          <p class="font-semibold text-gray-900">{contactInfo.address}</p>
+          <p class="max-w-md text-sm leading-relaxed text-gray-600">
+            El mapa es de Google Maps (Google LLC, Estados Unidos). Al verlo, Google recibe tu dirección IP y
+            tu navegador y puede usar sus cookies para sus propios fines.
+            {PRIVACY_VISIBLE && (
+              <> Más información en la <a href={`${PRIVACY_PATH}#cookies`} class="text-[#003595] underline underline-offset-2">Política de privacidad</a>.</>
+            )}
+          </p>
+          <div class="flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              class="inline-flex min-h-11 items-center justify-center rounded bg-[#003595] px-5 text-sm font-semibold text-white transition hover:bg-[#002a75]"
+              data-mapa-cargar
+            >
+              Ver mapa
+            </button>
+            <a
+              href={mapLinkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex min-h-11 items-center justify-center rounded border border-[#003595] bg-white px-5 text-sm font-semibold text-[#003595] transition hover:bg-[#003595]/5"
+            >
+              Abrir en Google Maps
+            </a>
+          </div>
+        </div>
+      </div>
 
     </div>
   </Section>
@@ -131,4 +171,19 @@ const icons: Record<string, string> = {
     </div>
   </Section>
 
+
+  <script>
+    // «Ver mapa»: recién aquí se pide algo a Google (ver mapEmbedUrl arriba).
+    document.querySelectorAll<HTMLElement>("[data-mapa]").forEach((caja) => {
+      caja.querySelector("[data-mapa-cargar]")?.addEventListener("click", () => {
+        const mapa = document.createElement("iframe");
+        mapa.src = caja.dataset.mapa ?? "";
+        mapa.title = "Ubicación de DIHYC en Lima";
+        mapa.className = "h-full w-full";
+        mapa.referrerPolicy = "no-referrer-when-downgrade";
+        caja.replaceChildren(mapa);
+        mapa.focus();
+      });
+    });
+  </script>
 </BaseLayout>

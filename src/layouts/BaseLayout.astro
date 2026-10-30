@@ -3,6 +3,7 @@ import "../styles/global.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import WhatsAppButton from "../components/WhatsAppButton.astro";
+import CookieConsent from "../components/CookieConsent.astro";
 import { getImage } from "astro:assets";
 import ogFoto from "../assets/hero/slide3.png";
 import { searchIndex, SEARCH_SYNONYMS, popularSearches } from "../data/searchIndex";
@@ -62,15 +63,16 @@ const ogImage = site ? new URL(ogImageAsset.src, site).href : ogImageAsset.src;
 // emite "local". Es pública a propósito: un SHA de commit no es un secreto.
 const buildId = import.meta.env.PUBLIC_BUILD_ID ?? "local";
 
-// Medición: Google Ads, Google Analytics 4 y Microsoft Clarity. Los IDs, su
-// validación y el freno «sin aviso de cookies no se enciende» viven en
-// src/data/measurement.ts; sin ninguno no se carga nada de Google ni de
-// Microsoft y la página sólo lleva el escucha de abajo, que deja los eventos en
-// window.dataLayer.
-// Una sola etiqueta de Google (gtag.js) para Ads y GA4: se carga con el primer
-// ID y cada producto se configura con su propio "config"
-// (developers.google.com/tag-platform/gtagjs/install). Ads va primero para que
-// una compilación sólo con Ads siga cargando gtag.js?id=AW-….
+// Medición: Google Ads, Google Analytics 4 y Microsoft Clarity. Los IDs y su
+// validación viven en src/data/measurement.ts; sin ninguno no se carga nada de
+// Google ni de Microsoft, no hay aviso de cookies y la página sólo lleva el
+// escucha de abajo, que deja los eventos en window.dataLayer.
+// Con IDs, nada se carga al abrir la página: el <head> sólo define CÓMO cargar
+// cada herramienta (window.dihycCargarGoogle / dihycCargarClarity) y el aviso
+// de cookies (CookieConsent.astro) las llama con lo que el visitante aceptó.
+// Una sola etiqueta de Google (gtag.js) para Ads y GA4, con un "config" por
+// producto aceptado (developers.google.com/tag-platform/gtagjs/install). Ads
+// va primero en gtagIds, como pide la revisión de deploy.yml.
 const gtagIds = [adsId, ga4Id].filter(Boolean);
 const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id };
 ---
@@ -82,40 +84,85 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     {gtagIds.length > 0 && (
-      <>
-        {/* Etiqueta de Google (gtag.js) para Google Ads y/o GA4, según la guía
-            oficial developers.google.com/tag-platform/gtagjs/install: al
-            principio del <head> de cada página, cargada UNA vez y con un
-            "config" por ID. El "config" de GA4 envía por sí solo el page_view de cada
-            página. define:vars envuelve el código en una función, por eso gtag
-            se asigna a window en vez de declararse con "function".
-            Sin publicidad personalizada ni Google Signals: así la política de
-            privacidad puede decir que no se usan las visitas para mostrar
-            anuncios (remarketing). Activarlos exige cambiar esta línea, la
-            política y la categoría del aviso de cookies. */}
-        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gtagIds[0]}`}></script>
-        <script is:inline define:vars={{ gtagIds }}>
-          window.dataLayer = window.dataLayer || [];
-          window.gtag = function () { window.dataLayer.push(arguments); };
-          window.gtag("js", new Date());
-          window.gtag("set", { allow_ad_personalization_signals: false, allow_google_signals: false });
-          gtagIds.forEach(function (id) { window.gtag("config", id); });
-        </script>
-      </>
+      /* Etiqueta de Google en el modo «básico» de Consent Mode
+         (developers.google.com/tag-platform/security/guides/consent?consentmode=basic):
+         gtag.js no se pide hasta que el visitante acepta, y entonces sólo con
+         los productos aceptados. La anterior a todo es la orden "consent"
+         "default" (todo denegado) y luego "update" con lo aceptado, antes de
+         cualquier "config". window.gtag no existe antes de aceptar: así ningún
+         evento queda en cola para enviarse después. Si luego se acepta otro
+         producto, sólo se actualiza el consentimiento y se añade su "config";
+         al retirar uno, dihycPararGoogle lo desactiva (ga-disable) mientras la
+         página se recarga.
+         Sin publicidad personalizada ni Google Signals (ad_personalization
+         siempre denegado): así la política puede decir que no se usan las
+         visitas para mostrar anuncios (remarketing). Activarlos exige cambiar
+         esto, la política y la categoría del aviso de cookies. */
+      <script is:inline define:vars={{ gtagIds }}>
+        var configurados = [];
+        function permitidos(permisos) {
+          return gtagIds.filter(function (id) {
+            return /^AW-/.test(id) ? permisos.anuncios : permisos.medicion;
+          });
+        }
+        window.dihycCargarGoogle = function (permisos) {
+          var elegidos = permitidos(permisos);
+          var nuevos = elegidos.filter(function (id) { return configurados.indexOf(id) === -1; });
+          if (!nuevos.length) return;
+          var conAds = elegidos.some(function (id) { return /^AW-/.test(id); });
+          var conGa4 = elegidos.some(function (id) { return /^G-/.test(id); });
+          var estado = function (si) { return si ? "granted" : "denied"; };
+          var primeraVez = !configurados.length;
+          if (primeraVez) {
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () { window.dataLayer.push(arguments); };
+            window.gtag("consent", "default", { ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied", analytics_storage: "denied" });
+          }
+          window.gtag("consent", "update", { ad_storage: estado(conAds), ad_user_data: estado(conAds), ad_personalization: "denied", analytics_storage: estado(conGa4) });
+          if (primeraVez) {
+            window.gtag("js", new Date());
+            window.gtag("set", { allow_ad_personalization_signals: false, allow_google_signals: false });
+          }
+          nuevos.forEach(function (id) {
+            window.gtag("config", id);
+            configurados.push(id);
+          });
+          if (primeraVez) {
+            var etiqueta = document.createElement("script");
+            etiqueta.async = true;
+            etiqueta.src = "https://www.googletagmanager.com/gtag/js?id=" + nuevos[0];
+            document.head.appendChild(etiqueta);
+          }
+        };
+        window.dihycPararGoogle = function (permisos) {
+          var siguen = permitidos(permisos);
+          configurados.forEach(function (id) {
+            if (siguen.indexOf(id) === -1) window["ga-disable-" + id] = true;
+          });
+        };
+      </script>
     )}
 
     {clarityId && (
-      /* Microsoft Clarity: el código de seguimiento oficial, en el <head>
-         (learn.microsoft.com/clarity/setup-and-installation/clarity-setup).
-         Carga asíncrona: no frena la página. Los campos de texto y las listas
-         se enmascaran siempre en Clarity, y el formulario de contacto además
-         lleva data-clarity-mask (ContactForm.astro). */
+      /* Microsoft Clarity: el código de seguimiento oficial
+         (learn.microsoft.com/clarity/setup-and-installation/clarity-setup),
+         pero dentro de una función que el aviso de cookies llama sólo si el
+         visitante acepta la grabación de sesiones. Justo después se le pasa el
+         consentimiento con su API v2 (consentv2); sin él, Clarity no pondría
+         sus cookies. Los campos de texto y las listas se enmascaran siempre en
+         Clarity, y el formulario de contacto además lleva data-clarity-mask
+         (ContactForm.astro). Si Google también está cargado, Clarity sigue su
+         analytics_storage. */
       <script is:inline define:vars={{ clarityId }}>
-        (function (c, l, a, r, i, t, y) {
-          c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments); };
-          t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
-          y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
-        })(window, document, "clarity", "script", clarityId);
+        window.dihycCargarClarity = function () {
+          if (window.clarity) return;
+          (function (c, l, a, r, i, t, y) {
+            c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments); };
+            t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
+            y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+          })(window, document, "clarity", "script", clarityId);
+          window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: "granted" });
+        };
       </script>
     )}
 
@@ -126,9 +173,11 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
           formulario): { event: "dihyc_conversion", tipo } en dataLayer, como
           siempre, y la conversión de Google Ads si hay etiqueta.
         - Embudo de cotización: cada evento queda SIEMPRE en dataLayer como
-          { event: "dihyc_<nombre>", …parámetros } y, sólo si hay GA4, se envía
-          a GA4 con gtag("event", nombre, …) y send_to = el ID de GA4 (Ads no
-          recibe estos eventos). Nombres y parámetros en README-deploy.md,
+          { event: "dihyc_<nombre>", …parámetros } y, sólo si hay GA4 y el
+          visitante aceptó la medición de visitas, se envía a GA4 con
+          gtag("event", nombre, …) y send_to = el ID de GA4 (Ads no recibe estos
+          eventos). La conversión de Ads, sólo si aceptó la medición de anuncios
+          (window.dihycConsent, que pone el aviso de cookies). Nombres y parámetros en README-deploy.md,
           sección 6. Nunca se envían valores del formulario ni datos de
           contacto: sólo de dónde vino el clic, qué producto, filtro o ficha,
           y qué se buscó en el buscador de productos.
@@ -170,12 +219,16 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
         return String(texto || "").replace(/\s+/g, " ").trim().slice(0, 100);
       }
 
+      function permitido(categoria) {
+        return Boolean(window.dihycConsent && window.dihycConsent[categoria]) && typeof window.gtag === "function";
+      }
+
       function medir(nombre, parametros, salida) {
         var datos = { event: "dihyc_" + nombre };
         var ga4 = { send_to: medicion.ga4 };
         for (var clave in parametros) datos[clave] = ga4[clave] = parametros[clave];
         window.dataLayer.push(datos);
-        if (medicion.ga4 && typeof window.gtag === "function") {
+        if (medicion.ga4 && permitido("medicion")) {
           if (salida) ga4.transport_type = "beacon";
           window.gtag("event", nombre, ga4);
         }
@@ -197,7 +250,7 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
         if (!primeraVez(tipo)) return;
         window.dataLayer.push({ event: "dihyc_conversion", tipo: tipo });
         var etiqueta = medicion.id && Object.prototype.hasOwnProperty.call(medicion.etiquetas, tipo) && medicion.etiquetas[tipo];
-        if (etiqueta && typeof window.gtag === "function") {
+        if (etiqueta && permitido("anuncios")) {
           window.gtag("event", "conversion", {
             send_to: medicion.id + "/" + etiqueta,
             transport_type: "beacon"
@@ -207,7 +260,7 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
         else if (tipo === "llamada") medir("clic_telefono", { origen: origen }, true);
         else if (tipo === "formulario") {
           medir("formulario_enviado", { origen: origen });
-          if (medicion.ga4 && typeof window.gtag === "function") {
+          if (medicion.ga4 && permitido("medicion")) {
             window.gtag("event", "generate_lead", { send_to: medicion.ga4, lead_source: "formulario_web" });
           }
         }
@@ -328,6 +381,8 @@ const medicion = { id: adsId, etiquetas: adsId ? adsEtiquetas : {}, ga4: ga4Id }
     >
       Saltar al contenido
     </a>
+
+    <CookieConsent />
 
     <script class="search-data" type="application/json" set:html={searchPayloadJson}></script>
 

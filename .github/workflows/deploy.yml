@@ -117,9 +117,11 @@ jobs:
             || { echo "::error::La marca de versión no lleva el commit ${GITHUB_SHA}"; exit 1; }
 
           # Medición (Google Ads, GA4, Clarity). Con cada ID, cada página del
-          # sitio (no /admin) lleva su etiqueta UNA vez y la CSP de
-          # dist/.htaccess deja pasar sus dominios; si no, el navegador la
-          # bloquearía en silencio y no se mediría nada. Sin un ID, ni rastro
+          # sitio (no /admin) lleva el aviso de cookies y el código que carga
+          # cada herramienta UNA vez, pero ninguna etiqueta fija: nada se pide a
+          # Google ni a Microsoft antes de que el visitante acepte (Ley 29733).
+          # La CSP de dist/.htaccess deja pasar sus dominios; si no, el
+          # navegador la bloquearía en silencio y no se mediría nada. Sin un ID, ni rastro
           # de esa herramienta en el HTML ni en la CSP. Los dominios son los de
           # scripts/csp-medicion.mjs (guías oficiales de Google y Microsoft).
           python3 - <<'PY'
@@ -167,10 +169,13 @@ jobs:
           gtag_ids = [x for x in (ads, ga4) if x]
           for f in paginas:
               h = f.read_text(encoding="utf-8")
-              n_gtag = h.count('src="https://www.googletagmanager.com/gtag/js?id=')
+              n_fija = h.count('src="https://www.googletagmanager.com/gtag/js?id=')
+              n_carga = h.count('"https://www.googletagmanager.com/gtag/js?id="')
+              if (gtag_ids or cla) and h.count('id="cookie-banner"') != 1:
+                  error(f"{f}: con medición encendida la página debería llevar UNA vez el aviso de cookies")
               if gtag_ids:
-                  if n_gtag != 1 or f'gtag/js?id={gtag_ids[0]}"' not in h:
-                      error(f"{f}: gtag.js debería cargarse UNA vez con {gtag_ids[0]} (hay {n_gtag})")
+                  if n_fija != 0 or n_carga != 1:
+                      error(f"{f}: gtag.js debería cargarse sólo desde el aviso de cookies (etiquetas fijas: {n_fija}, cargador: {n_carga})")
                   c = re.findall(r"const gtagIds = (\[[^\]]*\]);", h)
                   if len(c) != 1 or json.loads(c[0]) != gtag_ids:
                       error(f"{f}: los config de gtag deberían ser {gtag_ids} y son {c}")
@@ -187,6 +192,8 @@ jobs:
                       error(f"{f}: el formulario debería ir enmascarado para Clarity (data-clarity-mask)")
               elif "clarity.ms" in h or "data-clarity-mask" in h:
                   error(f"{f}: sin CLARITY_ID el HTML no debería traer nada de Clarity")
+              if not (gtag_ids or cla) and ('id="cookie-banner"' in h or "data-configurar-cookies" in h):
+                  error(f"{f}: sin medición no debería haber aviso de cookies")
           if errores: sys.exit(1)
           print(f"Medición revisada en {len(paginas)} páginas y en la CSP.")
           PY
@@ -517,12 +524,13 @@ jobs:
               echo "✅ la CSP en vivo permite Clarity"
             else echo "::error::La CSP en vivo no incluye los dominios de Clarity: quedaría bloqueado"; fallos=1; fi
           fi
-          #    Y la portada en vivo (ya de este commit) lleva cada etiqueta.
+          #    Y la portada en vivo (ya de este commit) lleva el código que carga
+          #    cada etiqueta cuando el visitante la acepta en el aviso de cookies.
           if [ -n "$ADS_ID$GA4_ID" ]; then
             gids=$(echo $ADS_ID $GA4_ID)
             if [[ "$portada" == *"googletagmanager.com/gtag/js?id="* && "$portada" == *"\"${ADS_ID:-$GA4_ID}\""* && "$portada" == *"\"${GA4_ID:-$ADS_ID}\""* ]]; then
-              echo "✅ la portada en vivo carga gtag.js con ${gids}"
-            else echo "::error::La portada en vivo no trae gtag.js con ${gids}"; fallos=1; fi
+              echo "✅ la portada en vivo trae el cargador de gtag.js (tras el aviso de cookies) con ${gids}"
+            else echo "::error::La portada en vivo no trae el cargador de gtag.js con ${gids}"; fallos=1; fi
           fi
           if [ -n "$CLARITY_ID" ]; then
             if [[ "$portada" == *"https://www.clarity.ms/tag/"* && "$portada" == *"\"${CLARITY_ID}\""* ]]; then

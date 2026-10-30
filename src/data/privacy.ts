@@ -60,6 +60,18 @@ if (PRIVACY_PREVIEW && process.env.GITHUB_ACTIONS === "true") {
 /** Página, enlace del pie y aviso del formulario: publicados o en vista previa. */
 export const PRIVACY_VISIBLE = PRIVACY_POLICY_ENABLED || PRIVACY_PREVIEW;
 
+// Medición encendida exige la política: el aviso de cookies remite a ella para
+// la duración de cada cookie, los proveedores y los derechos (Ley 29733, art.
+// 18). Dentro de la Action la vista previa no existe, así que ahí hace falta
+// PRIVACY_POLICY_ENABLED, que a su vez exige la política sin pendientes.
+if (Object.values(measurementEnabled).some(Boolean) && !PRIVACY_VISIBLE) {
+  throw new Error(
+    "Google Ads, GA4 o Clarity tienen su variable puesta, pero la política de privacidad no está publicada " +
+      "(PRIVACY_POLICY_ENABLED en src/data/privacy.ts): el aviso de cookies enlaza a ella. Publica primero la " +
+      "política o quita la variable en GitHub (README-deploy.md, sección 6)."
+  );
+}
+
 export const PRIVACY_PATH = "/politica-de-privacidad/";
 
 /**
@@ -146,7 +158,9 @@ export const privacyPolicy = {
     /** Registros de acceso del servidor web (los guarda el hosting). */
     serverLogs: "",
     /** Datos de Google Analytics: 2 o 14 meses, según se configure en GA4. Sólo con GA4. */
-    ga4: ""
+    ga4: "",
+    /** Datos de conversiones en Google Ads (lo que Google conserve según su política). Sólo con Ads. */
+    ads: ""
   }
 };
 
@@ -239,8 +253,8 @@ export const recipients: Recipient[] = [
     address: "1600 Amphitheatre Parkway, Mountain View, CA 94043, Estados Unidos",
     role: "Sirve la tipografía del sitio (Google Fonts) y el mapa de la página Contacto (Google Maps).",
     controller: true,
-    data: "Dirección IP, navegador y la página desde la que se pide; con el mapa, también lo que hagas en él.",
-    when: "La tipografía, en cada visita; el mapa, al abrir la página Contacto.",
+    data: "Dirección IP, navegador y la página desde la que se pide; con el mapa, también lo que hagas en él, y Google puede usar sus cookies.",
+    when: "La tipografía, en cada visita; el mapa, sólo si pulsas «Ver mapa» en la página Contacto.",
     country: "Estados Unidos",
     safeguard: "",
     link: "https://policies.google.com/privacy",
@@ -268,7 +282,7 @@ export const recipients: Recipient[] = [
     role: "Mide cómo se usa el sitio, sólo si lo aceptas en el aviso de cookies.",
     controller: false,
     data: "Identificador de la cookie, dirección IP, páginas vistas, búsquedas y clics del sitio, dispositivo y navegador.",
-    when: "Sólo si aceptas la medición.",
+    when: "Sólo si aceptas la medición de visitas.",
     country: "Estados Unidos",
     safeguard: "Tu consentimiento en el aviso de cookies (Ley 29733, art. 15.7) y los términos de tratamiento de datos de Google.",
     link: "https://policies.google.com/technologies/partner-sites",
@@ -282,7 +296,7 @@ export const recipients: Recipient[] = [
     // No llamarlo «anónimo»: Microsoft lo desaconseja y trata identificadores.
     role: "Graba cómo se recorre el sitio (clics, desplazamiento) y arma mapas de calor, sólo si lo aceptas.",
     controller: true,
-    data: "Identificadores de sus cookies, dirección IP, dispositivo, navegador y lo que haces en la página. Lo que escribes en los campos se oculta antes de enviarse.",
+    data: "Identificadores de sus cookies, dirección IP, dispositivo, navegador, las direcciones de las páginas (con lo buscado en el catálogo) y lo que haces en ellas. Lo que escribes en el formulario y en el buscador se oculta antes de enviarse.",
     when: "Sólo si aceptas la grabación de sesiones.",
     country: "Estados Unidos",
     safeguard: "Tu consentimiento en el aviso de cookies (Ley 29733, art. 15.7) y los términos de Microsoft Clarity.",
@@ -297,7 +311,7 @@ export const recipients: Recipient[] = [
     role: "Cuenta cuántos contactos llegan desde nuestros anuncios, sólo si lo aceptas.",
     controller: true,
     data: "Identificador de la cookie o del clic en el anuncio, dirección IP, navegador, las páginas que visitas y el tipo de contacto (WhatsApp, llamada o formulario).",
-    when: "Sólo si aceptas la publicidad.",
+    when: "Sólo si aceptas la medición de anuncios.",
     country: "Estados Unidos",
     safeguard: "Tu consentimiento en el aviso de cookies (Ley 29733, art. 15.7) y los términos de tratamiento de datos de Google Ads.",
     link: "https://policies.google.com/technologies/ads",
@@ -332,7 +346,8 @@ export function pendingItems(): string[] {
     ["customers", "datos de clientes", true],
     ["formspree", "copia en el archivo de Formspree", true],
     ["serverLogs", "registros del servidor web", true],
-    ["ga4", "datos de Google Analytics (2 o 14 meses)", measurementEnabled.ga4]
+    ["ga4", "datos de Google Analytics (2 o 14 meses)", measurementEnabled.ga4],
+    ["ads", "datos de conversiones de Google Ads", measurementEnabled.ads]
   ];
   for (const [key, label, applies] of retention) {
     if (applies && !p.retention[key]) items.push(`Plazo de conservación: ${label}.`);

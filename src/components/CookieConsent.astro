@@ -1,0 +1,393 @@
+---
+// Aviso de cookies. Sólo existe si hay alguna herramienta de medición
+// encendida (src/data/consent.ts); sin ninguna, este componente no pinta nada.
+// Va al principio del <body> (BaseLayout), justo después de «Saltar al
+// contenido»: es fijo abajo, pero así el teclado y los lectores de pantalla lo
+// encuentran primero.
+//
+// Primera capa: barra fija abajo, sin cerrar con «X» (cerrar no es aceptar).
+// «Rechazar todas» y «Aceptar todas» con el mismo aspecto y al mismo nivel, y
+// «Configurar», que abre la segunda capa: un <dialog> con una casilla por
+// herramienta, todas apagadas la primera vez. El mismo diálogo se abre desde
+// «Configurar cookies», al pie de cada página (cualquier elemento con
+// data-configurar-cookies).
+//
+// El script guarda la elección en localStorage y llama a las funciones de
+// carga que define BaseLayout (window.dihycCargarGoogle / dihycCargarClarity).
+// Antes de aceptar no se pide ninguna herramienta de medición. Al retirar una
+// ya cargada se le avisa, se borran sus cookies de este sitio y se recarga la
+// página, que es la única forma documentada de pararlas del todo. Lo mismo si
+// la elección cambia en otra pestaña.
+import {
+  CONSENT_ENABLED,
+  CONSENT_MAX_AGE_DAYS,
+  CONSENT_STORAGE_KEY,
+  CONSENT_VERSION,
+  consentCategories
+} from "../data/consent";
+import { PRIVACY_PATH, PRIVACY_VISIBLE, privacyPolicy } from "../data/privacy";
+
+// La razón social termina en «S.R.L.»: sin el punto final, para no escribir «..».
+const owner = privacyPolicy.owner.legalName.replace(/\.$/, "");
+const privacyEmail = privacyPolicy.owner.privacyEmail;
+
+function listOf(items: string[]) {
+  return items.length > 1 ? `${items.slice(0, -1).join(", ")} y ${items.at(-1)}` : items[0] ?? "";
+}
+
+// «Con tu permiso usamos cookies para medir las visitas (…), ver cómo … y saber …».
+const purposeList = listOf(consentCategories.map((category) => category.purpose));
+const providers = [
+  consentCategories.some((category) => category.key !== "sesiones") && "Google LLC",
+  consentCategories.some((category) => category.key === "sesiones") && "Microsoft Corporation"
+].filter((name): name is string => Boolean(name));
+const ownPurposeTools = consentCategories.filter((category) => category.ownPurposes).map((category) => category.tool);
+// «Google LLC y Microsoft Corporation tratan esos datos en Estados Unidos;
+// Clarity y Google Ads también los usan para sus propios fines.»
+const providerSentence =
+  `${listOf(providers)} ${providers.length > 1 ? "tratan" : "trata"} esos datos en Estados Unidos` +
+  (ownPurposeTools.length
+    ? `; ${listOf(ownPurposeTools)} también ${ownPurposeTools.length > 1 ? "los usan" : "los usa"} para sus propios fines.`
+    : ".");
+
+const consentimiento = {
+  clave: CONSENT_STORAGE_KEY,
+  version: CONSENT_VERSION,
+  dias: CONSENT_MAX_AGE_DAYS,
+  categorias: consentCategories.map((category) => category.key)
+};
+
+// Mismo aspecto para aceptar y rechazar (sin el brillo de .cta): ninguna de
+// las dos opciones se destaca sobre la otra.
+const choiceButton =
+  "inline-flex min-h-11 items-center justify-center rounded bg-[#003595] px-5 text-sm font-semibold text-white transition hover:bg-[#002a75]";
+const secondaryButton =
+  "inline-flex min-h-11 items-center justify-center rounded border border-[#003595] bg-white px-5 text-sm font-semibold text-[#003595] transition hover:bg-[#003595]/5";
+---
+
+{CONSENT_ENABLED && (
+  <>
+    <section
+      id="cookie-banner"
+      aria-labelledby="cookie-banner-titulo"
+      hidden
+      class="fixed inset-x-0 bottom-0 z-[65] max-h-[85dvh] overflow-y-auto border-t border-gray-200 bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.12)]"
+    >
+      <div class="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:flex-row lg:items-end lg:gap-10 lg:py-5">
+        <div class="text-[13px] leading-relaxed text-gray-700 sm:text-sm">
+          <h2 id="cookie-banner-titulo" class="mb-1 text-base font-semibold text-gray-900">Cookies y medición</h2>
+          <p>
+            {`Con tu permiso usamos cookies para ${purposeList}. ${providerSentence} Nada se activa hasta que aceptas y, si rechazas, la web funciona igual. Cámbialo cuando quieras en «Configurar cookies», al pie. Responsable: ${owner}.`}
+            {PRIVACY_VISIBLE && (
+              <>
+                {" "}Detalles, duración de cada cookie y tus derechos en la
+                {" "}<a href={`${PRIVACY_PATH}#cookies`} class="font-medium text-[#003595] underline underline-offset-2">Política de privacidad</a>.
+              </>
+            )}
+          </p>
+        </div>
+
+        <div class="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:flex-nowrap">
+          <button type="button" class={choiceButton} data-cookies="rechazar">Rechazar todas</button>
+          <button type="button" class={choiceButton} data-cookies="aceptar">Aceptar todas</button>
+          <button type="button" class:list={[secondaryButton, "col-span-2"]} data-cookies="configurar">Configurar</button>
+        </div>
+      </div>
+    </section>
+
+    <dialog
+      id="cookie-dialog"
+      aria-labelledby="cookie-dialog-titulo"
+      class="m-auto max-h-[90dvh] w-[min(36rem,calc(100vw-2rem))] overflow-y-auto rounded-xl bg-white p-0 text-gray-700 shadow-2xl backdrop:bg-black/50"
+    >
+      <div class="p-5 sm:p-6">
+        <div class="flex items-start justify-between gap-4">
+          <h2 id="cookie-dialog-titulo" class="text-lg font-semibold text-gray-900">Configurar cookies</h2>
+          <button
+            type="button"
+            class="-m-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-gray-500 hover:bg-gray-100"
+            data-cookies="cerrar"
+            aria-label="Cerrar sin cambiar nada"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <p class="mt-2 text-sm leading-relaxed">
+          Elige qué permites. Lo que no marques no se activa, y puedes cambiarlo o retirarlo cuando quieras
+          desde «Configurar cookies», al pie de la página.
+        </p>
+
+        <ul class="mt-5 divide-y divide-gray-200 border-y border-gray-200 text-sm">
+          <li class="py-4">
+            <div class="flex items-start justify-between gap-4">
+              <span class="font-semibold text-gray-900">Necesarias</span>
+              <span class="shrink-0 text-xs font-medium text-gray-500">Siempre activas</span>
+            </div>
+            <p class="mt-1 leading-relaxed">
+              Guardan en este navegador tu elección, la fecha y un código al azar (<code>dihyc_cookies</code>;
+              te volvemos a preguntar a los 12 meses) y, si envías el formulario, la hora de los envíos para
+              frenar el spam. No se envían a nadie.
+            </p>
+          </li>
+
+          {consentCategories.map((category) => (
+            <li class="py-3">
+              <label class="flex min-h-11 cursor-pointer items-center justify-between gap-4">
+                <span class="font-semibold text-gray-900">{category.title}</span>
+                <span class="relative inline-flex shrink-0">
+                  <input type="checkbox" role="switch" class="peer sr-only" data-categoria={category.key} />
+                  <span class="h-6 w-11 rounded-full bg-gray-300 transition peer-checked:bg-[#003595] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#003595]" aria-hidden="true"></span>
+                  <span class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" aria-hidden="true"></span>
+                </span>
+              </label>
+              <p class="leading-relaxed">{category.detail}</p>
+              <p class="mt-1 text-xs leading-relaxed text-gray-500">
+                {category.provider} Cookies en este sitio: {category.cookies}
+              </p>
+            </li>
+          ))}
+        </ul>
+
+        <p class="mt-4 text-xs leading-relaxed text-gray-500">
+          Responsable: {owner}.
+          {privacyEmail && <> Para ejercer tus derechos, escribe a <a href={`mailto:${privacyEmail}`} class="text-[#003595] underline">{privacyEmail}</a>.</>}
+          {PRIVACY_VISIBLE && (
+            <>
+              {" "}Más información en la
+              {" "}<a href={`${PRIVACY_PATH}#cookies`} class="text-[#003595] underline">Política de privacidad</a>
+              {" "}(versión {CONSENT_VERSION}).
+            </>
+          )}
+        </p>
+
+        <div class="mt-5 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+          <button type="button" class={choiceButton} data-cookies="rechazar">Rechazar todas</button>
+          <button type="button" class={choiceButton} data-cookies="aceptar">Aceptar todas</button>
+          <button type="button" class:list={[secondaryButton, "col-span-2"]} data-cookies="guardar">Guardar mi elección</button>
+        </div>
+      </div>
+    </dialog>
+
+    <script is:inline define:vars={{ consentimiento }}>
+      var banner = document.getElementById("cookie-banner");
+      var dialogo = document.getElementById("cookie-dialog");
+      var casillas = Array.prototype.slice.call(dialogo.querySelectorAll("[data-categoria]"));
+      var raiz = document.documentElement;
+
+      // Cookies de cada herramienta en este sitio, para borrarlas al retirar el
+      // permiso (las de los dominios de Google y Microsoft no se pueden borrar
+      // desde aquí; la política lo dice).
+      var COOKIES = {
+        medicion: /^(_ga($|_)|_gid$)/,
+        sesiones: /^(_clck|_clsk)$/,
+        anuncios: /^(_gcl_|_gac_)/
+      };
+
+      // Una elección vale si es de esta versión, de hace menos de 12 meses y
+      // respondió exactamente a las categorías que se preguntan hoy.
+      function leer() {
+        try {
+          var guardado = JSON.parse(localStorage.getItem(consentimiento.clave) || "null");
+          if (!guardado || guardado.version !== consentimiento.version || !guardado.permisos) return null;
+          var edad = Date.now() - Date.parse(guardado.fecha);
+          if (!(edad >= 0 && edad < consentimiento.dias * 864e5)) return null;
+          if (!Array.isArray(guardado.categorias) || guardado.categorias.slice().sort().join() !== consentimiento.categorias.slice().sort().join()) return null;
+          for (var i = 0; i < consentimiento.categorias.length; i++) {
+            if (typeof guardado.permisos[consentimiento.categorias[i]] !== "boolean") return null;
+          }
+          return guardado;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function nuevoId() {
+        try {
+          return crypto.randomUUID();
+        } catch (error) {
+          return Date.now().toString(36) + Math.random().toString(36).slice(2);
+        }
+      }
+
+      function cargar(permisos) {
+        if (window.dihycCargarGoogle) window.dihycCargarGoogle(permisos);
+        if (permisos.sesiones && window.dihycCargarClarity) window.dihycCargarClarity();
+      }
+
+      function borrarCookies(patron) {
+        var partes = location.hostname.split(".");
+        document.cookie.split(";").forEach(function (par) {
+          var nombre = par.split("=")[0].trim();
+          if (!nombre || !patron.test(nombre)) return;
+          var base = nombre + "=; Max-Age=0; path=/";
+          document.cookie = base;
+          for (var i = 0; i < partes.length - 1; i++) document.cookie = base + "; domain=" + partes.slice(i).join(".");
+        });
+      }
+
+      // Para lo que ya está cargado en esta página y deja de estar permitido.
+      // Después siempre se recarga: con la elección nueva no se vuelve a cargar.
+      function detener(permisos) {
+        if (typeof window.gtag === "function") {
+          window.gtag("consent", "update", {
+            analytics_storage: permisos.medicion ? "granted" : "denied",
+            ad_storage: permisos.anuncios ? "granted" : "denied",
+            ad_user_data: permisos.anuncios ? "granted" : "denied",
+            ad_personalization: "denied"
+          });
+          if (window.dihycPararGoogle) window.dihycPararGoogle(permisos);
+        }
+        if (!permisos.sesiones && typeof window.clarity === "function") {
+          window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: "denied" });
+        }
+      }
+
+      // Lo que dejó de estar permitido: sus cookies se borran siempre, aunque
+      // en esta página no se hubieran cargado (pueden quedar de una elección
+      // vencida o de otra pestaña).
+      function limpiar(permisos) {
+        consentimiento.categorias.forEach(function (clave) {
+          if (!permisos[clave]) borrarCookies(COOKIES[clave]);
+        });
+        if (!permisos.sesiones) {
+          try {
+            sessionStorage.removeItem("_cltk");
+          } catch (error) {}
+        }
+      }
+
+      // Mientras el aviso está a la vista, lo flotante (WhatsApp, panel de
+      // cotización, menú del celular) se acomoda encima con --aviso-cookies.
+      var medidor = typeof ResizeObserver === "function"
+        ? new ResizeObserver(function () { raiz.style.setProperty("--aviso-cookies", banner.offsetHeight + "px"); })
+        : null;
+      function mostrarAviso(visible) {
+        banner.hidden = !visible;
+        if (visible) {
+          raiz.style.setProperty("--aviso-cookies", banner.offsetHeight + "px");
+          if (medidor) medidor.observe(banner);
+        } else {
+          raiz.style.removeProperty("--aviso-cookies");
+          if (medidor) medidor.disconnect();
+        }
+      }
+
+      function cerrarDialogo() {
+        if (typeof dialogo.close === "function") dialogo.close();
+        else dialogo.removeAttribute("open");
+      }
+
+      var actual = leer();
+      // Lo que el escucha de medición consulta antes de enviar cada evento.
+      window.dihycConsent = actual ? actual.permisos : {};
+
+      function guardar(permisos) {
+        var antes = window.dihycConsent || {};
+        var avisoVisible = !banner.hidden;
+        var registro = {
+          version: consentimiento.version,
+          fecha: new Date().toISOString(),
+          id: (actual && actual.id) || nuevoId(),
+          categorias: consentimiento.categorias,
+          permisos: permisos
+        };
+        try {
+          localStorage.setItem(consentimiento.clave, JSON.stringify(registro));
+        } catch (error) {}
+        actual = registro;
+        window.dihycConsent = permisos;
+        mostrarAviso(false);
+        if (dialogo.open) cerrarDialogo();
+
+        var retirada = consentimiento.categorias.some(function (clave) { return antes[clave] && !permisos[clave]; });
+        limpiar(permisos);
+        if (retirada) {
+          detener(permisos);
+          location.reload();
+          return;
+        }
+        // Aceptar más categorías no recarga: las funciones de carga añaden
+        // sólo lo nuevo.
+        cargar(permisos);
+        // El foco estaba en un botón que ya no se ve: pasa al contenido.
+        if (avisoVisible) {
+          var principal = document.getElementById("main");
+          if (principal) {
+            principal.setAttribute("tabindex", "-1");
+            principal.focus({ preventScroll: true });
+          }
+        }
+      }
+
+      function todas(valor) {
+        var permisos = {};
+        consentimiento.categorias.forEach(function (clave) { permisos[clave] = valor; });
+        return permisos;
+      }
+
+      function abrir() {
+        var permisos = window.dihycConsent || {};
+        casillas.forEach(function (casilla) { casilla.checked = permisos[casilla.getAttribute("data-categoria")] === true; });
+        if (typeof dialogo.showModal === "function") dialogo.showModal();
+        else dialogo.setAttribute("open", "");
+      }
+
+      document.addEventListener("click", function (evento) {
+        var objetivo = evento.target instanceof Element ? evento.target : null;
+        if (!objetivo) return;
+        if (objetivo.closest("[data-configurar-cookies]")) {
+          evento.preventDefault();
+          abrir();
+          return;
+        }
+        var boton = objetivo.closest("[data-cookies]");
+        if (!boton) return;
+        var accion = boton.getAttribute("data-cookies");
+        if (accion === "aceptar") guardar(todas(true));
+        else if (accion === "rechazar") guardar(todas(false));
+        else if (accion === "configurar") abrir();
+        else if (accion === "cerrar") cerrarDialogo();
+        else if (accion === "guardar") {
+          var permisos = todas(false);
+          casillas.forEach(function (casilla) { permisos[casilla.getAttribute("data-categoria")] = casilla.checked; });
+          guardar(permisos);
+        }
+      });
+
+      // La elección cambió en otra pestaña, o esta página vuelve desde la
+      // caché del navegador («Atrás»): si algo de lo cargado ya no está
+      // permitido, se para y se recarga; si se aceptó algo, se carga.
+      function revisar() {
+        var nuevo = leer();
+        var permisos = nuevo ? nuevo.permisos : {};
+        var antes = window.dihycConsent || {};
+        var retirada = consentimiento.categorias.some(function (clave) { return antes[clave] && !permisos[clave]; });
+        actual = nuevo;
+        window.dihycConsent = permisos;
+        if (retirada) {
+          detener(permisos);
+          location.reload();
+          return;
+        }
+        if (nuevo) {
+          mostrarAviso(false);
+          cargar(permisos);
+        } else if (banner.hidden) {
+          mostrarAviso(true);
+        }
+      }
+      window.addEventListener("storage", function (evento) {
+        if (evento.key === consentimiento.clave || evento.key === null) revisar();
+      });
+      window.addEventListener("pageshow", function (evento) {
+        if (evento.persisted) revisar();
+      });
+
+      if (actual) cargar(actual.permisos);
+      else mostrarAviso(true);
+    </script>
+  </>
+)}

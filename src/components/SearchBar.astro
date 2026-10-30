@@ -16,11 +16,15 @@ interface Props {
 
 const { id = "buscador" } = Astro.props;
 const listboxId = `${id}-sugerencias`;
+
+// Con Clarity, lo que se escribe aquí y las sugerencias (que lo repiten,
+// «Sin resultados para …») se enmascaran, como el formulario de contacto.
+const enmascararClarity = String(import.meta.env.PUBLIC_CLARITY_ID ?? "").trim() ? "True" : undefined;
 ---
 
 <!-- `data-search-root` permite montar varias instancias (escritorio y móvil)
      sin colisiones de id. -->
-<div class="relative w-full" data-search-root>
+<div class="relative w-full" data-search-root data-clarity-mask={enmascararClarity}>
 
   <div class="relative">
     <svg

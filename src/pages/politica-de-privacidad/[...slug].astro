@@ -36,6 +36,39 @@ const show = {
 const measurementOn = anyMeasurement || PRIVACY_PREVIEW;
 const transfers = visibleRecipients.filter((recipient) => !/^Perú/.test(recipient.country));
 
+function listOf(items: string[]) {
+  return items.length > 1 ? `${items.slice(0, -1).join(", ")} y ${items.at(-1)}` : items[0] ?? "";
+}
+
+// Punto 4: quiénes tratan los datos también para sus propios fines.
+const CONTROLLER_LABELS: Record<string, string> = {
+  "google-recursos": "Google con la tipografía y el mapa",
+  whatsapp: "WhatsApp si nos escribes por ahí",
+  clarity: "Microsoft con Clarity",
+  "google-ads": "Google con Google Ads"
+};
+const controllerNames = listOf(
+  visibleRecipients.filter((r) => r.controller).map((r) => CONTROLLER_LABELS[r.id] ?? r.name)
+);
+
+// Punto 7: tabla de cookies y almacenamiento. `tool` decide si la fila sale
+// (con la herramienta encendida, o en vista previa con su condición).
+type CookieRow = { name: string; who: string; what: string; lasts: string; tool?: keyof typeof measurementEnabled };
+const cookieRows: CookieRow[] = [
+  { name: "dihyc_cookies (almacenamiento local)", who: "Este sitio", what: "Necesaria: recuerda tu elección del aviso de cookies.", lasts: "12 meses" },
+  { name: "dihyc_contact_attempts (almacenamiento de la pestaña)", who: "Este sitio", what: "Necesaria: la hora de los envíos del formulario, para frenar el spam.", lasts: "Hasta cerrar la pestaña" },
+  { name: "_ga", who: "Google Analytics", what: "Distingue un navegador de otro con un identificador al azar.", lasts: "2 años", tool: "ga4" },
+  { name: "_ga_…", who: "Google Analytics", what: "Mantiene el estado de la visita.", lasts: "2 años", tool: "ga4" },
+  { name: "_clck", who: "Microsoft Clarity", what: "Identificador de Clarity y sus preferencias.", lasts: "1 año", tool: "clarity" },
+  { name: "_clsk", who: "Microsoft Clarity", what: "Une las páginas de una visita en una grabación.", lasts: "1 día", tool: "clarity" },
+  { name: "_cltk (almacenamiento de la pestaña)", who: "Microsoft Clarity", what: "Identifica la pestaña dentro de la visita.", lasts: "Hasta cerrar la pestaña", tool: "clarity" },
+  { name: "CLID, MUID, MR, SM, ANONCHK (en dominios de Microsoft)", who: "Microsoft", what: "Reconocen tu navegador en los sitios que usan Clarity y en servicios de Microsoft, incluida su publicidad.", lasts: "Según Microsoft", tool: "clarity" },
+  { name: "_gcl_au", who: "Google Ads", what: "Cuenta las conversiones de nuestros anuncios.", lasts: "90 días", tool: "ads" },
+  { name: "_gcl_aw, _gcl_gs, _gcl_gb", who: "Google Ads", what: "Guardan el clic en un anuncio, si llegas desde uno.", lasts: "90 días", tool: "ads" },
+  { name: "IDE, test_cookie, ar_debug (en dominios de Google)", who: "Google", what: "Cookies de Google en sus propios dominios para medir y servir anuncios.", lasts: "Según Google (IDE, hasta 2 años)", tool: "ads" }
+];
+const visibleCookieRows = cookieRows.filter((row) => !row.tool || show[row.tool]);
+
 const sections = [
   ["responsable", "Quién es responsable de tus datos"],
   ["datos", "Qué datos tratamos"],
@@ -192,9 +225,10 @@ const sections = [
       <div class:list={[!anyMeasurement && "condicional"]}>
         {!anyMeasurement && <p class="condicion">Sólo se publica cuando se active la medición, con su aviso de cookies.</p>}
         <p>
-          Medir cómo se usa el sitio y cuántos contactos llegan desde nuestros anuncios, con las
-          herramientas descritas en el punto 7, <strong>sólo si lo aceptas</strong> en el aviso de
-          cookies. Si no lo aceptas, el sitio funciona igual.
+          Medir cómo se usa el sitio, grabar cómo se recorre para mejorarlo y contar cuántos contactos
+          llegan desde nuestros anuncios, con las herramientas descritas en el punto 7, <strong>sólo si
+          lo aceptas</strong> en el aviso de cookies, una por una. Si no lo aceptas, el sitio funciona
+          igual.
         </p>
       </div>
     )}
@@ -208,9 +242,8 @@ const sections = [
     <h2 id="destinatarios">4. Quién más los recibe</h2>
     <p>
       Para funcionar nos apoyamos en estos proveedores. Algunos tratan los datos sólo por encargo
-      nuestro; otros (Google con la tipografía y el mapa, WhatsApp si nos escribes por ahí) los tratan
-      también como responsables, según sus propias políticas. Fuera de ellos, sólo entregaríamos datos
-      a una autoridad cuando la ley nos obligue.
+      nuestro; otros ({controllerNames}) los tratan también como responsables, según sus propias
+      políticas. Fuera de ellos, sólo entregaríamos datos a una autoridad cuando la ley nos obligue.
     </p>
     <div class="proveedores">
       {visibleRecipients.map((r) => (
@@ -273,6 +306,12 @@ const sections = [
           {!measurementEnabled.clarity && <span class="condicion"> (Sólo cuando se active.)</span>}
         </li>
       )}
+      {show.ads && (
+        <li class:list={[!measurementEnabled.ads && "condicional"]}>
+          <strong>Google Ads:</strong> {p.retention.ads || <mark class="pendiente">[plazo que conserva Google Ads los datos de conversiones; las cookies duran 90 días]</mark>}.
+          {!measurementEnabled.ads && <span class="condicion"> (Sólo cuando se active.)</span>}
+        </li>
+      )}
     </ul>
     <p>Pasado ese tiempo, los eliminamos o los anonimizamos.</p>
 
@@ -284,20 +323,48 @@ const sections = [
       pestaña.
     </p>
     <p>
-      La tipografía del sitio se descarga de Google Fonts y el mapa de la página Contacto es de Google
-      Maps: al cargarlos, Google recibe tu dirección IP y tu navegador (ver el punto 4).
+      La tipografía del sitio se descarga de Google Fonts: al cargarla, Google recibe tu dirección IP y
+      tu navegador (ver el punto 4). El mapa de la página Contacto es de Google Maps y sólo se carga si
+      pulsas «Ver mapa»; entonces Google recibe además lo que hagas en él y puede usar sus cookies.
     </p>
     {measurementOn && (
       <div class:list={[!anyMeasurement && "condicional"]}>
         {!anyMeasurement && <p class="condicion">Desde aquí hasta el final del punto 7, sólo lo que esté activado, con su aviso de cookies.</p>}
         <p>
-          Usamos estas herramientas <strong>sólo si las aceptas</strong> en el aviso que aparece al entrar.
-          Nada se instala antes de que elijas, y puedes cambiar tu elección cuando quieras en
-          «Configurar cookies», al pie de cada página. Si las rechazas, el sitio funciona igual.
+          Usamos estas herramientas <strong>sólo si las aceptas</strong> en el aviso que aparece al entrar,
+          una por una o todas a la vez. Nada se instala antes de que elijas, y puedes cambiar o retirar tu
+          elección cuando quieras en «Configurar cookies», al pie de cada página: lo que retires deja de
+          funcionar y sus cookies se borran de este sitio. Las cookies que Google y Microsoft ponen en sus
+          propios dominios no las podemos borrar desde aquí: puedes borrarlas en la configuración de tu
+          navegador. Si las rechazas, el sitio funciona igual.
         </p>
+        <p>
+          Tu elección se guarda en tu navegador (en su almacenamiento local, con el nombre
+          {" "}<code>dihyc_cookies</code>): qué aceptaste o rechazaste, la fecha y un código al azar, para
+          no preguntarte en cada página. No se envía a nadie. Pasados 12 meses, o si cambia esta política,
+          te volvemos a preguntar.
+        </p>
+        <div class="cookies-tabla">
+          <table>
+            <caption>Cookies y datos que se guardan en tu navegador</caption>
+            <thead>
+              <tr><th scope="col">Nombre</th><th scope="col">De quién</th><th scope="col">Para qué</th><th scope="col">Duración</th></tr>
+            </thead>
+            <tbody>
+              {visibleCookieRows.map((row) => (
+                <tr class:list={[row.tool && !measurementEnabled[row.tool] && "condicional"]}>
+                  <td><code>{row.name}</code></td>
+                  <td>{row.who}</td>
+                  <td>{row.what}</td>
+                  <td>{row.lasts}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {show.ga4 && (
           <div class:list={[!measurementEnabled.ga4 && "condicional"]}>
-            <h3>Medición: Google Analytics</h3>
+            <h3>Medición de visitas: Google Analytics</h3>
             <p>
               Nos dice cuántas personas visitan el sitio, qué páginas ven, qué buscan, qué filtros usan,
               qué fichas técnicas abren y por qué medio nos contactan, para mejorar el catálogo. Instala
@@ -333,7 +400,7 @@ const sections = [
         )}
         {show.ads && (
           <div class:list={[!measurementEnabled.ads && "condicional"]}>
-            <h3>Publicidad: Google Ads</h3>
+            <h3>Medición de anuncios: Google Ads</h3>
             <p>
               Cuenta cuántos contactos (WhatsApp, llamada o formulario) llegan desde nuestros anuncios en
               Google, para saber si funcionan. Instala las cookies <code>_gcl_au</code> y, si llegas desde un
@@ -438,5 +505,11 @@ const sections = [
   .pendiente { background: #fef08a; color: #713f12; padding: 0 0.25em; border-radius: 3px; }
   .condicional { border-left: 4px solid #f59e0b; background: #fffbeb; padding: 0.5rem 0.75rem; border-radius: 0.25rem; }
   .condicion { font-size: 0.8125rem; font-weight: 600; color: #b45309; }
+  .cookies-tabla { margin-top: 1rem; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 0.75rem; }
+  .cookies-tabla table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .cookies-tabla caption { padding: 0.75rem 1rem 0.25rem; text-align: left; font-weight: 600; color: #111827; }
+  .cookies-tabla th, .cookies-tabla td { padding: 0.5rem 1rem; text-align: left; vertical-align: top; border-top: 1px solid #f3f4f6; }
+  .cookies-tabla th { font-weight: 600; color: #111827; }
+  .cookies-tabla td:first-child { min-width: 9rem; }
   .borrador { margin-bottom: 2rem; border: 2px solid #f59e0b; background: #fffbeb; border-radius: 0.75rem; padding: 1rem; color: #78350f; }
 </style>

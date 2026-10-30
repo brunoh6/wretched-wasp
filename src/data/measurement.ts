@@ -41,18 +41,20 @@ if (clarityId && !/^[a-z0-9]{10}$/.test(clarityId)) {
 }
 
 /**
- * Aviso de cookies («Aceptar / Rechazar / Configurar»): TODAVÍA NO EXISTE.
+ * Aviso de cookies («Rechazar todas / Aceptar todas / Configurar»): existe
+ * desde el 30-10-2026 (src/components/CookieConsent.astro, src/data/consent.ts).
  *
  * Con la Ley 29733 y su Reglamento (DS 016-2024-JUS) estas herramientas tratan
  * identificadores en línea (art. III.4) y ninguna excepción del art. 14 de la
  * Ley las cubre: necesitan el consentimiento PREVIO del visitante, con una
  * acción positiva y antes de instalarse (criterio de la ANPD en la RD
- * 100-2024-JUS/DGTAIPD, párrs. 47 y 50). Hoy BaseLayout las carga al abrir la
- * página, así que encender cualquiera sin el aviso sería tratar datos sin
- * consentimiento. Pasa a `true` sólo cuando el aviso exista y BaseLayout cargue
- * cada herramienta después de que el visitante la acepte.
+ * 100-2024-JUS/DGTAIPD, párrs. 47 y 50). Por eso BaseLayout sólo define cómo
+ * cargar cada herramienta y el aviso la carga cuando el visitante la acepta.
+ * Si algún día el aviso se quitara, esto vuelve a `false` y el build se
+ * detiene con cualquier ID puesto. Además, privacy.ts exige la política
+ * publicada para encender cualquier herramienta: el aviso enlaza a ella.
  */
-export const CONSENT_BANNER_READY: boolean = false;
+export const CONSENT_BANNER_READY: boolean = true;
 
 if ((adsId || ga4Id || clarityId) && !CONSENT_BANNER_READY) {
   throw new Error(

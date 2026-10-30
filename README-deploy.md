@@ -255,7 +255,7 @@ concreta como `public_html/`.
 | El push falla por **workflow scope** | Ver 1.5. |
 | *Compilar* falla con `PUBLIC_GOOGLE_ADS_ID=… no tiene la forma AW-123456789` (o con una etiqueta de conversión) | La variable `GOOGLE_ADS_ID` (o `ADS_LABEL_…`) está mal copiada: sin espacios, sin comillas, el ID empieza por `AW-`. Corregirla y **Run workflow** (sección 6). |
 | *Compilar* falla con `PUBLIC_GA4_ID=… no tiene la forma G-XXXXXXXXXX` o `PUBLIC_CLARITY_ID=… no tiene la forma…` | La variable `GA4_ID` o `CLARITY_ID` está mal copiada: GA4 es el «ID de medición» (`G-` y mayúsculas/números, no el número de la propiedad); Clarity, las 10 letras minúsculas y números del proyecto. Corregirla y **Run workflow** (sección 6). |
-| *Compilar* falla con «Google Ads, GA4 o Clarity tienen su variable puesta, pero la web todavía no tiene el aviso de cookies…» | Alguien creó `GOOGLE_ADS_ID`, `GA4_ID` o `CLARITY_ID` antes de que exista el aviso de cookies (sección 6). Mientras siga así **no se publica ningún cambio**, tampoco los guardados del panel. Borrar la variable (Settings → Variables) y **Run workflow**. |
+| *Compilar* falla con «Google Ads, GA4 o Clarity tienen su variable puesta, pero la política de privacidad no está publicada…» | Alguien creó `GOOGLE_ADS_ID`, `GA4_ID` o `CLARITY_ID` antes de publicar la política (sección 6): el aviso de cookies enlaza a ella. Mientras siga así **no se publica ningún cambio**, tampoco los guardados del panel. Borrar la variable (Settings → Variables) y **Run workflow**. |
 | *Compilar* falla con «La política de privacidad está activada pero le falta: …» | Se puso `PRIVACY_POLICY_ENABLED = true` con datos pendientes. Completar lo que lista en `src/data/privacy.ts` o volver a ponerlo en `false`. |
 | *Compilar* falla con «ga4 está encendido, pero la política v… dice lo contrario» (o clarity, ads) | Se encendió o apagó una herramienta de medición con la política publicada. Antes hay que actualizar la inscripción en el RNPDP, la versión y la fecha de la política, y `POLICY_COVERS_MEASUREMENT` en `src/data/privacy.ts`. |
 
@@ -277,8 +277,8 @@ pueden activar por separado y en cualquier orden.
 | **Google Analytics 4** (GA4) | Cuánta gente entra, de dónde viene y cuántos llegan a pedir cotización (embudo). | `GA4_ID` |
 | **Microsoft Clarity** | Ver grabaciones de las visitas y mapas de calor: dónde hacen clic, hasta dónde bajan, dónde se traban. | `CLARITY_ID` |
 
-> ⚠ **Antes de activar cualquiera hacen falta DOS cosas, y hoy no existe
-> ninguna:**
+> ⚠ **Antes de activar cualquiera hacen falta DOS cosas; hoy existe sólo la
+> segunda:**
 >
 > 1. **La Política de privacidad publicada.** El borrador ya está en el sitio,
 >    apagado (`src/data/privacy.ts`, con los pasos para publicarlo). Sus
@@ -287,25 +287,87 @@ pueden activar por separado y en cualquier orden.
 >    la política: antes hay que actualizar la inscripción en el RNPDP, subir la
 >    versión y la fecha y marcarla en `POLICY_COVERS_MEASUREMENT` (si no, la
 >    publicación se detiene).
-> 2. **Un aviso de cookies** con «Aceptar», «Rechazar» y «Configurar», con el
->    mismo peso visual, que no cargue ninguna de las tres hasta que el
->    visitante la acepte y que deje cambiar la elección desde el pie de página.
->    Todavía no está construido. Con la Ley 29733 y su Reglamento
->    (DS 016-2024-JUS), estas herramientas tratan identificadores en línea y
->    necesitan el **consentimiento previo** del visitante. La ANPD ya multó
->    por instalar cookies sin una acción positiva del usuario (RD
->    100-2024-JUS/DGTAIPD): no basta con avisar ni con «si sigues navegando,
->    aceptas».
+> 2. **El aviso de cookies** (hecho el 30-10-2026, ver «Aviso de cookies»
+>    abajo). Con la Ley 29733 y su Reglamento (DS 016-2024-JUS), estas
+>    herramientas tratan identificadores en línea y necesitan el
+>    **consentimiento previo** del visitante. La ANPD ya multó por instalar
+>    cookies sin una acción positiva del usuario (RD 100-2024-JUS/DGTAIPD): no
+>    basta con avisar ni con «si sigues navegando, aceptas».
 >
 > Para que nadie las encienda por error, **la publicación se detiene** si
-> existe `GOOGLE_ADS_ID`, `GA4_ID` o `CLARITY_ID` mientras
-> `CONSENT_BANNER_READY` siga en `false` (`src/data/measurement.ts`). Ese
-> interruptor pasa a `true` sólo cuando el aviso exista y cargue cada
-> herramienta después de que el visitante la acepte.
+> existe `GOOGLE_ADS_ID`, `GA4_ID` o `CLARITY_ID` mientras la política no esté
+> publicada (`PRIVACY_POLICY_ENABLED` en `src/data/privacy.ts`).
 >
 > Clarity, además, no debe usarse en sitios dirigidos a menores de 18 años, y
 > Microsoft pide no llamar «anónimas» a sus grabaciones: tratan
 > identificadores.
+
+### Aviso de cookies
+
+Sale **sólo si hay alguna herramienta encendida**; sin ninguna no existe (ni el
+aviso ni «Configurar cookies» en el pie). Pregunta por cada herramienta
+encendida, con estos nombres (los mismos que usa la política en su punto 7):
+
+| Casilla | Herramienta | Cookies en el sitio |
+|---|---|---|
+| Medición de visitas | Google Analytics 4 | `_ga`, `_ga_…` (hasta 2 años) |
+| Grabación de sesiones | Microsoft Clarity | `_clck` (1 año), `_clsk` (1 día) |
+| Medición de anuncios | Google Ads | `_gcl_au`, `_gcl_aw` (90 días) |
+
+Cómo cumple lo que pide la ley (investigación del 30-10-2026):
+
+- **Nada antes de aceptar.** Google va en el modo «básico» de Consent Mode:
+  `gtag.js` y Clarity no se piden hasta el clic. Cerrar, desplazarse o seguir
+  navegando no es aceptar (el aviso no tiene «X»).
+- **Rechazar tan fácil como aceptar.** «Rechazar todas» y «Aceptar todas» van
+  juntas y con el mismo aspecto; «Configurar» abre una casilla por herramienta,
+  **todas apagadas** la primera vez.
+- **Informado.** El aviso nombra al responsable, para qué es cada herramienta,
+  a Google y Microsoft y que tratan los datos en Estados Unidos, y enlaza a la
+  política (duración de cada cookie, derechos).
+- **Revocable.** «Configurar cookies», al pie de cada página. Al retirar algo
+  ya cargado se avisa a Google/Clarity, se borran sus cookies de este sitio y
+  se recarga la página. Las cookies de los dominios de Google y Microsoft no se
+  pueden borrar desde el sitio (la política lo dice).
+- **Constancia.** La elección se guarda en el navegador (`localStorage`,
+  `dihyc_cookies`): qué aceptó, la fecha, la versión de la política y un código
+  al azar. Vence a los 12 meses o al subir `PRIVACY_POLICY_VERSION`, y entonces
+  se vuelve a preguntar. No hay registro en un servidor (ver preguntas).
+- **El mapa de Contacto** también: se carga sólo al pulsar «Ver mapa».
+
+Lo que demuestra que funciona es el mecanismo: antes de cada publicación que
+toque la medición, y cada cierto tiempo, conviene guardar una prueba con un
+navegador limpio (sin cookies `_ga`, `_gcl_…`, `_clck` ni peticiones a
+googletagmanager.com, google-analytics.com, googleadservices.com,
+doubleclick.net o clarity.ms antes de aceptar ni después de rechazar). La
+tipografía de Google Fonts sí se pide en cada visita (sin cookies, declarada en
+la política); alojarla en el propio sitio quitaría esa última petición a
+Google.
+
+Al configurar las cuentas, para que cada casilla mida sólo lo suyo:
+
+- En Google Ads y en GA4 (Administrar → Etiqueta de Google → Destinos), la
+  etiqueta `G-…` no debe tener como destino la cuenta de Ads ni la `AW-…` la
+  propiedad de GA4: si se combinan, aceptar sólo «Medición de visitas» haría
+  que Google Ads reciba avisos sin cookies.
+- En GA4, Administrar → Configuración de la cuenta → Uso compartido de datos:
+  todo desactivado, para que Google no use las visitas para sus propios fines.
+- Si se vincula GA4 con Google Ads (Paso 3), la política tiene que decirlo.
+
+Preguntas para el abogado (la investigación no las puede cerrar):
+
+1. ¿Basta el registro en el navegador, o hace falta guardar cada
+   consentimiento en un servidor (y con qué datos y por cuánto tiempo)?
+2. ¿Google y Microsoft son encargados o destinatarios con fines propios? ¿Basta
+   el consentimiento del aviso para el envío a Estados Unidos, o hacen falta
+   cláusulas o garantías adicionales?
+3. Inscripción en el RNPDP del banco de datos de la web y comunicación del
+   flujo transfronterizo a Estados Unidos.
+4. ¿Qué datos del art. 6.1 del Reglamento deben ir en el propio aviso y cuáles
+   bastan en la política (domicilio, banco de datos, plazos)?
+5. Validez del consentimiento: ¿volver a preguntar a los 12 meses está bien?
+6. Clarity: ¿alguna medida extra (excluir la página de Contacto, evaluación de
+   impacto)?
 
 ### Qué se mide
 
@@ -592,28 +654,38 @@ busca la gente entre lo que sí hay),
 
 - `src/data/measurement.ts`: lee y valida los IDs (`AW-` + números, `G-` +
   mayúsculas y números, Clarity: 10 minúsculas y números; uno mal copiado hace
-  fallar la compilación) y detiene la compilación si hay alguno mientras
-  `CONSENT_BANNER_READY` sea `false`. La política de privacidad lo usa para
-  mostrar sólo los apartados de lo que está encendido.
+  fallar la compilación). `CONSENT_BANNER_READY` está en `true` porque el aviso
+  existe; si se quitara, vuelve a `false` y la compilación se detiene con
+  cualquier ID. `src/data/privacy.ts` la detiene además si hay un ID y la
+  política no está publicada. La política lo usa para mostrar sólo los
+  apartados de lo que está encendido.
+- `src/data/consent.ts` y `src/components/CookieConsent.astro`: el aviso. Una
+  categoría por herramienta encendida (`medicion`, `sesiones`, `anuncios`), la
+  elección en `localStorage` (`dihyc_cookies`) y `window.dihycConsent` con lo
+  aceptado. Llama a las funciones de carga de BaseLayout.
 - `src/layouts/BaseLayout.astro`: con `PUBLIC_GOOGLE_ADS_ID` y/o
-  `PUBLIC_GA4_ID` carga **una** etiqueta de Google (gtag.js) al principio del
-  `<head>` y hace un `gtag('config', …)` por ID, como indica
-  [la guía oficial](https://developers.google.com/tag-platform/gtagjs/install);
-  el `config` de GA4 envía el `page_view`. Con `PUBLIC_CLARITY_ID`, el código
-  oficial de Clarity
-  ([guía](https://learn.microsoft.com/clarity/setup-and-installation/clarity-setup)).
-  Antes de los `config` fija `allow_ad_personalization_signals: false` y
-  `allow_google_signals: false`: sin remarketing ni Google Signals, como dice
-  la política de privacidad. Activarlos exige cambiar esa línea, la política y
-  la categoría «Publicidad» del aviso de cookies.
+  `PUBLIC_GA4_ID` define `window.dihycCargarGoogle(permisos)`, que el aviso
+  llama tras aceptar: `consent default` (todo denegado), `consent update` con lo
+  aceptado, un `gtag('config', …)` sólo por cada producto aceptado y recién
+  entonces inserta gtag.js
+  ([modo básico](https://developers.google.com/tag-platform/security/guides/consent?consentmode=basic)).
+  `window.gtag` no existe antes de aceptar, así que ningún evento queda en cola.
+  Con `PUBLIC_CLARITY_ID`, `window.dihycCargarClarity()`: el código oficial
+  ([guía](https://learn.microsoft.com/clarity/setup-and-installation/clarity-setup))
+  más `clarity('consentv2', …)`. Fija `allow_ad_personalization_signals: false`
+  y `allow_google_signals: false` y `ad_personalization` siempre denegado: sin
+  remarketing ni Google Signals, como dice la política. Activarlos exige cambiar
+  esa línea, la política y la categoría «Medición de anuncios» del aviso.
 - En todas las páginas hay un único escucha (delegado en `document`):
   - en un clic a `wa.me` / `api.whatsapp.com`, en un `tel:` o en el evento
     `document.dispatchEvent(new CustomEvent("dihyc:conversion", { detail: { tipo: "formulario" } }))`
     deja `{ event: 'dihyc_conversion', tipo }` en `window.dataLayer` y, con
     Ads, llama a `gtag('event', 'conversion', { send_to: 'AW-…/etiqueta', transport_type: 'beacon' })`;
   - cada evento de la tabla «Qué se mide» queda en `dataLayer` como
-    `{ event: 'dihyc_<nombre>', …datos }` y, sólo con GA4, se envía con
+    `{ event: 'dihyc_<nombre>', …datos }` y, sólo con GA4 y la medición de
+    visitas aceptada, se envía con
     `gtag('event', '<nombre>', { send_to: 'G-…', …datos })` (Ads no los recibe);
+    la conversión de Ads, sólo con la medición de anuncios aceptada;
   - `cotizar_marcado` escucha `change` en las casillas con `data-quote-id`,
     `filtro_aplicado` en las de `[data-facet]` (sólo al marcar), y
     `ficha_descargada` los clics a PDF de `/assets/fichas-tecnicas/` y
@@ -633,10 +705,12 @@ busca la gente entre lo que sí hay),
   [Microsoft](https://learn.microsoft.com/clarity/setup-and-installation/clarity-csp)
   (`*.clarity.ms` y `c.bing.com`)—. Sin IDs no toca nada; correrlo dos veces
   deja el mismo archivo. `public/.htaccess` no cambia.
-- Para probar en local hay que poner antes `CONSENT_BANNER_READY = true` en una
-  copia de `src/data/measurement.ts` (sin eso la compilación se detiene a
-  propósito):
-  `PUBLIC_GOOGLE_ADS_ID=AW-000000000 PUBLIC_GA4_ID=G-TEST000000 PUBLIC_CLARITY_ID=abcde12345 npm run build`.
+- Para probar en local, con la política en vista previa (sin ella la
+  compilación se detiene a propósito):
+  `PRIVACY_PREVIEW=1 PUBLIC_GOOGLE_ADS_ID=AW-000000000 PUBLIC_GA4_ID=G-TEST000000 PUBLIC_CLARITY_ID=abcde12345 npm run build`.
+- `deploy.yml` (y su copia local) comprueba con IDs que cada página lleve el
+  aviso una vez, el cargador de gtag.js una vez y **ninguna** etiqueta fija de
+  Google; sin IDs, que no haya aviso.
   Esas compilaciones de prueba no se suben: la publicación siempre compila en
   GitHub. La CSP sola se puede probar sin compilar, como hace
   `scripts/probar-htaccess.sh`: `PUBLIC_GA4_ID=G-TEST000000 node scripts/csp-medicion.mjs dist`.
